@@ -1,0 +1,3304 @@
+<vrmat>
+ <Asset renderer="vray" url="/ToiletModern001" type="material" layout="">
+  <plugin>
+   <vrayplugin name="MtlSingleBRDF" type="material" version="20">
+    <parameters>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bind_all_on" name="bind_all_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bind_texture_mode" name="bind_texture_mode" listType="none" type="integer" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bind_texture_on" name="bind_texture_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="viewport_texture" name="viewport_texture" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="bind_opacity_on" name="bind_opacity_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bind_color_on" name="bind_color_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="brdf" name="brdf" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl</value>
+     </parameter>
+     <parameter handler="default" label="bump" name="bump" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="filter" name="filter" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="channels" name="channels" listType="plugin" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="displacement" name="displacement" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="double_sided" name="double_sided" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="effected_by_mtl_override" name="effected_by_mtl_override" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="materialID" name="materialID" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="renderStats" name="renderStats" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="scene_name" name="scene_name" listType="string" type="list">
+      <value>
+       <list>
+        <entry>ToiletModern001</entry>
+       </list>
+      </value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>generic</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl" type="BRDF" layout="">
+  <plugin>
+   <vrayplugin name="BRDFVRayMtl" type="BRDF" version="20">
+    <parameters>
+     <parameter handler="default" label="bump_amount_tex_mult" name="bump_amount_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_ior_tex_mult" name="coat_ior_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="lpe_label" name="lpe_label" listType="none" type="string">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="anisotropy" name="anisotropy" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_rotation_float" name="anisotropy_rotation_float" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_color_tex_mult" name="coat_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_axis" name="anisotropy_axis" listType="none" type="integer">
+      <value>2</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_derivation" name="anisotropy_derivation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_amount_float" name="coat_amount_float" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bump_map" name="bump_map" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_NRM</value>
+     </parameter>
+     <parameter handler="default" label="fog_depth" name="fog_depth" listType="none" type="float">
+      <value>20</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_rotation_tex_on" name="anisotropy_rotation_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="sheen_glossiness" name="sheen_glossiness" listType="none" type="float">
+      <value>0.8</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_rotation" name="anisotropy_rotation" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="fog_mult" name="fog_mult" listType="none" type="float">
+      <value>2</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_float" name="anisotropy_float" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="option_use_irradiance_map" name="option_use_irradiance_map" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_tex_on" name="anisotropy_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bump_type" name="bump_type" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_color_tex" name="coat_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="anisotropy_rotation_tex" name="anisotropy_rotation_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="gtr_energy_compensation" name="gtr_energy_compensation" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_rotation_tex_mult" name="anisotropy_rotation_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_amount" name="coat_amount" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_glossiness" name="coat_glossiness" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="opacity_tex_on" name="opacity_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_tex" name="anisotropy_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="reflect_tex_on" name="reflect_tex_on" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_tex_mult" name="anisotropy_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refract_affect_alpha" name="refract_affect_alpha" listType="none" type="integer">
+      <!--TRANSMISSION<value>2</value>TRANSMISSION-->
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="option_energy_mode" name="option_energy_mode" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_uvwgen" name="anisotropy_uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="coat_bump_amount" name="coat_bump_amount" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="gtr_gamma" name="gtr_gamma" listType="none" type="float">
+      <value>2</value>
+     </parameter>
+     <parameter handler="default" label="coat_glossiness_tex" name="coat_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="option_fix_dark_edges" name="option_fix_dark_edges" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="anisotropy_uvwgen_channel" name="anisotropy_uvwgen_channel" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="brdf_type" name="brdf_type" listType="none" type="integer">
+      <value>4</value>
+     </parameter>
+     <parameter handler="default" label="dispersion" name="dispersion" listType="none" type="float">
+      <value>50</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior_float" name="fresnel_ior_float" listType="none" type="float" isUserData="1">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="coat_color_color" name="coat_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="bump_amount" name="bump_amount" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bump_amount_float" name="bump_amount_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bump_map_tex" name="bump_map_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_NRM</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_tex_on" name="thin_film_thickness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bump_amount_tex" name="bump_amount_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="bump_amount_tex_on" name="bump_amount_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="diffuse_tex_on" name="diffuse_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_amount_tex_on" name="coat_bump_amount_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_max" name="thin_film_thickness_max" listType="none" type="float">
+      <value>400</value>
+     </parameter>
+     <parameter handler="default" label="opacity_tex_mult" name="opacity_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="new_gtr_anisotropy" name="new_gtr_anisotropy" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bump_map_color" name="bump_map_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="diffuse_tex" name="diffuse_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>
+     <parameter handler="default" label="translucency_surfaceLighting" name="translucency_surfaceLighting" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="channels" name="channels" listType="plugin" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="bump_map_tex_mult" name="bump_map_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="bump_map_tex_on" name="bump_map_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refl_imap_samples" name="refl_imap_samples" listType="none" type="integer">
+      <value>20</value>
+     </parameter>
+     <parameter handler="default" label="coat_amount_tex" name="coat_amount_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_min" name="thin_film_thickness_min" listType="none" type="float">
+      <value>250</value>
+     </parameter>
+     <parameter handler="default" label="fog_unit_scale_on" name="fog_unit_scale_on" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_amount_tex_mult" name="coat_amount_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness_tex_on" name="hilight_glossiness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_amount_tex_on" name="coat_amount_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_amount_float" name="coat_bump_amount_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_on" name="thin_film_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_lock" name="coat_bump_lock" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_tex_mult" name="thin_film_thickness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refract_ior_tex_mult" name="refract_ior_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <!--TRANSMISSION<parameter handler="default" label="fog_color_tex_tex" name="fog_color_tex_tex" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>TRANSMISSION-->
+     <parameter handler="default" label="fog_color_tex_tex" name="fog_color_tex_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="coat_bump_amount_tex" name="coat_bump_amount_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="coat_ior_float" name="coat_ior_float" listType="none" type="float" isUserData="1">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_amount_tex_mult" name="coat_bump_amount_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_map" name="coat_bump_map" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="reflect_glossiness_tex_mult" name="reflect_glossiness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_bump_type" name="coat_bump_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_color" name="coat_color" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="coat_color_tex_on" name="coat_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_glossiness_float" name="coat_glossiness_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_ior_tex" name="coat_ior_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="volume" name="volume" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="use_environment_override" name="use_environment_override" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_glossiness_tex_mult" name="coat_glossiness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_glossiness_tex_on" name="coat_glossiness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <!--SSS<parameter handler="default" label="translucency" name="translucency" listType="none" type="integer">
+      <value>6</value>
+     </parameter>SSS-->
+     <parameter handler="default" label="translucency" name="translucency" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coat_ior" name="coat_ior" listType="none" type="float">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="refract_tex_on" name="refract_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="coat_ior_tex_on" name="coat_ior_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compensate_camera_exposure" name="compensate_camera_exposure" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="diffuse" name="diffuse" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>
+     <parameter handler="default" label="sheen_glossiness_tex_on" name="sheen_glossiness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="diffuse_color" name="diffuse_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="diffuse_tex_mult" name="diffuse_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="dispersion_on" name="dispersion_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="metalness_tex_on" name="metalness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="environment_override" name="environment_override" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="environment_override_color" name="environment_override_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="environment_override_tex" name="environment_override_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="environment_override_tex_mult" name="environment_override_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="environment_override_tex_on" name="environment_override_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="environment_priority" name="environment_priority" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="sheen_color_tex_mult" name="sheen_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fog_bias" name="fog_bias" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="fog_color" name="fog_color" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <!--TRANSMISSION<parameter handler="default" label="fog_color_tex" name="fog_color_tex" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>TRANSMISSION-->
+     <parameter handler="default" label="fog_color_tex" name="fog_color_tex" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="fresnel" name="fresnel" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fog_color_tex_color" name="fog_color_tex_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="fog_color_tex_tex_mult" name="fog_color_tex_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fog_color_tex_tex_on" name="fog_color_tex_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior" name="fresnel_ior" listType="none" type="float">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior_lock" name="fresnel_ior_lock" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior_tex" name="fresnel_ior_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_depth" name="refract_depth" listType="none" type="integer">
+      <value>4</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior_tex_mult" name="fresnel_ior_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="fresnel_ior_tex_on" name="fresnel_ior_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness" name="hilight_glossiness" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="reflect_glossiness_float" name="reflect_glossiness_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness_float" name="hilight_glossiness_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness_lock" name="hilight_glossiness_lock" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness_tex" name="hilight_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="hilight_glossiness_tex_mult" name="hilight_glossiness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="hilight_soften" name="hilight_soften" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="linear_workflow" name="linear_workflow" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="metalness" name="metalness" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_metalness</value>
+     </parameter>
+     <parameter handler="default" label="metalness_float" name="metalness_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness" name="thin_film_thickness" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="metalness_tex" name="metalness_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS</value>
+     </parameter>
+     <parameter handler="default" label="self_illumination_tex" name="self_illumination_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="metalness_tex_mult" name="metalness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <!--ALPHAMASKED<parameter handler="default" label="opacity" name="opacity" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_opacity_custom_source</value>
+     </parameter>ALPHAMASKED-->
+     <!--MASK<parameter handler="default" label="opacity" name="opacity" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_opacity</value>
+     </parameter>MASK-->
+     <parameter handler="default" label="opacity" name="opacity" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="opacity_color" name="opacity_color" listType="none" type="acolor">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+       <a>1</a>
+      </value>
+     </parameter>
+     <parameter handler="default" label="opacity_float" name="opacity_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="opacity_from_alpha_mode" name="opacity_from_alpha_mode" listType="none" type="integer" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="opacity_from_alpha_on" name="opacity_from_alpha_on" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="opacity_mode" name="opacity_mode" listType="none" type="integer">
+      <value>2</value>
+     </parameter>
+     <parameter handler="default" label="opacity_source" name="opacity_source" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <!--MASK<parameter handler="default" label="opacity_tex" name="opacity_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_MASK</value>
+     </parameter>MASK-->
+     <parameter handler="default" label="opacity_tex" name="opacity_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="option_cutoff" name="option_cutoff" listType="none" type="float">
+      <value>0.001</value>
+     </parameter>
+     <parameter handler="default" label="option_double_sided" name="option_double_sided" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="option_glossy_fresnel" name="option_glossy_fresnel" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="option_glossy_rays_as_gi" name="option_glossy_rays_as_gi" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="option_reflect_on_back" name="option_reflect_on_back" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="option_use_roughness" name="option_use_roughness" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refl_imap_color_thresh" name="refl_imap_color_thresh" listType="none" type="float">
+      <value>0.25</value>
+     </parameter>
+     <parameter handler="default" label="refl_imap_max_rate" name="refl_imap_max_rate" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refl_imap_min_rate" name="refl_imap_min_rate" listType="none" type="integer">
+      <value>-1</value>
+     </parameter>
+     <parameter handler="default" label="refl_imap_norm_thresh" name="refl_imap_norm_thresh" listType="none" type="float">
+      <value>0.4</value>
+     </parameter>
+     <parameter handler="default" label="refl_interpolation_on" name="refl_interpolation_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="roughness_tex_on" name="roughness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <!--<parameter handler="default" label="reflect" name="reflect" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS</value>
+     </parameter>-->
+     <parameter handler="default" label="reflect" name="reflect" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="reflect_affect_alpha" name="reflect_affect_alpha" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="reflect_color" name="reflect_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="reflect_depth" name="reflect_depth" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="reflect_dim_distance" name="reflect_dim_distance" listType="none" type="float">
+      <value>100</value>
+     </parameter>
+     <parameter handler="default" label="translucency_color_color" name="translucency_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="sheen_color_tex" name="sheen_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_glossiness_tex_mult" name="refract_glossiness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="reflect_dim_distance_falloff" name="reflect_dim_distance_falloff" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="reflect_dim_distance_on" name="reflect_dim_distance_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="reflect_exit_color" name="reflect_exit_color" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="reflect_glossiness" name="reflect_glossiness" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_reflect_glossiness</value>
+     </parameter>
+     <parameter handler="default" label="translucency_color_tex_on" name="translucency_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="reflect_glossiness_tex" name="reflect_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS</value>
+     </parameter>
+     <parameter handler="default" label="reflect_subdivs" name="reflect_subdivs" listType="none" type="integer">
+      <value>8</value>
+     </parameter>
+     <parameter handler="default" label="reflect_glossiness_tex_on" name="reflect_glossiness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="reflect_tex" name="reflect_tex" listType="none" type="plugin" isUserData="1">
+      <!--<value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>-->
+      <value/>
+     </parameter>
+     <parameter handler="default" label="reflect_tex_mult" name="reflect_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="reflect_trace" name="reflect_trace" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refr_imap_color_thresh" name="refr_imap_color_thresh" listType="none" type="float">
+      <value>0.25</value>
+     </parameter>
+     <parameter handler="default" label="refr_imap_max_rate" name="refr_imap_max_rate" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refr_imap_min_rate" name="refr_imap_min_rate" listType="none" type="integer">
+      <value>-1</value>
+     </parameter>
+     <parameter handler="default" label="refr_imap_norm_thresh" name="refr_imap_norm_thresh" listType="none" type="float">
+      <value>0.4</value>
+     </parameter>
+     <parameter handler="default" label="refr_imap_samples" name="refr_imap_samples" listType="none" type="integer">
+      <value>20</value>
+     </parameter>
+     <parameter handler="default" label="sheen_glossiness_tex_mult" name="sheen_glossiness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refr_interpolation_on" name="refr_interpolation_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <!--TRANSMISSION<parameter handler="default" label="refract" name="refract" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION</value>
+     </parameter>TRANSMISSION-->
+     <parameter handler="default" label="refract" name="refract" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="refract_affect_shadows" name="refract_affect_shadows" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="refract_color" name="refract_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <!--TRANSMISSION<parameter handler="default" label="refract_tex" name="refract_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION</value>
+     </parameter>TRANSMISSION-->
+     <parameter handler="default" label="refract_tex" name="refract_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_exit_color" name="refract_exit_color" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="refract_exit_color_on" name="refract_exit_color_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="refract_glossiness" name="refract_glossiness" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refract_glossiness_float" name="refract_glossiness_float" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <!--TRANSMISSION<parameter handler="default" label="refract_glossiness_tex" name="refract_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION</value>
+     </parameter>TRANSMISSION-->
+     <parameter handler="default" label="refract_glossiness_tex" name="refract_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_glossiness_tex_on" name="refract_glossiness_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_tex" name="thin_film_thickness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_ior" name="refract_ior" listType="none" type="float">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="refract_ior_float" name="refract_ior_float" listType="none" type="float" isUserData="1">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="refract_ior_tex" name="refract_ior_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="refract_ior_tex_on" name="refract_ior_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refract_subdivs" name="refract_subdivs" listType="none" type="integer">
+      <value>8</value>
+     </parameter>
+     <parameter handler="default" label="refract_tex_mult" name="refract_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="refract_thin_walled" name="refract_thin_walled" listType="none" type="bool">
+      <!--ALPHAMASKED<value>1</value>ALPHAMASKED-->
+      <!--MASK<value>1</value>MASK-->
+      <!--SSS<value>1</value>SSS-->
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="refract_trace" name="refract_trace" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <!--SSS<parameter handler="default" label="translucency_color" name="translucency_color" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>SSS-->
+     <parameter handler="default" label="translucency_color" name="translucency_color" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="roughness" name="roughness" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="roughness_float" name="roughness_float" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="roughness_model" name="roughness_model" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="roughness_tex" name="roughness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="roughness_tex_mult" name="roughness_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="self_illumination" name="self_illumination" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="self_illumination_color" name="self_illumination_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="self_illumination_gi" name="self_illumination_gi" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="self_illumination_tex_mult" name="self_illumination_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="self_illumination_tex_on" name="self_illumination_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="shader_channels" name="shader_channels" listType="none" type="integer" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="sheen_color" name="sheen_color" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="sheen_color_color" name="sheen_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="sheen_color_tex_on" name="sheen_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="sheen_glossiness_float" name="sheen_glossiness_float" listType="none" type="float" isUserData="1">
+      <value>0.8</value>
+     </parameter>
+     <parameter handler="default" label="sheen_glossiness_tex" name="sheen_glossiness_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_ior" name="thin_film_ior" listType="none" type="float">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_ior_float" name="thin_film_ior_float" listType="none" type="float" isUserData="1">
+      <value>1.5</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_ior_tex" name="thin_film_ior_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="thin_film_ior_tex_mult" name="thin_film_ior_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_ior_tex_on" name="thin_film_ior_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="thin_film_thickness_float" name="thin_film_thickness_float" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="translucency_amount" name="translucency_amount" listType="none" type="float">
+	  <value>0.02</value>
+     </parameter>
+     <parameter handler="default" label="translucency_cache" name="translucency_cache" listType="none" type="integer" isUserData="1">
+      <value>3</value>
+     </parameter>
+     <!--SSS<parameter handler="default" label="translucency_color_tex" name="translucency_color_tex" listType="none" type="plugin" isUserData="1">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>SSS-->
+     <parameter handler="default" label="translucency_color_tex_mult" name="translucency_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="translucency_light_mult" name="translucency_light_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="translucency_scatter_coeff" name="translucency_scatter_coeff" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="translucency_scatter_dir" name="translucency_scatter_dir" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="translucency_thickness" name="translucency_thickness" listType="none" type="float">
+      <value>1000</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_COL" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL/UVW</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_COL/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>././ToiletModern001_COL_3K_METALNESS.jpg</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_COL/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_NRM" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_NRM/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_NRM/UVW</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_NRM/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>././ToiletModern001_NRM_3K_METALNESS.png</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_NRM/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_metalness" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexCombineFloat" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="value" name="value" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="texture_clamp" name="texture_clamp" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="result_multiplier" name="result_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="texture" name="texture" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier" name="texture_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS/UVW</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>././ToiletModern001_METALNESS_3K_METALNESS.png</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_METALNESS/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_reflect_glossiness" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexCombineFloat" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="value" name="value" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="texture_clamp" name="texture_clamp" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="result_multiplier" name="result_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="texture" name="texture" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier" name="texture_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+  <preview></preview>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS/UVW</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>././ToiletModern001_ROUGHNESS_3K_METALNESS.jpg</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_ROUGHNESS/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <!--ALPHAMASKED<Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_opacity_custom_source" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexAColorChannel" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_a" name="color_a" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_COL</value>
+     </parameter>
+     <parameter handler="default" label="mode" name="mode" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="mult_a" name="mult_a" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>ALPHAMASKED-->
+ <!--MASK<Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_opacity" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexCombineFloat" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="value" name="value" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="texture_clamp" name="texture_clamp" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="result_multiplier" name="result_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="texture" name="texture" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_MASK</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier" name="texture_multiplier" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_MASK" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_MASK/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_MASK/UVW</value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_MASK/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>./MASK_MAP</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_MASK/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>MASK-->
+ <!--TRANSMISSION<Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION/UVW</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>./TRANSMISSION_MAP</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_TRANSMISSION/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>TRANSMISSION-->
+ <!--SSS <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_SSS" type="texture" layout="">
+  <plugin>
+   <vrayplugin name="TexBitmap" type="texture" version="20">
+    <parameters>
+     <parameter handler="default" label="alpha_from_intensity" name="alpha_from_intensity" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="alpha_mult" name="alpha_mult" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="alpha_offset" name="alpha_offset" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="bitmap" name="bitmap" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_SSS/Bitmap</value>
+     </parameter>
+     <parameter handler="default" label="color_mult" name="color_mult" listType="none" type="color">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset" name="color_offset" listType="none" type="color">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="compatibility_with" name="compatibility_with" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="h" name="h" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="invert" name="invert" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="invert_alpha" name="invert_alpha" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="jitter" name="jitter" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color" name="nouvw_color" listType="none" type="color">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="placement_type" name="placement_type" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile" name="tile" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="tile_u" name="tile_u" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tile_v" name="tile_v" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="u" name="u" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="un_noise_phase" name="un_noise_phase" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_amount" name="uv_noise_amount" listType="none" type="float">
+      <value>10</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_animate" name="uv_noise_animate" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_levels" name="uv_noise_levels" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_on" name="uv_noise_on" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uv_noise_size" name="uv_noise_size" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value>/ToiletModern001/VRay Mtl/ToiletModern001_SSS/UVW</value>
+     </parameter>
+     <parameter handler="default" label="v" name="v" listType="none" type="float">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="w" name="w" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_color" name="color_mult_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>1</r>
+       <g>1</g>
+       <b>1</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex" name="color_mult_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_mult" name="color_mult_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_mult_tex_on" name="color_mult_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_color" name="color_offset_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0</r>
+       <g>0</g>
+       <b>0</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex" name="color_offset_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_mult" name="color_offset_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="color_offset_tex_on" name="color_offset_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="lock_w_h" name="lock_w_h" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_color" name="nouvw_color_color" listType="none" type="color" isUserData="1">
+      <value>
+       <r>0.5</r>
+       <g>0.5</g>
+       <b>0.5</b>
+      </value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex" name="nouvw_color_tex" listType="none" type="plugin" isUserData="1">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_mult" name="nouvw_color_tex_mult" listType="none" type="float" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nouvw_color_tex_on" name="nouvw_color_tex_on" listType="none" type="bool" isUserData="1">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="swatch_type" name="swatch_type" listType="none" type="string" isUserData="1">
+      <value>2d</value>
+     </parameter>
+     <parameter handler="default" label="texture_multiplier_mode" name="texture_multiplier_mode" listType="none" type="integer" isUserData="1">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_SSS/Bitmap" type="bitmap" layout="">
+  <plugin>
+   <vrayplugin name="BitmapBuffer" type="bitmap" version="20">
+    <parameters>
+     <parameter handler="default" label="psd_group_name" name="psd_group_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="psd_alpha_name" name="psd_alpha_name" listType="integer" type="list">
+      <value>
+       <list/>
+      </value>
+     </parameter>
+     <parameter handler="default" label="allow_negative_colors" name="allow_negative_colors" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="FileBrowserHandler" label="file" name="file" listType="none" type="string">
+      <value>./SSS_MAP</value>
+     </parameter>
+     <parameter handler="default" label="filter_blur" name="filter_blur" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="filter_type" name="filter_type" listType="none" type="integer">
+      <value>5</value>
+     </parameter>
+     <parameter handler="default" label="frame_number" name="frame_number" listType="none" type="integer">
+      <value>-2147483648</value>
+     </parameter>
+     <parameter handler="default" label="frame_offset" name="frame_offset" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="frame_sequence" name="frame_sequence" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="gamma" name="gamma" listType="none" type="float">
+      <value>0.454545</value>
+     </parameter>
+     <parameter handler="default" label="ifl_end_condition" name="ifl_end_condition" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="ifl_playback_rate" name="ifl_playback_rate" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="ifl_start_frame" name="ifl_start_frame" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="interpolation" name="interpolation" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="load_file" name="load_file" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="maya_compatible" name="maya_compatible" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="rgb_color_space" name="rgb_color_space" listType="none" type="string">
+      <value>raw</value>
+     </parameter>
+     <parameter handler="default" label="transfer_function" name="transfer_function" listType="none" type="integer">
+      <value>3</value>
+     </parameter>
+     <parameter handler="default" label="use_data_window" name="use_data_window" listType="none" type="bool">
+      <value>1</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>
+ <Asset renderer="vray" url="/ToiletModern001/VRay Mtl/ToiletModern001_SSS/UVW" type="uvw" layout="">
+  <plugin>
+   <vrayplugin name="UVWGenChannel" type="uvw" version="20">
+    <parameters>
+     <parameter handler="default" label="coverage" name="coverage" listType="none" type="vector">
+      <value>
+       <x>1</x>
+       <y>1</y>
+       <z>1</z>
+      </value>
+     </parameter>
+     <parameter handler="default" label="crop_u" name="crop_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_v" name="crop_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="crop_w" name="crop_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="duvw_scale" name="duvw_scale" listType="none" type="float">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="nsamples" name="nsamples" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="tex_transform" name="tex_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="use_double_sided_mode" name="use_double_sided_mode" listType="none" type="bool">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="uvw_channel" name="uvw_channel" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform" name="uvw_transform" listType="none" type="transform">
+      <value>
+       <vector>
+        <x>1</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>1</y>
+        <z>0</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>1</z>
+       </vector>
+       <vector>
+        <x>0</x>
+        <y>0</y>
+        <z>0</z>
+       </vector>
+      </value>
+     </parameter>
+     <parameter handler="default" label="uvw_transform_tex" name="uvw_transform_tex" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="uvwgen" name="uvwgen" listType="none" type="plugin">
+      <value/>
+     </parameter>
+     <parameter handler="default" label="wrap_mode" name="wrap_mode" listType="none" type="integer">
+      <value>1</value>
+     </parameter>
+     <parameter handler="default" label="wrap_u" name="wrap_u" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_v" name="wrap_v" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="wrap_w" name="wrap_w" listType="none" type="integer">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="lock_repeat" name="lock_repeat" listType="none" type="bool" isUserData="1">
+      <value>0</value>
+     </parameter>
+     <parameter handler="default" label="rotation" name="rotation" listType="none" type="float" isUserData="1">
+      <value>0</value>
+     </parameter>
+    </parameters>
+   </vrayplugin>
+  </plugin>
+ </Asset>SSS-->
+</vrmat>
