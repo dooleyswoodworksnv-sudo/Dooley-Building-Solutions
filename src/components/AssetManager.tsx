@@ -17,9 +17,12 @@ export function AssetManager() {
     const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
     // Folder Management State
+    const [isMaterialsExpanded, setIsMaterialsExpanded] = useState(false);
+    const [isModelsExpanded, setIsModelsExpanded] = useState(false);
+    const [creatingFolderIn, setCreatingFolderIn] = useState<'materials' | 'models' | null>(null);
+    const [forceModelFolders, setForceModelFolders] = useState<string[]>([]);
     const [editingFolder, setEditingFolder] = useState<string | null>(null);
     const [editFolderName, setEditFolderName] = useState<string>('');
-    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [draggedOverFolder, setDraggedOverFolder] = useState<string | null>(null);
 
@@ -136,15 +139,30 @@ export function AssetManager() {
     // ----- FOLDER MANAGEMENT LOGIC -----
 
     const toggleFolder = (dir: string) => {
-        if (editingFolder === dir) return; // Don't toggle while typing a new name
-        setExpandedFolders(prev => ({
-            ...prev,
-            [dir]: !prev[dir]
-        }));
+        if (editingFolder === dir) return;
+        setExpandedFolders(prev => {
+            const isClosing = prev[dir];
+            const next: Record<string, boolean> = {};
+            if (!isClosing) {
+                Object.keys(prev).forEach(key => {
+                    if (prev[key] && dir.startsWith(key + '/')) {
+                        next[key] = true;
+                    }
+                });
+                next[dir] = true;
+            } else {
+                Object.keys(prev).forEach(key => {
+                    if (prev[key] && !key.startsWith(dir)) {
+                        next[key] = true;
+                    }
+                });
+            }
+            return next;
+        });
     };
 
-    const handleCreateFolder = async () => {
-        if (!newFolderName.trim()) return setIsCreatingFolder(false);
+    const handleCreateFolder = async (folderType: 'materials' | 'models') => {
+        if (!newFolderName.trim()) return setCreatingFolderIn(null);
         try {
             const res = await fetch('http://localhost:3001/api/folders', {
                 method: 'POST',
@@ -153,8 +171,11 @@ export function AssetManager() {
             });
             const data = await res.json();
             if (data.success) {
+                if (folderType === 'models') {
+                    setForceModelFolders(prev => [...prev, newFolderName.trim()]);
+                }
                 setNewFolderName('');
-                setIsCreatingFolder(false);
+                setCreatingFolderIn(null);
                 fetchLocalAssets();
             } else {
                 alert(data.error);
@@ -225,8 +246,10 @@ export function AssetManager() {
         children: Record<string, TreeNode>;
     }
 
-    const folderTree = React.useMemo(() => {
+    const { materialsTree, modelsTree } = React.useMemo(() => {
         const root: TreeNode = { name: 'Root', path: '', assets: [], children: {} };
+        const matRoot: TreeNode = { name: 'Root', path: '', assets: [], children: {} };
+        const modRoot: TreeNode = { name: 'Root', path: '', assets: [], children: {} };
 
         localAssets.forEach(asset => {
             const dirPath = asset.directory || '';
@@ -242,12 +265,7 @@ export function AssetManager() {
             parts.forEach((part) => {
                 currentStr = currentStr ? `${currentStr}/${part}` : part;
                 if (!currentObj.children[part]) {
-                    currentObj.children[part] = {
-                        name: part,
-                        path: currentStr,
-                        assets: [],
-                        children: {}
-                    };
+                    currentObj.children[part] = { name: part, path: currentStr, assets: [], children: {} };
                 }
                 currentObj = currentObj.children[part];
             });
@@ -257,8 +275,30 @@ export function AssetManager() {
             }
         });
 
-        return root;
-    }, [localAssets]);
+        const isModelFile = (name: string) => /\.(skp|obj|fbx|blend|zip)$/i.test(name);
+        const folderHasModels = (node: TreeNode): boolean => {
+            if (node.assets.some(a => isModelFile(a.name) && !a.name.includes('_emblem.png'))) return true;
+            return Object.values(node.children).some(folderHasModels);
+        };
+
+        Object.values(root.children).forEach(child => {
+            if (folderHasModels(child) || child.name.toLowerCase().includes('model') || child.name.toLowerCase().includes('3d') || forceModelFolders.includes(child.name)) {
+                modRoot.children[child.name] = child;
+            } else {
+                matRoot.children[child.name] = child;
+            }
+        });
+
+        root.assets.forEach(asset => {
+            if (isModelFile(asset.name) && !asset.name.includes('_emblem.png')) {
+                modRoot.assets.push(asset);
+            } else {
+                matRoot.assets.push(asset);
+            }
+        });
+
+        return { materialsTree: matRoot, modelsTree: modRoot };
+    }, [localAssets, forceModelFolders]);
 
     const allPaths = React.useMemo(() => {
         const paths: string[] = [];
@@ -266,9 +306,31 @@ export function AssetManager() {
             if (node.path) paths.push(node.path);
             Object.values(node.children).forEach(traverse);
         };
-        traverse(folderTree);
-        return paths.sort((a, b) => a.localeCompare(b));
-    }, [folderTree]);
+        traverse(materialsTree);
+        traverse(modelsTree);
+        return paths;
+    }, [materialsTree, modelsTree]);
+
+    // Separate path lists for category-filtered upload target folder
+    const materialPaths = React.useMemo(() => {
+        const paths: string[] = [];
+        const traverse = (node: TreeNode) => {
+            if (node.path) paths.push(node.path);
+            Object.values(node.children).forEach(traverse);
+        };
+        traverse(materialsTree);
+        return paths;
+    }, [materialsTree]);
+
+    const modelPaths = React.useMemo(() => {
+        const paths: string[] = [];
+        const traverse = (node: TreeNode) => {
+            if (node.path) paths.push(node.path);
+            Object.values(node.children).forEach(traverse);
+        };
+        traverse(modelsTree);
+        return paths;
+    }, [modelsTree]);
 
     const handleDragStartFolder = (e: React.DragEvent, sourcePath: string) => {
         e.dataTransfer.setData('application/x-dooleys-folder', sourcePath);
@@ -360,7 +422,7 @@ export function AssetManager() {
                 onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder(dir); }}
                 onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder(null); }}
                 onDrop={e => handleDrop(e, dir)}
-                className={`bg-white dark:bg-zinc-900 border ${draggedOverFolder === dir ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)] ring-2 ring-green-500/20 scale-[1.01] z-10' : 'border-zinc-200 dark:border-zinc-800 hover:shadow-md'} rounded-xl overflow-hidden shadow-sm transition-all duration-200 group/folder mb-2`}
+                className={`bg-white dark:bg-zinc-900 border-b last:border-b-0 ${draggedOverFolder === dir ? 'border-green-500 shadow-[inset_0_0_15px_rgba(34,197,94,0.3)] bg-green-50/10 z-10' : 'border-zinc-200 dark:border-zinc-800'} overflow-hidden transition-all duration-200 group/folder`}
             >
                 <div 
                     onClick={() => !isEditing && toggleFolder(dir)}
@@ -431,9 +493,9 @@ export function AssetManager() {
                 </div>
                 
                 {(isExpanded && !isEditing) && (
-                    <div className="p-2 sm:p-3 space-y-1 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 pl-4 sm:pl-5 border-l-2 border-l-indigo-500/10 custom-scrollbar">
+                    <div className="p-2 sm:p-3 space-y-1 bg-zinc-50/50 dark:bg-zinc-950/50 pl-4 sm:pl-5 border-l-2 border-l-indigo-500/20 custom-scrollbar">
                         {childrenNodes.length > 0 && (
-                            <div className="space-y-1 mb-2">
+                            <div className="mb-2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden shadow-sm">
                                 {childrenNodes.map(child => <FolderRow key={child.path} node={child} />)}
                             </div>
                         )}
@@ -536,6 +598,161 @@ export function AssetManager() {
         );
     };
 
+    const renderAccordionSection = (
+        title: string,
+        icon: React.ReactNode,
+        treeType: 'materials' | 'models',
+        treeRoot: TreeNode,
+        isExpanded: boolean,
+        setIsExpanded: (val: boolean) => void
+    ) => {
+        const isCreating = creatingFolderIn === treeType;
+        const totalItems = Object.keys(treeRoot.children).length + treeRoot.assets.length;
+
+        return (
+            <div className="w-full space-y-4">
+                <div 
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm cursor-pointer hover:border-indigo-500/50 transition-colors"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <h3 className="text-lg lg:text-xl font-bold flex flex-wrap items-center gap-2 text-zinc-900 dark:text-white"
+                         onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder('ROOT_UI'); }}
+                         onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder(null); }}
+                         onDrop={e => { e.preventDefault(); handleDrop(e, ''); }}
+                    >
+                        {icon}
+                        <span className={draggedOverFolder === 'ROOT_UI' ? 'text-green-500' : ''}>{title}</span>
+                        <span className="ml-2 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-full text-[10px] sm:text-xs font-bold border border-zinc-200 dark:border-zinc-700 whitespace-nowrap">
+                            {totalItems} Total
+                        </span>
+                        {isExpanded ? <ChevronDown className="w-5 h-5 text-zinc-400 ml-1" /> : <ChevronRight className="w-5 h-5 text-zinc-400 ml-1" />}
+                    </h3>
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <button 
+                            onClick={() => { setCreatingFolderIn(treeType); setIsExpanded(true); }} 
+                            className="w-full sm:w-auto px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-indigo-600 dark:text-indigo-400 font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
+                        >
+                            <FolderPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> New Folder
+                        </button>
+                        <button 
+                            onClick={fetchLocalAssets} 
+                            className="w-full sm:w-auto px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-300 font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        </button>
+                    </div>
+                </div>
+
+                {isExpanded && (
+                    <>
+                        {isCreating && (
+                            <div className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl shadow-sm animate-in slide-in-from-top-2 fade-in">
+                                <Folder className="w-4 h-4 text-indigo-500 flex-shrink-0 ml-1" />
+                                <input 
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Folder Name..."
+                                    value={newFolderName}
+                                    onChange={e => setNewFolderName(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleCreateFolder(treeType)}
+                                    className="flex-1 bg-transparent text-sm font-bold focus:outline-none dark:text-white"
+                                />
+                                <button onClick={() => handleCreateFolder(treeType)} className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded">
+                                    <Check className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setCreatingFolderIn(null)} className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="max-h-[800px] overflow-y-auto custom-scrollbar pr-1">
+                            {totalItems > 0 ? (
+                                <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-zinc-900">
+                                    {Object.values(treeRoot.children).sort((a,b)=>a.name.localeCompare(b.name)).map(child => (
+                                        <FolderRow key={child.path} node={child} />
+                                    ))}
+                                    
+                                    {treeRoot.assets.length > 0 && treeRoot.assets.map((asset, idx) => {
+                                        const isEmblem = asset.name.includes('_emblem.png');
+                                        const hasEmblem = treeRoot.assets.some(a => a.name === asset.name.replace(/\.[^/.]+$/, "") + '_emblem.png');
+                                        const isImage = !isEmblem && /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(asset.name);
+                                        const isRenderable = !isEmblem && !hasEmblem && !isImage &&
+                                                             (asset.name.endsWith('.skp') || 
+                                                              asset.name.endsWith('.obj') || 
+                                                              asset.name.endsWith('.fbx') || 
+                                                              asset.name.endsWith('.zip') || 
+                                                              asset.name.endsWith('.vrmat'));
+
+                                        return (
+                                            <div key={idx} className="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 group transition-colors border-b last:border-b-0 border-zinc-200 dark:border-zinc-800">
+                                                <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0 pr-2">
+                                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
+                                                        {(isEmblem || isImage) ? (
+                                                            <img 
+                                                                src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
+                                                                className="w-full h-full object-cover" 
+                                                                alt={asset.name}
+                                                            />
+                                                        ) : (
+                                                            <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-zinc-400" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col flex-1 min-w-0">
+                                                        <span className="text-[11px] sm:text-xs font-bold truncate text-zinc-800 dark:text-zinc-200" title={asset.name}>{asset.name}</span>
+                                                        <span className="text-[9px] sm:text-[10px] text-zinc-400 truncate mt-0.5">Root Display</span>
+                                                    </div>
+                                                </div>
+
+                                                {isRenderable && (
+                                                    <button 
+                                                        onClick={() => handleGenerateEmblem(asset)}
+                                                        className="flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 rounded text-[10px] font-bold transition-all shadow-sm border border-indigo-100 dark:border-indigo-500/20 active:scale-95"
+                                                        title="Generate 2D Symbol"
+                                                    >
+                                                        <span className="hidden sm:inline">2D Symbol</span>
+                                                        <Camera className="w-3 h-3 sm:hidden" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : serverOnline === false ? (
+                                <div className="w-full py-10 flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border border-red-500/30 rounded-xl shadow-sm gap-3">
+                                    <div className="text-3xl">🔌</div>
+                                    <p className="text-sm font-bold text-red-400">Server Offline</p>
+                                    <p className="text-[11px] text-zinc-500 text-center max-w-[200px] leading-relaxed">
+                                        The asset server isn't running.<br />
+                                        <span className="text-zinc-400">Start it with your <span className="text-indigo-400 font-bold">Launch Dooleys Builder.bat</span> file.</span>
+                                    </p>
+                                    <p className="text-[10px] text-zinc-600 animate-pulse">Retrying automatically…</p>
+                                    <button
+                                        onClick={fetchLocalAssets}
+                                        className="px-4 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-bold transition-colors"
+                                    >
+                                        Retry Now
+                                    </button>
+                                </div>
+                            ) : serverOnline === null ? (
+                                <div className="w-full py-16 flex flex-col items-center justify-center text-zinc-500 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm gap-3">
+                                    <RefreshCw className="w-7 h-7 animate-spin opacity-50" />
+                                    <p className="text-xs font-medium">Connecting to server…</p>
+                                </div>
+                            ) : (
+                                <div className="w-full py-16 flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+                                    <Box className="w-10 h-10 mb-3" />
+                                    <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Section is empty</p>
+                                    <p className="text-[10px] sm:text-xs font-medium mt-1">Upload an asset or create a folder</p>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col w-full h-full min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 p-4 lg:p-8 font-sans overflow-x-hidden">
             
@@ -597,7 +814,7 @@ export function AssetManager() {
                                     <label className="block text-[10px] lg:text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-1.5 ml-1 uppercase tracking-wider">Asset Category</label>
                                     <select 
                                         value={uploadType} 
-                                        onChange={e => setUploadType(e.target.value)}
+                                        onChange={e => { setUploadType(e.target.value); setUploadFolder(''); }}
                                         className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium text-zinc-900 dark:text-zinc-100 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-no-repeat bg-[position:right_1rem_center]"
                                     >
                                         <option value="model">3D Model</option>
@@ -613,7 +830,7 @@ export function AssetManager() {
                                         className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-medium text-zinc-900 dark:text-zinc-100 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:1em_1em] bg-no-repeat bg-[position:right_1rem_center]"
                                     >
                                         <option value="">Auto-categorize (Default)</option>
-                                        {allPaths.map(dir => (
+                                        {(uploadType === 'model' ? modelPaths : materialPaths).map(dir => (
                                             <option key={dir} value={dir}>{dir}</option>
                                         ))}
                                     </select>
@@ -639,140 +856,25 @@ export function AssetManager() {
                     </div>
                 </div>
 
-                {/* Library Section (Accordion) */}
-                <div className="w-full space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2 bg-white dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
-                        <h3 className="text-lg lg:text-xl font-bold flex flex-wrap items-center gap-2 text-zinc-900 dark:text-white"
-                             onDragOver={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder('ROOT_UI'); }}
-                             onDragLeave={e => { e.preventDefault(); e.stopPropagation(); setDraggedOverFolder(null); }}
-                             onDrop={e => handleDrop(e, '')}
-                             title="Drop folders here to bring them to the absolute root!"
-                        >
-                            <Layers className="w-5 h-5 text-indigo-500 flex-shrink-0" />
-                            <span className={draggedOverFolder === 'ROOT_UI' ? 'text-green-500' : ''}>Local Library Root</span>
-                            <span className="ml-2 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 rounded-full text-[10px] sm:text-xs font-bold border border-zinc-200 dark:border-zinc-700 whitespace-nowrap">
-                                {localAssets.length} Total
-                            </span>
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setIsCreatingFolder(true)} 
-                                className="w-full sm:w-auto px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-indigo-600 dark:text-indigo-400 font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                            >
-                                <FolderPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> New Folder
-                            </button>
-                            <button 
-                                onClick={fetchLocalAssets} 
-                                className="w-full sm:w-auto px-4 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-300 font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2"
-                            >
-                                <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {isCreatingFolder && (
-                        <div className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl shadow-sm animate-in slide-in-from-top-2 fade-in">
-                            <Folder className="w-4 h-4 text-indigo-500 flex-shrink-0 ml-1" />
-                            <input 
-                                autoFocus
-                                type="text"
-                                placeholder="Folder Name..."
-                                value={newFolderName}
-                                onChange={e => setNewFolderName(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
-                                className="flex-1 bg-transparent text-sm font-bold focus:outline-none dark:text-white"
-                            />
-                            <button onClick={handleCreateFolder} className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-500/10 rounded">
-                                <Check className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setIsCreatingFolder(false)} className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="space-y-2 max-h-[800px] overflow-y-auto custom-scrollbar pr-1">
-                        {Object.keys(folderTree.children).length > 0 || folderTree.assets.length > 0 ? (
-                            <>
-                                {Object.values(folderTree.children).sort((a,b)=>a.name.localeCompare(b.name)).map(child => (
-                                    <FolderRow key={child.path} node={child} />
-                                ))}
-                                
-                                {folderTree.assets.length > 0 && folderTree.assets.map((asset, idx) => {
-                                    const isEmblem = asset.name.includes('_emblem.png');
-                                    const hasEmblem = folderTree.assets.some(a => a.name === asset.name.replace(/\.[^/.]+$/, "") + '_emblem.png');
-                                    const isImage = !isEmblem && /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(asset.name);
-                                    const isRenderable = !isEmblem && !hasEmblem && !isImage &&
-                                                         (asset.name.endsWith('.skp') || 
-                                                          asset.name.endsWith('.obj') || 
-                                                          asset.name.endsWith('.fbx') || 
-                                                          asset.name.endsWith('.zip') || 
-                                                          asset.name.endsWith('.vrmat'));
-
-                                    return (
-                                        <div key={idx} className="flex items-center justify-between p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg group transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 mb-1">
-                                            <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0 pr-2">
-                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
-                                                    {(isEmblem || isImage) ? (
-                                                        <img 
-                                                            src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
-                                                            className="w-full h-full object-cover" 
-                                                            alt={asset.name}
-                                                        />
-                                                    ) : (
-                                                        <ImageIcon className="w-4 h-4 lg:w-5 lg:h-5 text-zinc-400" />
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-col flex-1 min-w-0">
-                                                    <span className="text-[11px] sm:text-xs font-bold truncate text-zinc-800 dark:text-zinc-200" title={asset.name}>{asset.name}</span>
-                                                    <span className="text-[9px] sm:text-[10px] text-zinc-400 truncate mt-0.5">Root Display</span>
-                                                </div>
-                                            </div>
-
-                                            {isRenderable && (
-                                                <button 
-                                                    onClick={() => handleGenerateEmblem(asset)}
-                                                    className="flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 dark:text-indigo-400 rounded text-[10px] font-bold transition-all shadow-sm border border-indigo-100 dark:border-indigo-500/20 active:scale-95"
-                                                    title="Generate 2D Symbol"
-                                                >
-                                                    <span className="hidden sm:inline">2D Symbol</span>
-                                                    <Camera className="w-3 h-3 sm:hidden" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </>
-                        ) : serverOnline === false ? (
-                            <div className="w-full py-10 flex flex-col items-center justify-center bg-white dark:bg-zinc-900 border border-red-500/30 rounded-xl shadow-sm gap-3">
-                                <div className="text-3xl">🔌</div>
-                                <p className="text-sm font-bold text-red-400">Server Offline</p>
-                                <p className="text-[11px] text-zinc-500 text-center max-w-[200px] leading-relaxed">
-                                    The asset server isn't running.<br />
-                                    <span className="text-zinc-400">Start it with your <span className="text-indigo-400 font-bold">Launch Dooleys Builder.bat</span> file.</span>
-                                </p>
-                                <p className="text-[10px] text-zinc-600 animate-pulse">Retrying automatically…</p>
-                                <button
-                                    onClick={fetchLocalAssets}
-                                    className="px-4 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-bold transition-colors"
-                                >
-                                    Retry Now
-                                </button>
-                            </div>
-                        ) : serverOnline === null ? (
-                            <div className="w-full py-16 flex flex-col items-center justify-center text-zinc-500 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm gap-3">
-                                <RefreshCw className="w-7 h-7 animate-spin opacity-50" />
-                                <p className="text-xs font-medium">Connecting to server…</p>
-                            </div>
-                        ) : (
-                            <div className="w-full py-16 flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-600 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                                <Box className="w-10 h-10 mb-3" />
-                                <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Library is empty</p>
-                                <p className="text-[10px] sm:text-xs font-medium mt-1">Upload an asset or create a folder</p>
-                            </div>
-                        )}
-
-                    </div>
+                {/* Accordion Sections */}
+                <div className="w-full space-y-6">
+                     {renderAccordionSection(
+                         "Materials Library", 
+                         <Layers className="w-5 h-5 text-indigo-500 flex-shrink-0" />, 
+                         'materials',
+                         materialsTree, 
+                         isMaterialsExpanded, 
+                         setIsMaterialsExpanded
+                     )}
+                     
+                     {renderAccordionSection(
+                         "3D Asset's", 
+                         <Box className="w-5 h-5 text-orange-500 flex-shrink-0" />, 
+                         'models',
+                         modelsTree, 
+                         isModelsExpanded, 
+                         setIsModelsExpanded
+                     )}
                 </div>
             </div>
             

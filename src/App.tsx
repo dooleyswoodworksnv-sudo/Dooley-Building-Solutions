@@ -4,6 +4,7 @@ import Preview2D from './components/Preview2D';
 import Preview3D from './components/Preview3D';
 import MaterialsEstimate from './components/MaterialsEstimate';
 import AssetLibrary from './components/assets/AssetLibrary';
+import { SYMBOL_CATALOG, CATEGORY_LABELS, getSymbolById } from './components/SymbolCatalog';
 import { Box } from 'lucide-react';
 import { convertPDFToImages } from './services/pdfService';
 import { generateSketchUpCode, GenerationSection } from './utils/sketchupGenerator';
@@ -46,6 +47,7 @@ export interface DoorConfig {
   widthIn: number;
   heightIn: number;
   floorIndex?: number;
+  modelUrl?: string;
 }
 
 export interface WindowConfig {
@@ -59,6 +61,7 @@ export interface WindowConfig {
   heightIn: number;
   sillHeightIn: number;
   floorIndex?: number;
+  modelUrl?: string;
 }
 
 export interface InteriorWallConfig {
@@ -102,6 +105,7 @@ export interface MaterialCosts {
   truss: number;
   roofSheathing: number;
   lumber: number;
+  custom?: Record<string, number>;
 }
 
 export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
@@ -117,19 +121,25 @@ export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
   window: 300.00,
   truss: 50.00,
   roofSheathing: 25.00,
-  lumber: 5.00
+  lumber: 5.00,
+  custom: {}
 };
 
 export interface InteriorAsset {
   id: string;
   type: string;
-  category: 'kitchen' | 'bathroom' | 'furniture';
+  category: 'kitchen' | 'bathroom' | 'bedroom' | 'living' | 'misc' | 'furniture' | 'custom';
   name: string;
   x: number;
   y: number;
   rotation: number;
   scale: number;
   floorIndex: number;
+  widthIn: number;       // Real-world width in inches
+  depthIn: number;       // Real-world depth in inches
+  heightIn: number;      // Real-world height in inches (for 3D)
+  symbolUrl?: string;    // Optional: custom image from asset server
+  modelUrl?: string;     // Optional: URL to 3D model (.glb/.gltf) — loaded in 3D preview
 }
 
 export interface RoofPart {
@@ -297,6 +307,7 @@ export interface AppState {
   combinedBlocks: { id: string, x: number, y: number, w: number, h: number }[];
   shapeBlocks: { id: string, x: number, y: number, w: number, h: number }[];
   materialCosts: MaterialCosts;
+  appliedMaterials?: Record<string, string>;
 }
 
 const DEFAULT_APP_STATE: AppState = {
@@ -408,7 +419,8 @@ const DEFAULT_APP_STATE: AppState = {
     window: 300.00,
     truss: 150.00,
     roofSheathing: 25.00,
-    lumber: 5.00
+    lumber: 5.00,
+    custom: {}
   },
   roofType: 'gable',
   roofPitch: 4,
@@ -419,7 +431,8 @@ const DEFAULT_APP_STATE: AppState = {
   roofSheathingThickness: 0.5,
   roofWidthIn: 240,
   roofHeightIn: 120,
-  selectedRoofPartId: null
+  selectedRoofPartId: null,
+  appliedMaterials: {}
 };
 
 export default function App() {
@@ -438,6 +451,7 @@ export default function App() {
   });
   const [activeWallSection, setActiveWallSection] = useState<string | null>(null);
   const [assets, setAssets] = useState<InteriorAsset[]>([]);
+  const [appliedMaterials, setAppliedMaterials] = useState<Record<string, string>>({});
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => {
@@ -617,6 +631,7 @@ export default function App() {
 
   // Custom Cameras
   const [customCameras, setCustomCameras] = useState<CustomCamera[]>([]);
+  const [symbolCategoryFilter, setSymbolCategoryFilter] = useState<'all' | 'bathroom' | 'kitchen' | 'bedroom' | 'living' | 'misc'>('all');
   const [importedRubyFiles, setImportedRubyFiles] = useState<{name: string, content: string}[]>([]);
   const [roofPitch, setRoofPitch] = useState<number>(4);
   const [roofOverhangIn, setRoofOverhangIn] = useState<number>(12);
@@ -765,7 +780,7 @@ export default function App() {
         pdfImages, selectedPdfIndex, pdfScale, pdfOffset, pdfRotation, pdfOpacity, isBlueprintLocked, pdfCalibration, appliedCalibration,
         guides, chainToLastWall, lastWallType,
         addFloorFraming, joistSpacing, joistSize, joistDirection, addSubfloor, subfloorThickness, subfloorMaterial, rimJoistThickness,
-        generationSection
+        generationSection, appliedMaterials
       }
     };
 
@@ -1115,6 +1130,11 @@ export default function App() {
       return customWall.lengthFt * 12 + customWall.lengthInches;
     }
 
+    const intWall = interiorWalls.find(w => w.id === wallId);
+    if (intWall) {
+      return intWall.lengthFt * 12 + intWall.lengthInches;
+    }
+
     const w = widthFt * 12 + widthInches;
     const l = lengthFt * 12 + lengthInches;
     const t = wallThicknessIn;
@@ -1151,7 +1171,7 @@ export default function App() {
       if (wallId === 8) return u_w8 - 2 * t;
     }
     return 0;
-  }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
+  }, [exteriorWalls, interiorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
 
   // Ensure doors and windows fit within their walls
   useEffect(() => {
@@ -1211,7 +1231,7 @@ export default function App() {
     combinedBlocks, shapeBlocks, materialCosts,
     roofType, roofPitch, roofOverhangIn, trussSpacing, trussType, customTrussScript, roofSheathingThickness,
     roofWidthIn, roofHeightIn, selectedRoofPartId,
-    roofParts, trussRuns, dormers, customCameras
+    roofParts, trussRuns, dormers, customCameras, appliedMaterials
   }), [
     shape, widthFt, widthInches, lengthFt, lengthInches,
     lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches,
@@ -1233,7 +1253,7 @@ export default function App() {
     combinedBlocks, shapeBlocks, materialCosts,
     roofType, roofPitch, roofOverhangIn, trussSpacing, trussType, customTrussScript, roofSheathingThickness,
     roofWidthIn, roofHeightIn, selectedRoofPartId,
-    roofParts, trussRuns, dormers, customCameras
+    roofParts, trussRuns, dormers, customCameras, appliedMaterials
   ]);
 
   const [past, setPast] = useState<AppState[]>([]);
@@ -1319,6 +1339,7 @@ export default function App() {
     setMaterialCosts(state.materialCosts || DEFAULT_MATERIAL_COSTS);
     setAssets(state.assets || []);
     setDormers(state.dormers || []);
+    setAppliedMaterials(state.appliedMaterials || {});
   }, []);
 
   useEffect(() => {
@@ -5265,6 +5286,44 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         />
                       </div>
                     </div>
+                    {/* Link 3D Model */}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {door.modelUrl ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-1 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50 rounded-lg text-[10px] text-emerald-700 dark:text-emerald-400 font-bold truncate">
+                            <Box size={10} className="flex-shrink-0" />
+                            <span className="truncate">{door.modelUrl.includes('/') ? door.modelUrl.split('/').pop() : '3D Linked'}</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (door.modelUrl?.startsWith('blob:')) URL.revokeObjectURL(door.modelUrl);
+                              setDoors(doors.map(d => d.id === door.id ? { ...d, modelUrl: undefined } : d));
+                            }}
+                            className="p-1 text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+                            title="Unlink 3D model"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700/50 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer">
+                          <Box size={12} />
+                          <span>Link 3D Model (.glb)</span>
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const blobUrl = URL.createObjectURL(file);
+                              setDoors(doors.map(d => d.id === door.id ? { ...d, modelUrl: blobUrl } : d));
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -5418,6 +5477,44 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                           className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xl font-bold text-zinc-900 dark:text-zinc-100"
                         />
                       </div>
+                    </div>
+                    {/* Link 3D Model */}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {win.modelUrl ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-1 px-2 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50 rounded-lg text-[10px] text-emerald-700 dark:text-emerald-400 font-bold truncate">
+                            <Box size={10} className="flex-shrink-0" />
+                            <span className="truncate">{win.modelUrl.includes('/') ? win.modelUrl.split('/').pop() : '3D Linked'}</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (win.modelUrl?.startsWith('blob:')) URL.revokeObjectURL(win.modelUrl);
+                              setWindows(windows.map(w => w.id === win.id ? { ...w, modelUrl: undefined } : w));
+                            }}
+                            className="p-1 text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+                            title="Unlink 3D model"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700/50 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer">
+                          <Box size={12} />
+                          <span>Link 3D Model (.glb)</span>
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const blobUrl = URL.createObjectURL(file);
+                              setWindows(windows.map(w => w.id === win.id ? { ...w, modelUrl: blobUrl } : w));
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -6669,30 +6766,7 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button 
-                    onClick={handleSaveToDevice}
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 px-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all font-bold text-[10px] uppercase tracking-wider shadow-sm"
-                    title="Save Project (Ctrl+S)"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Save size={14} />
-                      Save Project
-                    </div>
-                    <span className="text-[8px] opacity-60">Ctrl+S</span>
-                  </button>
-                  <button 
-                    onClick={handleLoadFromDevice}
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 px-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all font-bold text-[10px] uppercase tracking-wider shadow-sm"
-                    title="Load Project (Ctrl+O)"
-                  >
-                    <div className="flex items-center gap-2">
-                      <FolderOpen size={14} />
-                      Load Project
-                    </div>
-                    <span className="text-[8px] opacity-60">Ctrl+O</span>
-                  </button>
-                </div>
+
 
                 <button 
                   onClick={handleCopy}
@@ -7107,22 +7181,173 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
             </div>
             {openSections.assets && (
               <div className="p-5 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-[#1E1E1E] space-y-4">
+                {/* Asset Manager Link */}
                 <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
                   <AssetManager />
                 </div>
+
                 <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-4" />
-                <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs uppercase tracking-wider mb-2">Local Project Environment Props</h3>
-                <AssetLibrary onAddAsset={(asset) => {
-                  setAssets(prev => [...prev, {
-                    ...asset,
-                    id: Date.now().toString(),
-                    x: 120,
-                    y: 120,
-                    rotation: 0,
-                    scale: 1,
-                    floorIndex: currentFloorIndex
-                  }]);
-                }} />
+
+                {/* ── Built-in Symbol Picker ── */}
+                <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs uppercase tracking-wider mb-2">📐 Place Floor Plan Symbols</h3>
+                
+                {/* Category Filter */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(['all', 'bathroom', 'kitchen', 'bedroom', 'living', 'misc'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setSymbolCategoryFilter(cat)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                        symbolCategoryFilter === cat
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      {cat === 'all' ? '🏠 All' : CATEGORY_LABELS[cat] || cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Symbol Grid */}
+                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                  {SYMBOL_CATALOG
+                    .filter(sym => symbolCategoryFilter === 'all' || sym.category === symbolCategoryFilter)
+                    .map(sym => (
+                    <button
+                      key={sym.id}
+                      onClick={() => {
+                        const cx = (widthFt * 12 + widthInches) / 2 || 120;
+                        const cy = (lengthFt * 12 + lengthInches) / 2 || 120;
+                        setAssets(prev => [...prev, {
+                          id: `asset-${Date.now()}`,
+                          type: sym.id,
+                          category: sym.category,
+                          name: sym.name,
+                          x: cx,
+                          y: cy,
+                          rotation: 0,
+                          scale: 1,
+                          floorIndex: currentFloorIndex,
+                          widthIn: sym.widthIn,
+                          depthIn: sym.depthIn,
+                          heightIn: sym.heightIn,
+                        }]);
+                      }}
+                      className="flex flex-col items-center gap-1.5 p-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-500/10 transition-all group"
+                    >
+                      {/* Mini SVG Preview */}
+                      <svg
+                        viewBox={`-1 -1 ${sym.widthIn + 2} ${sym.depthIn + 2}`}
+                        className="w-12 h-12"
+                        style={{ maxHeight: '48px' }}
+                      >
+                        {sym.svgPaths.map((p, i) => (
+                          <path
+                            key={i}
+                            d={p.d}
+                            fill={p.fill || 'none'}
+                            stroke={p.stroke || sym.color}
+                            strokeWidth={p.strokeWidth || 0.5}
+                          />
+                        ))}
+                      </svg>
+                      <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-indigo-500 transition-colors truncate w-full text-center">{sym.name}</span>
+                      <span className="text-[8px] text-zinc-400 font-mono">{Math.round(sym.widthIn)}"×{Math.round(sym.depthIn)}"</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── Placed Assets List ── */}
+                {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).length > 0 && (
+                  <>
+                    <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-4" />
+                    <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs uppercase tracking-wider mb-2">
+                      📌 Placed Symbols ({assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).length})
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                      {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).map((asset, idx) => {
+                        const sym = getSymbolById(asset.type);
+                        return (
+                          <div key={asset.id} className="relative border border-zinc-200 dark:border-zinc-700 rounded-lg p-2.5 bg-zinc-50/50 dark:bg-zinc-800/30">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                {sym && (
+                                  <svg viewBox={`-1 -1 ${sym.widthIn + 2} ${sym.depthIn + 2}`} className="w-6 h-6">
+                                    {sym.svgPaths.map((p, i) => (
+                                      <path key={i} d={p.d} fill={p.fill || 'none'} stroke={p.stroke || sym.color} strokeWidth={p.strokeWidth || 0.5} />
+                                    ))}
+                                  </svg>
+                                )}
+                                <input
+                                  type="text"
+                                  value={asset.name}
+                                  onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, name: e.target.value } : a))}
+                                  className="bg-transparent text-xs font-bold text-zinc-800 dark:text-zinc-200 border-none focus:outline-none focus:ring-0 w-24"
+                                />
+                              </div>
+                              <button
+                                onClick={() => setAssets(prev => prev.filter(a => a.id !== asset.id))}
+                                className="text-zinc-400 hover:text-red-500 transition-colors p-0.5"
+                                title="Remove"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <span className="text-zinc-400">W</span>
+                              <input type="number" value={asset.widthIn || 24} onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, widthIn: Number(e.target.value) } : a))} className="w-10 px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] text-center" />
+                              <span className="text-zinc-400">D</span>
+                              <input type="number" value={asset.depthIn || 24} onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, depthIn: Number(e.target.value) } : a))} className="w-10 px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] text-center" />
+                              <span className="text-zinc-400">H</span>
+                              <input type="number" value={asset.heightIn || 36} onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, heightIn: Number(e.target.value) } : a))} className="w-10 px-1 py-0.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[10px] text-center" />
+                              <span className="text-zinc-500">"</span>
+                            </div>
+
+                            {/* Link 3D Model */}
+                            <div className="flex items-center gap-1.5 mt-1.5">
+                              {asset.modelUrl ? (
+                                <>
+                                  <div className="flex-1 flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50 rounded text-[10px] text-emerald-700 dark:text-emerald-400 font-bold truncate">
+                                    <Box size={10} className="flex-shrink-0" />
+                                    <span className="truncate">{asset.modelUrl.includes('/') ? asset.modelUrl.split('/').pop() : '3D Linked'}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      // Revoke blob URL if applicable
+                                      if (asset.modelUrl?.startsWith('blob:')) URL.revokeObjectURL(asset.modelUrl);
+                                      setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, modelUrl: undefined } : a));
+                                    }}
+                                    className="p-1 text-zinc-400 hover:text-red-500 transition-colors flex-shrink-0"
+                                    title="Unlink 3D model"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </>
+                              ) : (
+                                <label className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700/50 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors cursor-pointer">
+                                  <Box size={12} />
+                                  <span>Link 3D Model (.glb)</span>
+                                  <input
+                                    type="file"
+                                    accept=".glb,.gltf"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      const blobUrl = URL.createObjectURL(file);
+                                      setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, modelUrl: blobUrl } : a));
+                                      e.target.value = '';
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -7202,40 +7427,61 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
 
         {/* Right Column: Code Output & Preview (Expansive) */}
         <div className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex gap-2 p-6 pb-4 flex-shrink-0">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === 'preview'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Eye size={18} />
-              2D Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('3d')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === '3d'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Box size={18} />
-              3D Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === 'code'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Code size={18} />
-              Ruby Code
-            </button>
+          <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === 'preview'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Eye size={18} />
+                2D Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('3d')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === '3d'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Box size={18} />
+                3D Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === 'code'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Code size={18} />
+                Ruby Code
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleSaveToDevice}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-all font-bold text-sm shadow-sm"
+                title="Save Project (Ctrl+S)"
+              >
+                <Save size={16} />
+                Save Project
+              </button>
+              <button 
+                onClick={handleLoadFromDevice}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all font-bold text-sm shadow-sm"
+                title="Load Project (Ctrl+O)"
+              >
+                <FolderOpen size={16} />
+                Load Project
+              </button>
+            </div>
           </div>
 
           <div className="flex-grow overflow-hidden px-6 pb-6">
@@ -7427,6 +7673,8 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                 dormers={dormers}
                 lDirection={lDirection}
                 customCameras={customCameras}
+                appliedMaterials={appliedMaterials}
+                onSurfacePainted={(sid, url) => setAppliedMaterials(prev => ({ ...prev, [sid]: url }))}
               />
             )}
 

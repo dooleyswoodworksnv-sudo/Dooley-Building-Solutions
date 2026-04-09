@@ -279,8 +279,12 @@ app.get('/api/assets', (req, res) => {
         if (!fs.existsSync(dirPath)) return;
         
         const dirName = path.basename(dirPath);
-        // If this exact folder name is marked as hidden, entirely skip scanning it.
-        if (hiddenFolders.includes(dirName)) return;
+        const relativeDir = path.relative(rootDir, dirPath).replace(/\\/g, '/');
+        // Check if this folder is hidden — match by basename OR full relative path
+        // Only match basename for folders at the top level of the root (to avoid cross-library collisions)
+        const isHidden = hiddenFolders.includes(relativeDir) || 
+            (relativeDir === dirName && hiddenFolders.includes(dirName));
+        if (isHidden) return;
 
         // Calculate the full relative tree path from the root
         let relativePath = path.relative(rootDir, dirPath).replace(/\\/g, '/');
@@ -299,6 +303,9 @@ app.get('/api/assets', (req, res) => {
         }
 
         files.forEach(file => {
+            // Ignore system config files that shouldn't appear in the asset list
+            if (file === 'material_configs.json') return;
+
             const absolutePath = path.join(dirPath, file);
             if (fs.statSync(absolutePath).isDirectory()) {
                 getAllFiles(absolutePath, rootDir);

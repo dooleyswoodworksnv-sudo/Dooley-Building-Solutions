@@ -734,12 +734,130 @@ const Opening = ({ x, y, z, w, h, d }: { x: number, y: number, z: number, w: num
   );
 };
 
-const Asset = ({ asset }: { asset: InteriorAsset }) => {
-  return (
-    <mesh position={[asset.x / 12, 0, asset.y / 12]} rotation={[0, asset.rotation * Math.PI / 180, 0]}>
-      <boxGeometry args={[asset.scale * 3, asset.scale * 3, asset.scale * 3]} />
-      <meshStandardMaterial color="#a1a1aa" />
+const ASSET_3D_COLORS: Record<string, string> = {
+  bathroom: '#60a5fa',
+  kitchen: '#fb923c',
+  bedroom: '#a78bfa',
+  living: '#4ade80',
+  misc: '#a1a1aa',
+  furniture: '#a1a1aa',
+  custom: '#818cf8',
+};
+
+// Sub-component that loads and renders a .glb model, auto-scaled to fit the asset dimensions
+// stretch=true: scales each axis independently to fill the target box exactly (for doors/windows)
+// stretch=false: uniform scale preserving proportions (for interior assets)
+const LinkedModel = ({ url, widthFt, depthFt, heightFt, stretch = false }: { url: string; widthFt: number; depthFt: number; heightFt: number; stretch?: boolean }) => {
+  const { scene } = useGLTF(url);
+  
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    
+    // Calculate bounding box to auto-scale
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    
+    if (size.x > 0 && size.y > 0 && size.z > 0) {
+      const scaleX = widthFt / size.x;
+      const scaleY = heightFt / size.y;
+      const scaleZ = depthFt / size.z;
+      
+      if (stretch) {
+        // Per-axis scaling — fill the opening exactly
+        clone.scale.set(scaleX, scaleY, scaleZ);
+      } else {
+        // Uniform scaling — preserve proportions
+        const uniformScale = Math.min(scaleX, scaleY, scaleZ);
+        clone.scale.setScalar(uniformScale);
+      }
+      
+      // Recalculate box after scaling
+      const newBox = new THREE.Box3().setFromObject(clone);
+      const newCenter = new THREE.Vector3();
+      newBox.getCenter(newCenter);
+      
+      // Center horizontally, sit on ground
+      clone.position.set(-newCenter.x, -newBox.min.y, -newCenter.z);
+    }
+    
+    // Enable shadows
+    clone.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const mesh = obj as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    
+    return clone;
+  }, [scene, widthFt, depthFt, heightFt, stretch]);
+  
+  return <primitive object={clonedScene} />;
+};
+
+// Error boundary for 3D model loading — prevents Canvas crash
+class ModelErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[Asset] 3D model failed to load:', error.message);
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
+const AssetPlaceholderBox = ({ w, h, d, color, errored }: { w: number; h: number; d: number; color: string; errored?: boolean }) => (
+  <>
+    <mesh position={[0, h / 2, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color={errored ? '#ef4444' : color} opacity={errored ? 0.5 : 0.7} transparent />
     </mesh>
+    <mesh position={[0, h / 2, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshBasicMaterial color={errored ? '#ef4444' : color} wireframe opacity={0.4} transparent />
+    </mesh>
+  </>
+);
+
+const Asset = ({ asset, floorY = 0 }: { asset: InteriorAsset; floorY?: number }) => {
+  const w = (asset.widthIn || 24) * asset.scale;   // Inches (same unit as walls/foundation)
+  const d = (asset.depthIn || 24) * asset.scale;
+  const h = (asset.heightIn || 36) * asset.scale;
+  const color = ASSET_3D_COLORS[asset.category] || '#a1a1aa';
+  
+  return (
+    <group 
+      position={[asset.x, floorY, asset.y]} 
+      rotation={[0, -asset.rotation * Math.PI / 180, 0]}
+    >
+      {asset.modelUrl ? (
+        // Render actual 3D model with error boundary fallback
+        <ModelErrorBoundary fallback={<AssetPlaceholderBox w={w} h={h} d={d} color={color} errored />}>
+          <Suspense fallback={
+            <mesh position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              <meshStandardMaterial color={color} opacity={0.3} transparent wireframe />
+            </mesh>
+          }>
+            <LinkedModel url={asset.modelUrl} widthFt={w} depthFt={d} heightFt={h} />
+          </Suspense>
+        </ModelErrorBoundary>
+      ) : (
+        // Placeholder box
+        <AssetPlaceholderBox w={w} h={h} d={d} color={color} />
+      )}
+    </group>
   );
 };
 
@@ -1907,24 +2025,48 @@ export default function Preview3D({
       }
 
       doors.filter(d => (d.floorIndex || 0) === floorIndex).forEach(d => {
-        const wall = extWalls.find(w => w.id === d.wall);
-        if (!wall) return;
+        const extWall = extWalls.find(w => w.id === d.wall);
+        const intWall = interiorWalls.find(w => w.id === d.wall && (w.floorIndex || 0) === floorIndex);
+        
         const ox = d.xFt * 12 + d.xInches;
-        if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY, z: wall.y - 1, w: d.widthIn, h: d.heightIn, d: thicknessIn + 2 });
-        } else {
-          list.push({ x: wall.x - 1, y: currentY, z: wall.y + ox, w: thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+        
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            list.push({ x: extWall.x + ox, y: currentY, z: extWall.y - 1, w: d.widthIn, h: d.heightIn, d: thicknessIn + 2 });
+          } else {
+            list.push({ x: extWall.x - 1, y: currentY, z: extWall.y + ox, w: thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            list.push({ x: ix + ox, y: currentY, z: iy - 1, w: d.widthIn, h: d.heightIn, d: intWall.thicknessIn + 2 });
+          } else {
+            list.push({ x: ix - 1, y: currentY, z: iy + ox, w: intWall.thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+          }
         }
       });
 
       windows.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
-        const wall = extWalls.find(wall => wall.id === w.wall);
-        if (!wall) return;
+        const extWall = extWalls.find(wall => wall.id === w.wall);
+        const intWall = interiorWalls.find(wall => wall.id === w.wall && (wall.floorIndex || 0) === floorIndex);
+        
         const ox = w.xFt * 12 + w.xInches;
-        if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY + w.sillHeightIn, z: wall.y - 1, w: w.widthIn, h: w.heightIn, d: thicknessIn + 2 });
-        } else {
-          list.push({ x: wall.x - 1, y: currentY + w.sillHeightIn, z: wall.y + ox, w: thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            list.push({ x: extWall.x + ox, y: currentY + w.sillHeightIn, z: extWall.y - 1, w: w.widthIn, h: w.heightIn, d: thicknessIn + 2 });
+          } else {
+            list.push({ x: extWall.x - 1, y: currentY + w.sillHeightIn, z: extWall.y + ox, w: thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            list.push({ x: ix + ox, y: currentY + w.sillHeightIn, z: iy - 1, w: w.widthIn, h: w.heightIn, d: intWall.thicknessIn + 2 });
+          } else {
+            list.push({ x: ix - 1, y: currentY + w.sillHeightIn, z: iy + ox, w: intWall.thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+          }
         }
       });
     };
@@ -1947,7 +2089,94 @@ export default function Preview3D({
     }
 
     return list;
-  }, [doors, windows, exteriorWalls, shape, widthIn, lengthIn, thicknessIn, uWallsIn, lRightDepthIn, lBackWidthIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
+  }, [doors, windows, exteriorWalls, interiorWalls, shape, widthIn, lengthIn, thicknessIn, uWallsIn, lRightDepthIn, lBackWidthIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
+
+  // Compute 3D positions for linked door/window models
+  const openingModels = useMemo(() => {
+    const models: { id: string; modelUrl: string; x: number; y: number; z: number; w: number; h: number; d: number; isHorizontal: boolean }[] = [];
+
+    const calcForStory = (currentY: number, floorIndex: number) => {
+      const extWalls: { id: number, x: number, y: number, w: number, h: number, isHorizontal: boolean }[] = [];
+
+      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
+        const x = w.xFt * 12 + w.xInches;
+        const y = w.yFt * 12 + w.yInches;
+        const len = w.lengthFt * 12 + w.lengthInches;
+        const isHorizontal = w.orientation === 'horizontal';
+        let width = isHorizontal ? len : w.thicknessIn;
+        let depth = isHorizontal ? w.thicknessIn : len;
+        let finalX = x; let finalY = y;
+        if (width < 0) { finalX += width; width = Math.abs(width); }
+        if (depth < 0) { finalY += depth; depth = Math.abs(depth); }
+        extWalls.push({ id: w.id, x: finalX, y: finalY, w: width, h: depth, isHorizontal });
+      });
+
+      if (shape === 'rectangle') {
+        extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 2, x: widthIn - thicknessIn, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
+        extWalls.push({ id: 3, x: 0, y: lengthIn - thicknessIn, w: widthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 4, x: 0, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
+      }
+      // Note: Other shapes (l-shape, u-shape, etc.) already handled by exteriorWalls entries above
+
+      // Doors with linked models
+      doors.filter(d => (d.floorIndex || 0) === floorIndex && d.modelUrl).forEach(d => {
+        const extWall = extWalls.find(w => w.id === d.wall);
+        const intWall = interiorWalls.find(w => w.id === d.wall && (w.floorIndex || 0) === floorIndex);
+        const ox = d.xFt * 12 + d.xInches;
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: extWall.x + ox, y: currentY, z: extWall.y, w: d.widthIn, h: d.heightIn, d: thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: extWall.x, y: currentY, z: extWall.y + ox, w: thicknessIn, h: d.heightIn, d: d.widthIn, isHorizontal: false });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: ix + ox, y: currentY, z: iy, w: d.widthIn, h: d.heightIn, d: intWall.thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: ix, y: currentY, z: iy + ox, w: intWall.thicknessIn, h: d.heightIn, d: d.widthIn, isHorizontal: false });
+          }
+        }
+      });
+
+      // Windows with linked models
+      windows.filter(w => (w.floorIndex || 0) === floorIndex && w.modelUrl).forEach(w => {
+        const extWall = extWalls.find(wall => wall.id === w.wall);
+        const intWall = interiorWalls.find(wall => wall.id === w.wall && (wall.floorIndex || 0) === floorIndex);
+        const ox = w.xFt * 12 + w.xInches;
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: extWall.x + ox, y: currentY + w.sillHeightIn, z: extWall.y, w: w.widthIn, h: w.heightIn, d: thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: extWall.x, y: currentY + w.sillHeightIn, z: extWall.y + ox, w: thicknessIn, h: w.heightIn, d: w.widthIn, isHorizontal: false });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: ix + ox, y: currentY + w.sillHeightIn, z: iy, w: w.widthIn, h: w.heightIn, d: intWall.thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: ix, y: currentY + w.sillHeightIn, z: iy + ox, w: intWall.thicknessIn, h: w.heightIn, d: w.widthIn, isHorizontal: false });
+          }
+        }
+      });
+    };
+
+    if (currentFloorIndex === 0) calcForStory(totalBaseHeight, 0);
+    let currentZ = totalBaseHeight + wallHeightIn;
+    for (let i = 0; i < additionalStories; i++) {
+      const upperJoistH = upperFloorJoistSize === '2x6' ? 5.5 : upperFloorJoistSize === '2x8' ? 7.25 : upperFloorJoistSize === '2x10' ? 9.25 : 11.25;
+      currentZ += upperJoistH + (addSubfloor ? subfloorThickness : 0);
+      if (currentFloorIndex === i + 1) calcForStory(currentZ, i + 1);
+      currentZ += upperFloorWallHeightIn;
+    }
+
+    return models;
+  }, [doors, windows, exteriorWalls, interiorWalls, shape, widthIn, lengthIn, thicknessIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
 
   const floorSystem = useMemo(() => {
     const parts: { x: number, y: number, z: number, w: number, h: number, d: number, color?: string }[] = [];
@@ -2620,10 +2849,48 @@ export default function Preview3D({
 
               {/* Assets */}
               {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).map(asset => (
-                <Asset key={asset.id} asset={asset} />
+                <Asset key={asset.id} asset={asset} floorY={totalBaseHeight} />
               ))}
 
               {/* Openings are now subtracted from walls using CSG, so we don't render them as dark boxes anymore */}
+
+              {/* Door & Window 3D Models */}
+              {openingModels.map(om => (
+                <group
+                  key={`opening-model-${om.id}`}
+                  position={[
+                    om.x + om.w / 2,
+                    om.y,
+                    om.z + om.d / 2
+                  ]}
+                  rotation={[0, om.isHorizontal ? 0 : Math.PI / 2, 0]}
+                >
+                  <ModelErrorBoundary fallback={
+                    <AssetPlaceholderBox
+                      w={om.isHorizontal ? om.w : om.d}
+                      h={om.h}
+                      d={om.isHorizontal ? om.d : om.w}
+                      color="#60a5fa"
+                      errored
+                    />
+                  }>
+                    <Suspense fallback={
+                      <mesh position={[0, om.h / 2, 0]}>
+                        <boxGeometry args={[om.isHorizontal ? om.w : om.d, om.h, om.isHorizontal ? om.d : om.w]} />
+                        <meshStandardMaterial color="#60a5fa" opacity={0.3} transparent wireframe />
+                      </mesh>
+                    }>
+                      <LinkedModel
+                        url={om.modelUrl}
+                        widthFt={om.isHorizontal ? om.w : om.d}
+                        depthFt={om.isHorizontal ? om.d : om.w}
+                        heightFt={om.h}
+                        stretch
+                      />
+                    </Suspense>
+                  </ModelErrorBoundary>
+                </group>
+              ))}
             </group>
 
               {/* ── Tape Measure Visualization ── */}

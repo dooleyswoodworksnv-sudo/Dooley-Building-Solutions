@@ -119,8 +119,57 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
       roofSheathingSheets = Math.ceil(roofAreaSqFt / 32);
     }
 
+    // BIM Custom Materials
+    const textureAreas: Record<string, number> = {};
+    if (state.appliedMaterials) {
+      Object.entries(state.appliedMaterials).forEach(([surfaceId, textureUrl]) => {
+        let areaSqFt = 0;
+        
+        if (surfaceId === 'foundation') {
+           const perimeterFt = extWallLengthIn / 12;
+           const heightFt = state.stemWallHeightIn / 12 || 2;
+           areaSqFt = perimeterFt * heightFt;
+        } else if (surfaceId === 'floor' || surfaceId === 'floor-finish') {
+           areaSqFt = w * l / 144;
+        } else if (surfaceId.startsWith('ext-wall-')) {
+           const parts = surfaceId.split('-');
+           const idx = parseInt(parts[2]);
+           if (!isNaN(idx) && state.exteriorWalls[idx]) {
+               const wall = state.exteriorWalls[idx];
+               const wallLenFt = wall.lengthFt + wall.lengthInches / 12;
+               areaSqFt = wallLenFt * wallHeightFt;
+           } else {
+               areaSqFt = extWallAreaSqFt / Math.max(1, state.exteriorWalls.length);
+           }
+        } else if (surfaceId.startsWith('int-wall-')) {
+           const parts = surfaceId.split('-');
+           const idx = parseInt(parts[2]);
+           if (!isNaN(idx) && state.interiorWalls[idx]) {
+               const wall = state.interiorWalls[idx];
+               const wallLenFt = wall.lengthFt + wall.lengthInches / 12;
+               areaSqFt = wallLenFt * wallHeightFt;
+           } else {
+               areaSqFt = 100;
+           }
+        } else if (surfaceId.startsWith('roof-')) {
+           const footprintAreaSqFt = w * l / 144;
+           const pitchFactor = Math.sqrt(1 + Math.pow(state.roofPitch / 12, 2));
+           const totalRoofAreaSqFt = footprintAreaSqFt * pitchFactor;
+           const roofFaceCount = Object.keys(state.appliedMaterials || {}).filter(k => k.startsWith('roof-')).length || 1;
+           areaSqFt = totalRoofAreaSqFt / roofFaceCount;
+        } else if (surfaceId.startsWith('drywall-')) {
+           areaSqFt = totalWallAreaSqFt / Math.max(1, state.interiorWalls.length * 2 + state.exteriorWalls.length);
+        }
+        
+        if (areaSqFt > 0) {
+           textureAreas[textureUrl] = (textureAreas[textureUrl] || 0) + areaSqFt;
+        }
+      });
+    }
+
     // Basic Cost Assumptions (National Averages)
     const prices = state.materialCosts || DEFAULT_MATERIAL_COSTS;
+    const customPrices = prices.custom || {};
 
     const costs = {
       studs: totalStuds * prices.stud,
@@ -137,7 +186,16 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
       roofSheathing: roofSheathingSheets * prices.roofSheathing
     };
 
-    const totalCost = Object.values(costs).reduce((a, b) => a + b, 0);
+    let totalCustomCost = 0;
+    const customCostsObj: Record<string, number> = {};
+    Object.entries(textureAreas).forEach(([url, area]) => {
+      const pricePerSqFt = customPrices[url] || 5.00;
+      const cost = Math.ceil(area) * pricePerSqFt;
+      customCostsObj[url] = cost;
+      totalCustomCost += cost;
+    });
+
+    const totalCost = Object.values(costs).reduce((a, b) => a + b, 0) + totalCustomCost;
 
     return {
       quantities: {
@@ -155,6 +213,8 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
         roofSheathing: roofSheathingSheets
       },
       costs,
+      customQuantities: textureAreas,
+      customCosts: customCostsObj,
       totalCost
     };
   }, [state]);
@@ -171,14 +231,37 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
     }));
   };
 
+  const handleCustomCostChange = (url: string, value: string) => {
+    const numValue = parseFloat(value);
+    setEditCosts(prev => ({
+      ...prev,
+      custom: {
+        ...(prev.custom || {}),
+        [url]: isNaN(numValue) ? 0 : numValue
+      }
+    }));
+  };
+
   const displayTotalCost = isEditing 
     ? Object.keys(editCosts).reduce((total, key) => {
+        if (key === 'custom') {
+          const customObj = editCosts.custom || {};
+          let cTotal = 0;
+          Object.entries(estimate.customQuantities).forEach(([url, area]) => {
+             const costPerSqFt = customObj[url] || 5.00;
+             cTotal += Math.ceil(area) * costPerSqFt;
+          });
+          return total + cTotal;
+        }
         const qtyKey = key === 'stud' ? 'studs' : 
                        key === 'plate' ? 'plates' : 
                        key === 'joist' ? 'joists' : 
                        key === 'door' ? 'doors' : 
-                       key === 'window' ? 'windows' : key;
-        return total + Number(estimate.quantities[qtyKey as keyof typeof estimate.quantities]) * editCosts[key as keyof MaterialCosts];
+                       key === 'window' ? 'windows' : 
+                       key === 'lumber' ? 'lumber' : key;
+        const qty = Number(estimate.quantities[qtyKey as keyof typeof estimate.quantities] || 0);
+        const unitCost = Number(editCosts[key as keyof MaterialCosts]);
+        return total + (isNaN(qty) ? 0 : qty) * (isNaN(unitCost) ? 0 : unitCost);
       }, 0)
     : estimate.totalCost;
 
@@ -254,7 +337,8 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
                 { id: 'roofSheathing', name: "Roof Sheathing", qty: estimate.quantities.roofSheathing, active: state.roofParts.length > 0 },
               ].map((item) => {
                 const currentCost = isEditing ? editCosts[item.id as keyof MaterialCosts] : (state.materialCosts || DEFAULT_MATERIAL_COSTS)[item.id as keyof MaterialCosts];
-                const totalCost = Number(item.qty) * currentCost;
+                const cleanCost = Number(currentCost) || 0;
+                const totalCost = Number(item.qty) * cleanCost;
                 
                 return (
                 <tr key={item.id} className={`${item.active ? 'bg-white dark:bg-[#1E1E1E]' : 'bg-zinc-50/50 dark:bg-zinc-800/30 opacity-60'}`}>
@@ -268,18 +352,55 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={sanitize(editCosts[item.id as keyof MaterialCosts])}
+                          value={sanitize(Number(currentCost) || 0)}
                           onChange={(e) => handleCostChange(item.id as keyof MaterialCosts, e.target.value)}
                           className="w-16 px-1 py-0.5 text-right bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:text-zinc-200"
                         />
                       </div>
                     ) : (
-                      <span className="text-zinc-600 dark:text-zinc-400">{formatCurrency(currentCost)}</span>
+                      <span className="text-zinc-600 dark:text-zinc-400">{formatCurrency(Number(currentCost) || 0)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right font-medium text-zinc-800 dark:text-zinc-200">{formatCurrency(totalCost)}</td>
                 </tr>
               )})}
+              {Object.entries(estimate.customQuantities).map(([url, area]) => {
+                const nameParts = url.split(/[\\/]/);
+                const name = nameParts[nameParts.length - 1];
+                const cleanArea = Math.ceil(area);
+                const currentCost = isEditing 
+                  ? ((editCosts.custom || {})[url] || 5.00)
+                  : ((state.materialCosts?.custom || {})[url] || 5.00);
+                const totalCost = cleanArea * currentCost;
+                
+                return (
+                <tr key={`custom_${url}`} className="bg-emerald-50/50 dark:bg-emerald-900/10">
+                  <td className="px-3 py-2 font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                    <img src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`} className="w-4 h-4 rounded-full object-cover" alt="mat" />
+                    {name}
+                  </td>
+                  <td className="px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">{cleanArea} sqft</td>
+                  <td className="px-3 py-2 text-right">
+                    {isEditing ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-zinc-400 dark:text-zinc-500">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={sanitize(currentCost)}
+                          onChange={(e) => handleCustomCostChange(url, e.target.value)}
+                          className="w-16 px-1 py-0.5 text-right bg-white dark:bg-zinc-800 border border-emerald-300 dark:border-emerald-700/50 rounded text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:text-emerald-300"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-emerald-700 dark:text-emerald-400">{formatCurrency(currentCost)} /sqft</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right font-medium text-emerald-800 dark:text-emerald-300">{formatCurrency(totalCost)}</td>
+                </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
