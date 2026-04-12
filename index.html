@@ -3,10 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <title>Dooley's Building Solutions</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply dark mode immediately to prevent flash of wrong theme
+      (function() {
+        var saved = localStorage.getItem('dooley_dark_mode');
+        var isDark = saved !== null ? saved === 'true' : true;
+        if (isDark) document.documentElement.classList.add('dark');
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

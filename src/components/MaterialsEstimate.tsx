@@ -376,7 +376,7 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
                 return (
                 <tr key={`custom_${url}`} className="bg-emerald-50/50 dark:bg-emerald-900/10">
                   <td className="px-3 py-2 font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                    <img src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`} className="w-4 h-4 rounded-full object-cover" alt="mat" />
+                    <img src={url} className="w-4 h-4 rounded-full object-cover" alt="mat" />
                     {name}
                   </td>
                   <td className="px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">{cleanArea} sqft</td>

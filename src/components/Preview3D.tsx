@@ -1,10 +1,12 @@
 import { GableRoof, HipRoof, ShedRoof, RoofFace } from './Roofs';
-import React, { useMemo, Suspense, useState, useEffect } from 'react';
-import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
+import React, { useMemo, Suspense, useState, useEffect, useRef } from 'react';
+import { Canvas, ThreeEvent, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Center, Environment, ContactShadows, Sky, useGLTF, Line, useTexture } from '@react-three/drei';
 import { Geometry, Base, Subtraction } from '@react-three/csg';
 import * as THREE from 'three';
 import { InteriorWallConfig, ExteriorWallConfig, DoorConfig, WindowConfig, BumpoutConfig, InteriorAsset, RoofPart, TrussConfig, DormerConfig, CustomCamera } from '../App';
+import { useSpaceMouse } from '../hooks/useSpaceMouse';
+import SpaceMouseController from './SpaceMouseController';
 
 interface Preview3DProps {
   shape: 'rectangle' | 'l-shape' | 'u-shape' | 'h-shape' | 't-shape' | 'custom';
@@ -62,6 +64,7 @@ interface Preview3DProps {
   showSky: boolean;
   showSun: boolean;
   showRoof: boolean;
+  showAxes?: boolean;
   additionalStories: number;
   currentFloorIndex: number;
   upperFloorWallHeightIn: number;
@@ -105,7 +108,7 @@ export interface MaterialConfig {
 const TexturedMaterial = ({
   url, roughness = 0.8, config, uvScale,
 }: { url: string; roughness?: number; config?: MaterialConfig, uvScale?: [number, number] }) => {
-  const texture = useTexture(`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`);
+  const texture = useTexture(url);
   
   const scopedTexture = React.useMemo(() => {
     if (!uvScale) return texture;
@@ -187,7 +190,7 @@ const MaterialEditorPanel = ({
   const IMAGE_EXTS = /\.(jpg|jpeg|png|webp)$/i;
 
   React.useEffect(() => {
-    fetch(`http://localhost:3001/api/assets?t=${Date.now()}`)
+    fetch(`/api/assets?t=${Date.now()}`)
       .then(r => r.json())
       .then(d => {
         if (d.assets) setAssets(d.assets.filter((a: any) => IMAGE_EXTS.test(a.name)));
@@ -268,7 +271,7 @@ const MaterialEditorPanel = ({
           <div className="w-20 h-20 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-800 flex-shrink-0">
             {editTarget ? (
               <img
-                src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(editTarget)}`}
+                src={editTarget}
                 alt="preview"
                 className="w-full h-full object-cover"
               />
@@ -319,7 +322,7 @@ const MaterialEditorPanel = ({
               <div className="bg-zinc-800/60 border border-zinc-700 rounded-xl p-3 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden border border-zinc-600 flex-shrink-0">
                   <img
-                    src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(activePaintMaterial)}`}
+                    src={activePaintMaterial}
                     className="w-full h-full object-cover"
                     alt="brush"
                   />
@@ -375,7 +378,7 @@ const MaterialEditorPanel = ({
                             isHid ? 'bg-zinc-800/50' : 'hover:bg-zinc-800/30'
                           }`}>
                             <img
-                              src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`}
+                              src={url}
                               className={`w-8 h-8 rounded object-cover border border-zinc-700 flex-shrink-0 ${isHid ? 'opacity-40' : ''}`}
                               alt={asset.name}
                             />
@@ -1191,7 +1194,7 @@ export default function Preview3D({
   studSpacing, studThickness, topPlates, bottomPlates, headerType, headerHeight,
   solidWallsOnly,
   noFramingFloorOnly,
-  showGround, showSky, showSun, showRoof,
+  showGround, showSky, showSun, showRoof, showAxes = true,
   additionalStories, currentFloorIndex, upperFloorWallHeightIn, upperFloorJoistSize, combinedBlocks, shapeBlocks,
   referenceModelUrl, modelScale, modelOffset, modelRotation, modelOpacity,
   roofParts, roofType, roofPitch, roofOverhangIn, roofWidthIn, roofHeightIn,
@@ -1220,9 +1223,12 @@ export default function Preview3D({
   const [materialConfigs, setMaterialConfigs] = useState<Record<string, MaterialConfig>>({});
   const [splitHeight, setSplitHeight] = useState(0);
 
+  // 3Dconnexion SpaceMouse
+  const { connect: connectSpaceMouse, disconnect: disconnectSpaceMouse, isConnected: spaceMouseConnected, deviceName: spaceMouseName, axes: spaceMouseAxes } = useSpaceMouse();
+
   // Load saved material configs on mount
   React.useEffect(() => {
-    fetch('http://localhost:3001/api/material-configs')
+    fetch('/api/material-configs')
       .then(r => r.json())
       .then(d => setMaterialConfigs(d))
       .catch(() => {});
@@ -2429,6 +2435,7 @@ export default function Preview3D({
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={[widthIn * 0.03, wallHeightIn * 0.08, lengthIn * 0.03]} fov={50} />
           <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
+          <SpaceMouseController axes={spaceMouseAxes} enabled={spaceMouseConnected} />
           
           <ambientLight intensity={0.4} />
           {showSky && <Sky distance={450000} sunPosition={[10, 20, 10]} inclination={0} azimuth={0.25} />}
@@ -2455,7 +2462,7 @@ export default function Preview3D({
             isFloorPlanView={isFloorPlanView} 
             cutHeight={activeFloorCutHeight} 
           />
-          <axesHelper args={[500]} rotation={[-Math.PI / 2, 0, 0]} />
+          {showAxes && <axesHelper args={[500]} rotation={[-Math.PI / 2, 0, 0]} />}
           {showGround && <Ground
             onClick={handleMeasureClick}
             onPointerMove={(e) => { if (isMeasuring) handleMeasurePointerMove(e); }}
@@ -2657,14 +2664,70 @@ export default function Preview3D({
                 
                 const eaveDrop = overhang * (pitch / 12);
                 const ridgeH = (w / 2) * (pitch / 12) + eaveDrop;
+
+                // Collect all windows for this dormer
+                const dormerWins: { ox: number; winW: number; winH: number; sill: number }[] = [];
+
+                // Legacy single-window from DormerConfig.hasWindow
+                if (d.hasWindow) {
+                  const legW = d.windowWidthIn ?? 24;
+                  const legH = d.windowHeightIn ?? 30;
+                  const legSill = d.windowSillHeightIn ?? 6;
+                  if (legW > 0 && legH > 0 && legW < l && (legSill + legH) < wallH) {
+                    dormerWins.push({ ox: (l - legW) / 2, winW: legW, winH: legH, sill: legSill });
+                  }
+                }
+
+                // Standard windows assigned to this dormer (wall = 9000 + i)
+                windows.filter(win => win.wall === 9000 + i).forEach(win => {
+                  const ox = win.xFt * 12 + win.xInches;
+                  if (win.widthIn > 0 && win.heightIn > 0 && (win.sillHeightIn + win.heightIn) < wallH) {
+                    dormerWins.push({ ox, winW: win.widthIn, winH: win.heightIn, sill: win.sillHeightIn });
+                  }
+                });
+
+                const hasAnyWindow = dormerWins.length > 0;
                 
                 return (
                   <group key={`dormer-${i}`}>
-                    {/* Walls */}
+                    {/* Walls — with optional window cutouts */}
                     <mesh position={[d.x, totalBaseHeight + wallHeightIn + (wallH / 2), d.y]} castShadow receiveShadow>
-                      <boxGeometry args={[w, wallH, l]} />
+                      {hasAnyWindow ? (
+                        <Geometry>
+                          <Base><boxGeometry args={[w, wallH, l]} /></Base>
+                          {dormerWins.map((dw, wi) => (
+                            <Subtraction key={`dw-sub-${wi}`} position={[w / 2, dw.sill + dw.winH / 2 - wallH / 2, dw.ox + dw.winW / 2 - l / 2]}>
+                              <boxGeometry args={[w * 0.4, dw.winH, dw.winW]} />
+                            </Subtraction>
+                          ))}
+                        </Geometry>
+                      ) : (
+                        <boxGeometry args={[w, wallH, l]} />
+                      )}
                       <meshStandardMaterial color="#e4e4e7" roughness={0.7} />
                     </mesh>
+
+                    {/* Glass panes & frames — on the front face (+X side) */}
+                    {dormerWins.map((dw, wi) => {
+                      const glassZ = d.y - l / 2 + dw.ox + dw.winW / 2;
+                      const glassY = totalBaseHeight + wallHeightIn + dw.sill + dw.winH / 2;
+                      return (
+                        <group key={`dw-glass-${wi}`}>
+                          <mesh position={[d.x + w / 2, glassY, glassZ]} castShadow>
+                            <boxGeometry args={[0.5, dw.winH - 1, dw.winW - 1]} />
+                            <meshStandardMaterial color="#87ceeb" transparent opacity={0.35} roughness={0.05} metalness={0.3} />
+                          </mesh>
+                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                            <boxGeometry args={[0.8, dw.winH + 1, dw.winW + 1]} />
+                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                          </mesh>
+                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                            <boxGeometry args={[1, dw.winH - 0.5, dw.winW - 0.5]} />
+                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                          </mesh>
+                        </group>
+                      );
+                    })}
                     
                     {/* Roof */}
                     <DormerRoof 
@@ -3037,6 +3100,17 @@ export default function Preview3D({
         >
           🎨
         </button>
+        <button
+          onClick={() => spaceMouseConnected ? disconnectSpaceMouse() : connectSpaceMouse()}
+          title={spaceMouseConnected ? `SpaceMouse: ${spaceMouseName} (click to disconnect)` : 'Connect 3Dconnexion SpaceMouse'}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            spaceMouseConnected
+              ? 'bg-cyan-600 text-white shadow-lg'
+              : 'bg-white/80 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700'
+          }`}
+        >
+          🎮
+        </button>
         {isPainterOpen && (
           <MaterialEditorPanel
             activePaintMaterial={localActivePaint}
@@ -3048,7 +3122,7 @@ export default function Preview3D({
             onSurfaceConfigChange={(texUrl, cfg) => setMaterialConfigs(prev => ({ ...prev, [texUrl]: cfg }))}
             onSaveMaterialConfig={(texUrl, cfg) => {
               setMaterialConfigs(prev => ({ ...prev, [texUrl]: cfg }));
-              fetch('http://localhost:3001/api/save-material-config', {
+              fetch('/api/save-material-config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ textureUrl: texUrl, config: cfg }),

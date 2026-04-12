@@ -8,10 +8,32 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import Stripe from 'stripe';
+import puppeteer from 'puppeteer';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
 const app = express();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+  apiVersion: '2026-03-25.dahlia' // Use the latest acceptable version
+});
+
+// Validation for Supabase configuration on startup
+if (!process.env.VITE_SUPABASE_URL || (!process.env.VITE_SUPABASE_SERVICE_ROLE_KEY && !process.env.VITE_SUPABASE_ANON_KEY)) {
+    console.error("❌ CRITICAL ERROR: Supabase configuration is missing in .env file.");
+    console.error("Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_SERVICE_ROLE_KEY are set.");
+} else {
+    console.log("✅ Supabase Configuration detected.");
+    console.log(`🔗 URL: ${process.env.VITE_SUPABASE_URL}`);
+}
+
+const supabase = createClient(
+    process.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL',
+    process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+);
+
 const PORT = 3001;
 const upload = multer({ dest: path.join(process.cwd(), 'downloads') });
 
@@ -73,29 +95,35 @@ app.post('/api/upload', upload.single('assetFile'), async (req, res) => {
             return res.status(400).json({ error: 'File and title are required' });
         }
 
-        const originalPath = file.path;
         const ext = path.extname(file.originalname);
-        
-        // Preserve actual file name or user-assigned title, instead of multer's abstract hash tracking
         const finalName = title ? `${title.replace(/\s+/g, '_')}${ext}` : file.originalname;
-        const targetPath = path.join(path.dirname(originalPath), finalName);
         
-        fs.renameSync(originalPath, targetPath);
+        // Construct cloud storage path
+        const cloudPath = targetFolder ? `${targetFolder}/${finalName}` : `models/${finalName}`;
+        
+        // Read the local multer temp file
+        const fileBuffer = fs.readFileSync(file.path);
 
-        let finalAssetPath;
-        if (targetFolder) {
-            const destFolder = path.join(process.cwd(), 'assets', targetFolder);
-            if (!fs.existsSync(destFolder)) {
-                fs.mkdirSync(destFolder, { recursive: true });
-            }
-            finalAssetPath = path.join(destFolder, finalName);
-            fs.renameSync(targetPath, finalAssetPath);
-        } else {
-            const categorizer = new AssetCategorizer();
-            finalAssetPath = await categorizer.categorizeAndMove(targetPath, title, type || 'model');
+        // Upload directly to Supabase Bucket
+        const { data, error } = await supabase.storage.from('assets').upload(cloudPath, fileBuffer, {
+            upsert: true,
+            contentType: file.mimetype
+        });
+
+        if (error) {
+            console.error("❌ Supabase Upload Error:", error.message);
+            throw error;
         }
 
-        res.json({ success: true, path: finalAssetPath });
+        console.log(`✅ File uploaded successfully to: ${cloudPath}`);
+
+        // Clean up temp file
+        fs.unlinkSync(file.path);
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(cloudPath);
+
+        res.json({ success: true, path: publicUrl });
     } catch (e: any) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -149,21 +177,20 @@ app.get('/api/serve-file', (req, res) => {
     res.sendFile(requestedPath);
 });
 
-app.post('/api/folders', (req, res) => {
+app.post('/api/folders', async (req, res) => {
     try {
         const { folderName, rootType } = req.body;
         if (!folderName) return res.status(400).json({ error: 'Folder name is required' });
 
-        // Default to local assets if rootType is not specified (since external is dangerous to just dump folders in randomly unless specified)
-        const targetRoot = path.join(process.cwd(), 'assets');
-        const newDirPath = path.join(targetRoot, folderName);
-        
-        if (fs.existsSync(newDirPath)) {
-             return res.status(400).json({ error: 'Folder already exists' });
+        // Supabase folders are virtual; create a dummy file to instantiate the folder
+        const dummyPath = `${folderName}/.emptyFolderPlaceholder`;
+        const { error } = await supabase.storage.from('assets').upload(dummyPath, new Uint8Array(), { upsert: true });
+
+        if (error) {
+            throw error;
         }
-        
-        fs.mkdirSync(newDirPath, { recursive: true });
-        res.json({ success: true, path: newDirPath });
+
+        res.json({ success: true, path: folderName });
     } catch(e: any) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -265,75 +292,55 @@ app.delete('/api/folders', (req, res) => {
     }
 });
 
-app.get('/api/assets', (req, res) => {
-    let allAssets: any[] = [];
-    
-    // Read hidden folders config
-    const hiddenFilePath = path.join(process.cwd(), 'hidden_folders.json');
-    let hiddenFolders: string[] = [];
-    if (fs.existsSync(hiddenFilePath)) {
-        try { hiddenFolders = JSON.parse(fs.readFileSync(hiddenFilePath, 'utf-8')); } catch(e){}
-    }
+app.get('/api/assets', async (req, res) => {
+    try {
+        let allAssets: any[] = [];
+        
+        async function traverseSupabase(currentPath: string) {
+            const { data, error } = await supabase.storage.from('assets').list(currentPath);
+            if (error) {
+                console.error("Supabase List Error:", error);
+                return;
+            }
 
-    const getAllFiles = (dirPath: string, rootDir: string) => {
-        if (!fs.existsSync(dirPath)) return;
-        
-        const dirName = path.basename(dirPath);
-        const relativeDir = path.relative(rootDir, dirPath).replace(/\\/g, '/');
-        // Check if this folder is hidden — match by basename OR full relative path
-        // Only match basename for folders at the top level of the root (to avoid cross-library collisions)
-        const isHidden = hiddenFolders.includes(relativeDir) || 
-            (relativeDir === dirName && hiddenFolders.includes(dirName));
-        if (isHidden) return;
+            if (!data || data.length === 0) {
+                allAssets.push({
+                    isEmptyFolder: true,
+                    directory: currentPath,
+                    name: '_empty'
+                });
+                return;
+            }
 
-        // Calculate the full relative tree path from the root
-        let relativePath = path.relative(rootDir, dirPath).replace(/\\/g, '/');
-        // If the path is empty (meaning they placed files directly in the root), default it to an empty string.
-        
-        const files = fs.readdirSync(dirPath);
-        
-        if (files.length === 0) {
-            // Push a placeholder asset so the frontend knows this folder exists in the tree
-            allAssets.push({
-                isEmptyFolder: true,
-                directory: relativePath || '', // empty string indicates root level
-                name: '_empty'
-            });
-            return;
+            for (const item of data) {
+                if (item.name === '.emptyFolderPlaceholder') continue;
+                
+                // If it has an ID, it's a file
+                if (item.id) {
+                    const fullPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+                    const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(fullPath);
+                    
+                    allAssets.push({
+                        name: item.name,
+                        absolutePath: publicUrl,
+                        directory: currentPath
+                    });
+                } else {
+                    // It's a folder prefix (no id)
+                    const nextPath = currentPath ? `${currentPath}/${item.name}` : item.name;
+                    await traverseSupabase(nextPath);
+                }
+            }
         }
 
-        files.forEach(file => {
-            // Ignore system config files that shouldn't appear in the asset list
-            if (file === 'material_configs.json') return;
+        // Start recursion at root
+        await traverseSupabase('');
 
-            const absolutePath = path.join(dirPath, file);
-            if (fs.statSync(absolutePath).isDirectory()) {
-                getAllFiles(absolutePath, rootDir);
-            } else {
-                allAssets.push({
-                    name: file,
-                    absolutePath: absolutePath,
-                    // Supply the full relative path instead of just the immediate parent!
-                    directory: relativePath || ''
-                });
-            }
-        });
-    };
-
-    // 1. Scan internal project assets
-    const localDir = path.join(process.cwd(), 'assets');
-    getAllFiles(localDir, localDir);
-
-    // 2. Scan external Connecter user-defined folders
-    if (process.env.EXTERNAL_ASSET_LIBRARIES) {
-        const externalDirs = process.env.EXTERNAL_ASSET_LIBRARIES.split(',').map(d => d.trim()).filter(Boolean);
-        externalDirs.forEach(dir => {
-            console.log(`Scanning external library: ${dir}`);
-            getAllFiles(dir, dir);
-        });
+        res.json({ assets: allAssets });
+    } catch(e: any) {
+        console.error("❌ Fetch Cloud Assets Error:", e.message || e);
+        res.status(500).json({ error: e.message });
     }
-
-    res.json({ assets: allAssets });
 });
 
 // ─── Material Config (texture scale / opacity persistence) ────────────────
@@ -360,6 +367,96 @@ app.post('/api/save-material-config', (req, res) => {
         res.json({ success: true });
     } catch (e: any) {
         console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ─── Stripe Monetization ──────────────────────────────────────────
+app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+        if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('sk_test_...')) {
+             return res.json({ id: 'dummy_session_id', url: 'http://localhost:3000?success=true' });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: 'Dooley\'s Builder Pro Subscription',
+                        },
+                        unit_amount: 1999, // $19.99/month
+                        recurring: { interval: 'month' }
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription',
+            success_url: `${process.env.APP_URL || 'http://localhost:3000'}?success=true`,
+            cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}?canceled=true`,
+        });
+
+        res.json({ id: session.id, url: session.url });
+    } catch(e: any) {
+        console.error("Stripe Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ─── Print in Backend ──────────────────────────────────────────────
+app.post('/api/generate-print', async (req, res) => {
+    try {
+        const { state } = req.body;
+        // In a real app, we verify the user has a PRO subscription in DB here.
+
+        console.log("Generating Backend PDF for Project...");
+        
+        // Launch headless browser to generate the PDF
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        
+        // As a prototype, we build a simple HTML string representing the Blueprint Data
+        // Ideally, we'd navigate to a special hidden route on the frontend `http://localhost:3000/print-view`
+        // and inject the state there via localStorage or URL params.
+        const htmlContent = `
+            <html>
+                <head>
+                    <style>
+                        body { font-family: 'Helvetica', sans-serif; padding: 40px; }
+                        h1 { color: #2563eb; }
+                        .summary { background: #f3f4f6; padding: 20px; border-radius: 8px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Dooley's Building Solutions - Blueprint Report</h1>
+                    <div class="summary">
+                        <h2>Dimensions</h2>
+                        <p>Total Width: \${state.widthFt || 0}' \${state.widthInches || 0}"</p>
+                        <p>Total Length: \${state.lengthFt || 0}' \${state.lengthInches || 0}"</p>
+                        <p>Wall Height: \${state.wallHeightFt || 0}' \${state.wallHeightInches || 0}"</p>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        await page.setContent(htmlContent);
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+        
+        await browser.close();
+
+        // Return PDF file buffer directly to client
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename="blueprint.pdf"',
+            'Content-Length': pdfBuffer.length
+        });
+        
+        res.send(Buffer.from(pdfBuffer));
+        
+    } catch (e: any) {
+        console.error("Backend Print Error:", e);
         res.status(500).json({ error: e.message });
     }
 });

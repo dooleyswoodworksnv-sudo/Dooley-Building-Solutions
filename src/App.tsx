@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Copy, Check, Settings, Code, Home, DoorOpen, AppWindow, Plus, Trash2, Hammer, LayoutGrid, Magnet, Eye, Camera, Undo2, Redo2, ChevronDown, ChevronRight, ChevronLeft, Construction, Triangle, FileText, Upload, Move, RotateCw, Layers, Ruler, Lock, Unlock, Save, FolderOpen, Calculator, Globe, Cloud, Sun } from 'lucide-react';
+import { Copy, Check, Settings, Code, Home, DoorOpen, AppWindow, Plus, Trash2, Hammer, LayoutGrid, Magnet, Eye, Camera, Undo2, Redo2, ChevronDown, ChevronRight, ChevronLeft, Construction, Triangle, FileText, Upload, Move, RotateCw, Layers, Ruler, Lock, Unlock, Save, FolderOpen, Calculator, Globe, Cloud, Sun, Moon } from 'lucide-react';
 import Preview2D from './components/Preview2D';
 import Preview3D from './components/Preview3D';
 import MaterialsEstimate from './components/MaterialsEstimate';
@@ -10,6 +10,8 @@ import { convertPDFToImages } from './services/pdfService';
 import { generateSketchUpCode, GenerationSection } from './utils/sketchupGenerator';
 import { analyzeBlueprint } from './services/aiService';
 import { Loader2, Sparkles } from 'lucide-react';
+import { useAuth } from './contexts/AuthContext';
+import { AuthOverlay } from './components/auth/AuthOverlay';
 import { sanitize } from './utils/math';
 import { AssetManager } from './components/AssetManager';
 
@@ -164,6 +166,10 @@ export interface DormerConfig {
   overhangIn: number;
   fasciaIn: number;
   wallHeightIn: number;
+  hasWindow?: boolean;
+  windowWidthIn?: number;
+  windowHeightIn?: number;
+  windowSillHeightIn?: number;
 }
 
 export interface CustomCamera {
@@ -288,6 +294,7 @@ export interface AppState {
   showGround: boolean;
   showSky: boolean;
   showSun: boolean;
+  showAxes: boolean;
   // Roof Framing
   roofType: 'gable' | 'hip' | 'shed' | 'flat';
   roofPitch: number;
@@ -399,6 +406,7 @@ const DEFAULT_APP_STATE: AppState = {
   showGround: true,
   showSky: true,
   showSun: true,
+  showAxes: true,
   additionalStories: 0,
   currentFloorIndex: 0,
   upperFloorWallHeightFt: 8,
@@ -436,6 +444,7 @@ const DEFAULT_APP_STATE: AppState = {
 };
 
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
   const [showPluginModal, setShowPluginModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | '3d' | 'code'>('preview');
   const [generationSection, setGenerationSection] = useState<GenerationSection>('all');
@@ -609,6 +618,7 @@ export default function App() {
   const [showGround, setShowGround] = useState<boolean>(true);
   const [showSky, setShowSky] = useState<boolean>(true);
   const [showSun, setShowSun] = useState<boolean>(true);
+  const [showAxes, setShowAxes] = useState<boolean>(true);
   const [showRoof, setShowRoof] = useState<boolean>(true);
 
   // Roof Framing
@@ -628,6 +638,10 @@ export default function App() {
   const [currentDormerOverhangIn, setCurrentDormerOverhangIn] = useState<number>(18);
   const [currentDormerFasciaIn, setCurrentDormerFasciaIn] = useState<number>(6);
   const [currentDormerWallHeightIn, setCurrentDormerWallHeightIn] = useState<number>(48);
+  const [currentDormerHasWindow, setCurrentDormerHasWindow] = useState<boolean>(true);
+  const [currentDormerWindowWidthIn, setCurrentDormerWindowWidthIn] = useState<number>(24);
+  const [currentDormerWindowHeightIn, setCurrentDormerWindowHeightIn] = useState<number>(30);
+  const [currentDormerWindowSillIn, setCurrentDormerWindowSillIn] = useState<number>(6);
 
   // Custom Cameras
   const [customCameras, setCustomCameras] = useState<CustomCamera[]>([]);
@@ -773,7 +787,7 @@ export default function App() {
         additionalStories, upperFloorWallHeightFt, upperFloorWallHeightIn, upperFloorJoistSize,
         foundationType, stemWallHeightIn, stemWallThicknessIn, slabThicknessIn, thickenedEdgeDepthIn, footingWidthIn, footingThicknessIn, foundationShape,
         bumpouts, doors, windows, interiorWalls, exteriorWalls, assets,
-        showGround, showSky, showSun,
+        showGround, showSky, showSun, showAxes,
         studSpacing, studThickness, headerType, headerHeight, bottomPlates, topPlates,
         doorRoAllowance, windowRoAllowance, openingHeaderHeightIn,
         addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness,
@@ -1170,8 +1184,19 @@ export default function App() {
       if (wallId === 7) return u_w7;
       if (wallId === 8) return u_w8 - 2 * t;
     }
+
+    // Dormer walls: wallId 9000+ maps to dormer index
+    if (wallId >= 9000) {
+      const dormerIdx = wallId - 9000;
+      const dormer = dormers[dormerIdx];
+      if (dormer) {
+        // Window spans across the dormer's depth (Z direction on +X face)
+        return dormer.depthIn;
+      }
+    }
+
     return 0;
-  }, [exteriorWalls, interiorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
+  }, [exteriorWalls, interiorWalls, dormers, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
 
   // Ensure doors and windows fit within their walls
   useEffect(() => {
@@ -1223,7 +1248,7 @@ export default function App() {
     studSpacing, studThickness, headerType, headerHeight,
     bottomPlates, topPlates, doorRoAllowance, windowRoAllowance,
     openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, generationSection,
-    showGround, showSky, showSun,
+    showGround, showSky, showSun, showAxes,
     pdfImages, selectedPdfIndex, pdfScale, pdfOffset, pdfRotation, pdfOpacity, isBlueprintLocked, pdfCalibration,
     foundationType, slabThicknessIn, thickenedEdgeDepthIn, stemWallHeightIn, stemWallThicknessIn, footingWidthIn, footingThicknessIn, foundationShape,
     addFloorFraming, joistSpacing, joistSize, joistDirection, addSubfloor, subfloorThickness, subfloorMaterial, rimJoistThickness, generateDimensions, solidWallsOnly, noFramingFloorOnly,
@@ -1245,7 +1270,7 @@ export default function App() {
     studSpacing, studThickness, headerType, headerHeight,
     bottomPlates, topPlates, doorRoAllowance, windowRoAllowance,
     openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, generationSection,
-    showGround, showSky, showSun,
+    showGround, showSky, showSun, showAxes,
     pdfImages, selectedPdfIndex, pdfScale, pdfOffset, pdfRotation, pdfOpacity, isBlueprintLocked, pdfCalibration,
     foundationType, slabThicknessIn, thickenedEdgeDepthIn, stemWallHeightIn, stemWallThicknessIn, footingWidthIn, footingThicknessIn, foundationShape,
     addFloorFraming, joistSpacing, joistSize, joistDirection, addSubfloor, subfloorThickness, subfloorMaterial, rimJoistThickness, generateDimensions, solidWallsOnly, noFramingFloorOnly,
@@ -1311,6 +1336,7 @@ export default function App() {
     setShowGround(state.showGround !== undefined ? state.showGround : true);
     setShowSky(state.showSky !== undefined ? state.showSky : true);
     setShowSun(state.showSun !== undefined ? state.showSun : true);
+    setShowAxes(state.showAxes !== undefined ? state.showAxes : true);
     setSlabThicknessIn(state.slabThicknessIn || 4);
     setThickenedEdgeDepthIn(state.thickenedEdgeDepthIn || 12);
     setStemWallHeightIn(state.stemWallHeightIn || 24);
@@ -3715,6 +3741,23 @@ end
     document.body.removeChild(element);
   };
 
+  // ── Dark Mode Toggle ────────────────────────────────────────────────────
+  const [isDarkMode, setIsDarkMode] = React.useState(() => {
+    const saved = localStorage.getItem('dooley_dark_mode');
+    if (saved !== null) return saved === 'true';
+    return true; // default to dark mode
+  });
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('dooley_dark_mode', String(isDarkMode));
+  }, [isDarkMode]);
+
   return (
     <div className="h-screen flex flex-col bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900/50 selection:text-indigo-900 dark:selection:text-indigo-100 overflow-hidden">
       <header className="bg-white dark:bg-[#1E1E1E] border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between flex-shrink-0 z-10">
@@ -3723,11 +3766,19 @@ end
             <Home size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">SketchUp House Shell Builder</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Generate Ruby scripts for house shells with rough openings</p>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">Dooley's Building Solutions</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Smart Design. Precise Estimates. Better Buildings.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="hidden sm:inline">{isDarkMode ? 'Light' : 'Dark'}</span>
+          </button>
           <button
             onClick={() => setShowPluginModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
@@ -5369,7 +5420,7 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                       className="text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 p-0.5 rounded-full transition-colors flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider"
                       title="Copy code to update just this wall"
                     >
-                      <Copy size={12} /> Edit Wall {win.wall}
+                      <Copy size={12} /> Edit {win.wall >= 9000 ? `Dormer ${win.wall - 9000 + 1}` : `Wall ${win.wall}`}
                     </button>
                     <button 
                       onClick={() => removeWindow(win.id)}
@@ -5412,6 +5463,9 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                           ))}
                           {exteriorWalls.map(w => (
                             <option key={w.id} value={w.id}>Ext Wall {w.id}</option>
+                          ))}
+                          {dormers.map((_d, idx) => (
+                            <option key={`dw-${idx}`} value={9000 + idx}>Dormer {idx + 1}</option>
                           ))}
                         </select>
                       </div>
@@ -6667,6 +6721,56 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         </div>
                       </div>
 
+                      {/* ── Dormer Window ── */}
+                      <div className="mt-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded">
+                              <AppWindow size={14} />
+                            </div>
+                            <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Add Window</span>
+                          </div>
+                          <button
+                            onClick={() => setCurrentDormerHasWindow(!currentDormerHasWindow)}
+                            className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${currentDormerHasWindow ? 'bg-sky-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                          >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${currentDormerHasWindow ? 'translate-x-5' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
+
+                        {currentDormerHasWindow && (
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase">Width (in)</label>
+                              <input
+                                type="number" step="any"
+                                value={currentDormerWindowWidthIn}
+                                onChange={(e) => setCurrentDormerWindowWidthIn(Number(e.target.value))}
+                                className="w-full px-2 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:border-sky-500 text-xs font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase">Height (in)</label>
+                              <input
+                                type="number" step="any"
+                                value={currentDormerWindowHeightIn}
+                                onChange={(e) => setCurrentDormerWindowHeightIn(Number(e.target.value))}
+                                className="w-full px-2 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:border-sky-500 text-xs font-mono"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase">Sill (in)</label>
+                              <input
+                                type="number" step="any"
+                                value={currentDormerWindowSillIn}
+                                onChange={(e) => setCurrentDormerWindowSillIn(Number(e.target.value))}
+                                className="w-full px-2 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:border-sky-500 text-xs font-mono"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex flex-col gap-2">
                       <button 
                         onClick={() => {
@@ -6680,7 +6784,11 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                             pitch: currentDormerPitch,
                             overhangIn: currentDormerOverhangIn,
                             fasciaIn: currentDormerFasciaIn,
-                            wallHeightIn: currentDormerWallHeightIn
+                            wallHeightIn: currentDormerWallHeightIn,
+                            hasWindow: currentDormerHasWindow,
+                            windowWidthIn: currentDormerWindowWidthIn,
+                            windowHeightIn: currentDormerWindowHeightIn,
+                            windowSillHeightIn: currentDormerWindowSillIn,
                           };
                           setDormers([...dormers, newDormer]);
                           setSelectedDormerId(newDormer.id);
@@ -7123,6 +7231,21 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                     className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${showSky ? 'bg-amber-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
                   >
                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showSky ? 'translate-x-5.5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md">
+                      <LayoutGrid size={14} />
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Show Axes</span>
+                  </div>
+                  <button
+                    onClick={() => setShowAxes(!showAxes)}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${showAxes ? 'bg-amber-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showAxes ? 'translate-x-5.5' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -7650,6 +7773,7 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                 showSky={showSky}
                 showSun={showSun}
                 showRoof={showRoof}
+                showAxes={showAxes}
                 additionalStories={additionalStories}
                 currentFloorIndex={currentFloorIndex}
                 upperFloorWallHeightIn={upperFloorWallHeightFt * 12 + upperFloorWallHeightIn}
@@ -7989,6 +8113,8 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
           </div>
         </div>
       )}
+      {/* Auth Overlay */}
+      {(!user && !authLoading) && <AuthOverlay />}
     </div>
   );
 }

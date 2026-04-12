@@ -6,7 +6,7 @@ import { useTexture } from '@react-three/drei';
 const RoofTexturedMaterial = ({ url, opacity, scaleW, scaleH }: {
   url: string; opacity: number; scaleW: number; scaleH: number;
 }) => {
-  const texture = useTexture(`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`);
+  const texture = useTexture(url);
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   
   // ExtrudeGeometry maps U and V directly to the shape's X and Y coordinates (in inches).

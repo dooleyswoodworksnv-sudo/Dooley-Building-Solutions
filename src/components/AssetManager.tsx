@@ -59,7 +59,7 @@ export function AssetManager() {
     const fetchLocalAssets = async () => {
         try {
             // Bust cache just in case SketchUp's aggressive Chromium webview caches the GET request
-            const res = await fetch(`http://localhost:3001/api/assets?t=${Date.now()}`);
+            const res = await fetch(`/api/assets?t=${Date.now()}`);
             if (!res.ok) throw new Error("Network response was not ok");
             const data = await res.json();
             if (data.assets) {
@@ -97,7 +97,7 @@ export function AssetManager() {
             if (uploadFolder) formData.append('targetFolder', uploadFolder);
             formData.append('assetFile', uploadFile);
 
-            const res = await fetch('http://localhost:3001/api/upload', {
+            const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             });
@@ -119,7 +119,7 @@ export function AssetManager() {
 
     const handleGenerateEmblem = async (asset: any) => {
         try {
-            const res = await fetch('http://localhost:3001/api/generate-emblem', {
+            const res = await fetch('/api/generate-emblem', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ assetPath: asset.absolutePath, type: asset.absolutePath.includes('material') ? 'material' : 'model' })
@@ -164,7 +164,7 @@ export function AssetManager() {
     const handleCreateFolder = async (folderType: 'materials' | 'models') => {
         if (!newFolderName.trim()) return setCreatingFolderIn(null);
         try {
-            const res = await fetch('http://localhost:3001/api/folders', {
+            const res = await fetch('/api/folders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ folderName: newFolderName.trim() })
@@ -192,7 +192,7 @@ export function AssetManager() {
             return;
         }
         try {
-            const res = await fetch('http://localhost:3001/api/folders/rename', {
+            const res = await fetch('/api/folders/rename', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldDirectoryName: oldName, newDirectoryName: editFolderName.trim() })
@@ -222,7 +222,7 @@ export function AssetManager() {
     const handleDeleteFolder = async (dirName: string) => {
         if (!confirm(`Are you sure you want to hide "${dirName}" from your library? (The files will remain safe on your computer)`)) return;
         try {
-            const res = await fetch('http://localhost:3001/api/folders', {
+            const res = await fetch('/api/folders', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ directoryName: dirName })
@@ -350,7 +350,7 @@ export function AssetManager() {
                 return;
             }
             try {
-                const res = await fetch('http://localhost:3001/api/folders/move', {
+                const res = await fetch('/api/folders/move', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sourceDirectoryRelative: sourceFolder, targetDirectoryRelative: targetDir })
@@ -384,7 +384,7 @@ export function AssetManager() {
 
                 setExpandedFolders(prev => ({ ...prev, [targetDir]: true }));
 
-                const res = await fetch('http://localhost:3001/api/upload', {
+                const res = await fetch('/api/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -541,7 +541,7 @@ export function AssetManager() {
                                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
                                             {(isEmblem || isImage) ? (
                                                 <img 
-                                                    src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
+                                                    src={asset.absolutePath} 
                                                     className="w-full h-full object-cover" 
                                                     alt={asset.name}
                                                 />
@@ -690,7 +690,7 @@ export function AssetManager() {
                                                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
                                                         {(isEmblem || isImage) ? (
                                                             <img 
-                                                                src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
+                                                                src={asset.absolutePath} 
                                                                 className="w-full h-full object-cover" 
                                                                 alt={asset.name}
                                                             />
