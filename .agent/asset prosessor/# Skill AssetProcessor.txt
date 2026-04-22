@@ -1,0 +1,59 @@
+# Skill: AssetProcessor
+**Description:** Searches for 3D assets, generates 2D line-art emblems using Blender, and organizes them.
+
+## Instructions
+1. **Search:** Use `browser_agent` to find .skp, .fbx, or .obj files on 3D Warehouse or Sketchfab.
+2. **Download:** Save to the local `Downloads` folder.
+3. **Emblem Generation:** Run `blender -b -P scripts/emblem_generator.py -- [input] [output]`.
+4. **Organize:** Move 3D model to `Library/Models/[Category]/` and PNG to `Library/Emblems/[Category]/`.
+
+import bpy
+import os
+
+def generate_2d_emblem(model_path, output_path):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    if model_path.endswith('.obj'): bpy.ops.import_scene.obj(filepath=model_path)
+    elif model_path.endswith('.fbx'): bpy.ops.import_scene.fbx(filepath=model_path)
+
+    bpy.ops.object.camera_add(location=(0, 0, 10))
+    camera = bpy.context.object
+    camera.data.type = 'ORTHO'
+    camera.data.ortho_scale = 10
+    bpy.context.scene.camera = camera
+
+    scene = bpy.context.scene
+    scene.render.use_freestyle = True
+    bpy.context.view_layer.use_freestyle = True
+    scene.render.film_transparent = True
+    scene.render.image_settings.file_format = 'PNG'
+    scene.render.filepath = output_path
+
+    bpy.ops.object.select_all(action='SELECT')
+    bpy.ops.view3d.camera_to_view_selected()
+    bpy.ops.render.render(write_still=True)
+
+# Skill: MaterialProcessor
+**Description:** Searches for PBR textures and generates a "Material Ball" preview emblem.
+
+## Instructions
+1. **Search:** Use `browser_agent` to find PBR sets on Poly Haven or AmbientCG.
+2. **Preview Generation:** Run `blender -b -P scripts/material_preview_generator.py -- [folder] [output]`.
+3. **Organize:** Create `Library/Materials/[Category]/[Name]/`, move maps to `/Maps/`, and save the preview PNG as the main folder icon.
+
+import bpy
+import os
+
+def render_material_ball(texture_dir, output_path):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=2, subs=5)
+    sphere = bpy.context.object
+    bpy.ops.object.shade_smooth()
+
+    mat = bpy.data.materials.new(name="PreviewMat")
+    mat.use_nodes = True
+    # (Node setup logic for Albedo, Normal, Roughness maps goes here)
+    sphere.data.materials.append(mat)
+
+    bpy.ops.object.camera_add(location=(7, -7, 5), rotation=(1.1, 0, 0.78))
+    bpy.context.scene.camera = bpy.context.object
+    bpy.ops.render.render(write_still=True)

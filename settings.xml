@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<connecter>
+  <workspace>
+    <fileVersion>1.1</fileVersion>
+    <settings>
+      <setting key="2007">["C:\\Users\\doole\\OneDrive\\Desktop\\conector\\wsbkp_28_3_2026_7.58.13\\Media\\previews","C:\\Users\\doole\\OneDrive\\Desktop\\conector\\wsbkp_28_3_2026_7.58.13\\Media","C:\\Users\\doole\\OneDrive\\Desktop\\conector\\wsbkp_28_3_2026_7.58.13"]</setting>
+      <setting key="2011">{"Version":1,"EnableIndexedSearch":false,"SearchFields":["c7cb3aac","21c3aef2","10957a87","13643a0c","961094fe"]}</setting>
+      <setting key="2001"></setting>
+      <setting key="2002"></setting>
+      <setting key="2003">ShowMissingItems</setting>
+      <setting key="2010">9f0631f0-d13b-44e6-80bc-2d248ae2c133</setting>
+    </settings>
+  </workspace>
+</connecter>
