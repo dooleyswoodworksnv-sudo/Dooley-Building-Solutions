@@ -240,11 +240,16 @@ Each layer uses `draw_wall_layer` which:
 
 ### Solid Wall Mode
 
-When `solidWallsOnly = true`, the wall framing is replaced by `draw_solid_walls_segmented`:
-- No individual studs, plates, or headers.
-- Wall is drawn as solid rectangular segments with gaps for openings.
-- Under-window and over-opening segments are drawn separately.
-- Material: `"Wall Framing"` → `#e4e4e7`.
+When `solidWallsOnly = true`, the wall framing is replaced by `draw_solid_walls_segmented`.
+
+**CRITICAL RULE: STRICT SEPARATION OF MODES**
+- You must **NEVER** generate solid walls (`draw_solid_walls_segmented`) when standard framing is requested.
+- If `solidWallsOnly` is false (i.e., you are in normal framing mode), you must ONLY generate studs, plates, and headers. NO solid walls should be generated.
+- If `solidWallsOnly` is true (solid wall mode):
+  - Generate NO individual studs, plates, or headers.
+  - The Wall is drawn as solid rectangular segments with gaps for openings.
+  - Under-window and over-opening segments are drawn separately.
+  - Material: `"Wall Framing"` → `#e4e4e7`.
 
 ### Opening Placement Data Model
 
@@ -688,7 +693,7 @@ Before finalizing any structural generation code, verify:
 - [ ] Headers use the correct `headerType` (single, double, LVL).
 - [ ] Sill plates appear under windows only (not doors).
 - [ ] Sheathing is exterior-only; drywall is interior-only.
-- [ ] `solidWallsOnly` mode produces correct segmented geometry.
+- [ ] `solidWallsOnly` mode produces correct segmented geometry, AND `draw_solid_walls_segmented` is **never** called if `solidWallsOnly = false`.
 - [ ] Wall IDs match the shape's wall numbering convention.
 - [ ] Openings are filtered by both `wall` ID and `floorIndex`.
 - [ ] Multi-story walls use `upper_floor_wall_height`, not ground floor height.
