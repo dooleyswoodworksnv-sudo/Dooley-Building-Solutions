@@ -102,6 +102,14 @@ export interface MaterialCosts {
   truss: number;
   roofSheathing: number;
   lumber: number;
+  rebar: number;
+  nails: number;
+  hurricaneTies: number;
+  anchorBolts: number;
+  joistHangers: number;
+  adhesive: number;
+  roofUnderlayment: number;
+  houseWrap: number;
 }
 
 export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
@@ -115,9 +123,17 @@ export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
   subfloor: 35.00,
   door: 200.00,
   window: 300.00,
-  truss: 50.00,
+  truss: 150.00,
   roofSheathing: 25.00,
-  lumber: 5.00
+  lumber: 5.00,
+  rebar: 10.00,
+  nails: 45.00,
+  hurricaneTies: 1.50,
+  anchorBolts: 2.50,
+  joistHangers: 2.00,
+  adhesive: 6.00,
+  roofUnderlayment: 45.00,
+  houseWrap: 150.00
 };
 
 export interface InteriorAsset {
@@ -408,7 +424,15 @@ const DEFAULT_APP_STATE: AppState = {
     window: 300.00,
     truss: 150.00,
     roofSheathing: 25.00,
-    lumber: 5.00
+    lumber: 5.00,
+    rebar: 10.00,
+    nails: 45.00,
+    hurricaneTies: 1.50,
+    anchorBolts: 2.50,
+    joistHangers: 2.00,
+    adhesive: 6.00,
+    roofUnderlayment: 45.00,
+    houseWrap: 150.00
   },
   roofType: 'gable',
   roofPitch: 4,
@@ -1153,40 +1177,93 @@ export default function App() {
     return 0;
   }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
 
-  // Ensure doors and windows fit within their walls
+  // Build list of available wall options for door/window dropdowns
+  const getAvailableWallOptions = useMemo(() => {
+    const options: { id: number, label: string }[] = [];
+    
+    if (shape === 'rectangle') {
+      for (let i = 1; i <= 4; i++) options.push({ id: i, label: `Wall ${i}` });
+    } else if (shape === 'l-shape') {
+      for (let i = 1; i <= 6; i++) options.push({ id: i, label: `Wall ${i}` });
+    } else if (shape === 'u-shape') {
+      for (let i = 1; i <= 8; i++) options.push({ id: i, label: `Wall ${i}` });
+    } else if (shape === 'h-shape') {
+      for (let i = 1; i <= 12; i++) options.push({ id: i, label: `Wall ${i}` });
+    } else if (shape === 't-shape') {
+      for (let i = 1; i <= 8; i++) options.push({ id: i, label: `Wall ${i}` });
+    }
+    // For 'custom' shape, only use exterior walls (combined shape walls)
+    
+    // Add custom exterior walls (from combined shapes)
+    exteriorWalls.forEach(w => {
+      // Avoid duplicating IDs already listed
+      if (!options.some(o => o.id === w.id)) {
+        const len = w.lengthFt * 12 + w.lengthInches;
+        const orient = w.orientation === 'horizontal' ? 'H' : 'V';
+        options.push({ id: w.id, label: `Ext ${w.id} (${orient} ${Math.floor(len/12)}'${len%12}")` });
+      }
+    });
+    
+    // Add interior walls
+    interiorWalls.forEach(w => {
+      const len = w.lengthFt * 12 + w.lengthInches;
+      const orient = w.orientation === 'horizontal' ? 'H' : 'V';
+      options.push({ id: w.id, label: `Int ${w.id} (${orient} ${Math.floor(len/12)}'${len%12}")` });
+    });
+    
+    return options;
+  }, [shape, exteriorWalls, interiorWalls]);
+
+  // Ensure doors and windows fit within their walls and reassign orphaned ones
   useEffect(() => {
     if (isRestoring.current) return;
+    if (getAvailableWallOptions.length === 0) return;
+
+    const availableIds = new Set(getAvailableWallOptions.map(o => o.id));
+    const firstWallId = getAvailableWallOptions[0].id;
 
     let doorsChanged = false;
     const validatedDoors = doors.map(d => {
-      const wallLen = getWallLength(d.wall);
-      const x = d.xFt * 12 + d.xInches;
-      const maxPos = Math.max(0, wallLen - d.widthIn);
+      let updated = d;
+      // Reassign door to first available wall if its wall no longer exists
+      if (!availableIds.has(d.wall)) {
+        doorsChanged = true;
+        updated = { ...updated, wall: firstWallId, xFt: 0, xInches: 0 };
+      }
+      const wallLen = getWallLength(updated.wall);
+      const x = updated.xFt * 12 + updated.xInches;
+      const maxPos = Math.max(0, wallLen - updated.widthIn);
       
       if (x > maxPos) {
         doorsChanged = true;
-        return { ...d, xFt: Math.floor(maxPos / 12), xInches: maxPos % 12 };
+        return { ...updated, xFt: Math.floor(maxPos / 12), xInches: maxPos % 12 };
       }
-      return d;
+      return updated;
     });
 
     if (doorsChanged) setDoors(validatedDoors);
 
     let windowsChanged = false;
     const validatedWindows = windows.map(w => {
-      const wallLen = getWallLength(w.wall);
-      const x = w.xFt * 12 + w.xInches;
-      const maxPos = Math.max(0, wallLen - w.widthIn);
+      let updated = w;
+      // Reassign window to first available wall if its wall no longer exists
+      if (!availableIds.has(w.wall)) {
+        windowsChanged = true;
+        updated = { ...updated, wall: firstWallId, xFt: 0, xInches: 0 };
+      }
+      const wallLen = getWallLength(updated.wall);
+      const x = updated.xFt * 12 + updated.xInches;
+      const maxPos = Math.max(0, wallLen - updated.widthIn);
       
       if (x > maxPos) {
         windowsChanged = true;
-        return { ...w, xFt: Math.floor(maxPos / 12), xInches: maxPos % 12 };
+        return { ...updated, xFt: Math.floor(maxPos / 12), xInches: maxPos % 12 };
       }
-      return w;
+      return updated;
     });
 
     if (windowsChanged) setWindows(validatedWindows);
-  }, [doors, windows, getWallLength]);
+  }, [doors, windows, getWallLength, getAvailableWallOptions]);
 
   const [copied, setCopied] = useState(false);
 
@@ -1459,7 +1536,8 @@ export default function App() {
 
   const addDoor = () => {
     const newId = `door-${Date.now()}`;
-    const wallId = 1;
+    // Pick the first available wall
+    const wallId = getAvailableWallOptions.length > 0 ? getAvailableWallOptions[0].id : 1;
     const wallLen = getWallLength(wallId);
     const widthIn = 36;
     let xFt = 10;
@@ -1498,7 +1576,8 @@ export default function App() {
 
   const addWindow = () => {
     const newId = `win-${Date.now()}`;
-    const wallId = 1;
+    // Pick the first available wall
+    const wallId = getAvailableWallOptions.length > 0 ? getAvailableWallOptions[0].id : 1;
     const wallLen = getWallLength(wallId);
     const widthIn = 48;
     let xFt = 15;
@@ -1821,19 +1900,19 @@ export default function App() {
   };
 
   const combineExteriorWalls = () => {
-    if (exteriorWalls.length === 0) return;
-
     // Treat each wall as a thin rectangle to find union? 
     // No, better: find all closed loops and union them.
     // Simpler: if we have shapeBlocks, use them.
     
-    const rects = shapeBlocks.length > 0 ? shapeBlocks : [];
+    const rects = shapeBlocks.length > 0 ? [...shapeBlocks] : [];
     
-    // If no shape blocks, try to infer them from current exteriorWalls if they form a rectangle
+    // If no shape blocks, try to infer them from current exteriorWalls or base shape
     if (rects.length === 0 && shape !== 'custom') {
       const w = widthFt * 12 + widthInches;
       const l = lengthFt * 12 + lengthInches;
-      rects.push({ id: 'base', x: 0, y: 0, w, h: l });
+      if (w > 0 && l > 0) {
+        rects.push({ id: 'base', x: 0, y: 0, w, h: l });
+      }
     }
 
     if (rects.length === 0) return;
@@ -5185,31 +5264,10 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         <select 
                           value={door.wall} 
                           onChange={(e) => updateDoor(door.id, 'wall', Number(e.target.value))}
-                          className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xl font-bold text-zinc-900 dark:text-zinc-100"
+                          className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-zinc-900 dark:text-zinc-100"
                         >
-                          <option value={1}>1</option>
-                          <option value={2}>2</option>
-                          <option value={3}>3</option>
-                          <option value={4}>4</option>
-                          {shape === 'l-shape' && (
-                            <>
-                              <option value={5}>5</option>
-                              <option value={6}>6</option>
-                            </>
-                          )}
-                          {shape === 'u-shape' && (
-                            <>
-                              <option value={5}>5</option>
-                              <option value={6}>6</option>
-                              <option value={7}>7</option>
-                              <option value={8}>8</option>
-                            </>
-                          )}
-                          {interiorWalls.map(w => (
-                            <option key={w.id} value={w.id}>Int Wall {w.id}</option>
-                          ))}
-                          {exteriorWalls.map(w => (
-                            <option key={w.id} value={w.id}>Ext Wall {w.id}</option>
+                          {getAvailableWallOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.label}</option>
                           ))}
                         </select>
                       </div>
@@ -5328,31 +5386,10 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         <select 
                           value={win.wall} 
                           onChange={(e) => updateWindow(win.id, 'wall', Number(e.target.value))}
-                          className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xl font-bold text-zinc-900 dark:text-zinc-100"
+                          className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold text-zinc-900 dark:text-zinc-100"
                         >
-                          <option value={1}>1</option>
-                          <option value={2}>2</option>
-                          <option value={3}>3</option>
-                          <option value={4}>4</option>
-                          {shape === 'l-shape' && (
-                            <>
-                              <option value={5}>5</option>
-                              <option value={6}>6</option>
-                            </>
-                          )}
-                          {shape === 'u-shape' && (
-                            <>
-                              <option value={5}>5</option>
-                              <option value={6}>6</option>
-                              <option value={7}>7</option>
-                              <option value={8}>8</option>
-                            </>
-                          )}
-                          {interiorWalls.map(w => (
-                            <option key={w.id} value={w.id}>Int Wall {w.id}</option>
-                          ))}
-                          {exteriorWalls.map(w => (
-                            <option key={w.id} value={w.id}>Ext Wall {w.id}</option>
+                          {getAvailableWallOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.label}</option>
                           ))}
                         </select>
                       </div>

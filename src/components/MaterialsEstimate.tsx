@@ -119,6 +119,16 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
       roofSheathingSheets = Math.ceil(roofAreaSqFt / 32);
     }
 
+    // New Items (Hardware, Wraps, Foundation Accessories)
+    const rebarSticks = state.foundationType !== 'none' ? Math.ceil((extWallLengthIn / 12 * 2) / 20) : 0; // 2 runs continuous
+    const anchorBoltsQty = state.foundationType !== 'none' ? Math.ceil((extWallLengthIn / 12) / 6) : 0; // 1 every 6 ft
+    const nailsBoxes = Math.ceil(totalWallAreaSqFt / 500); // 1 box per 500 sq ft wall area
+    const houseWrapRolls = extWallAreaSqFt > 0 ? Math.ceil(extWallAreaSqFt / 900) : 0; // 9'x100' roll
+    const joistHangersQty = floorJoists > 0 ? floorJoists * 2 : 0; // 2 per joist
+    const adhesiveTubes = subfloorSheets > 0 ? Math.ceil(subfloorSheets / 4) : 0; // 1 tube per 4 sheets
+    const hurricaneTiesQty = roofTrusses > 0 ? roofTrusses * 2 : 0; // 2 per truss
+    const roofUnderlaymentRolls = roofSheathingSheets > 0 ? Math.ceil((roofSheathingSheets * 32) / 400) : 0; // 400 sq ft roll
+
     // Basic Cost Assumptions (National Averages)
     const prices = state.materialCosts || DEFAULT_MATERIAL_COSTS;
 
@@ -134,7 +144,15 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
       doors: state.doors.length * prices.door,
       windows: state.windows.length * prices.window,
       trusses: roofTrusses * prices.truss,
-      roofSheathing: roofSheathingSheets * prices.roofSheathing
+      roofSheathing: roofSheathingSheets * prices.roofSheathing,
+      rebar: rebarSticks * prices.rebar,
+      nails: nailsBoxes * prices.nails,
+      hurricaneTies: hurricaneTiesQty * prices.hurricaneTies,
+      anchorBolts: anchorBoltsQty * prices.anchorBolts,
+      joistHangers: joistHangersQty * prices.joistHangers,
+      adhesive: adhesiveTubes * prices.adhesive,
+      roofUnderlayment: roofUnderlaymentRolls * prices.roofUnderlayment,
+      houseWrap: houseWrapRolls * prices.houseWrap
     };
 
     const totalCost = Object.values(costs).reduce((a, b) => a + b, 0);
@@ -152,7 +170,15 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
         doors: state.doors.length,
         windows: state.windows.length,
         trusses: roofTrusses,
-        roofSheathing: roofSheathingSheets
+        roofSheathing: roofSheathingSheets,
+        rebar: rebarSticks,
+        nails: nailsBoxes,
+        hurricaneTies: hurricaneTiesQty,
+        anchorBolts: anchorBoltsQty,
+        joistHangers: joistHangersQty,
+        adhesive: adhesiveTubes,
+        roofUnderlayment: roofUnderlaymentRolls,
+        houseWrap: houseWrapRolls
       },
       costs,
       totalCost
@@ -246,12 +272,20 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
                 { id: 'drywall', name: "Drywall (4x8)", qty: estimate.quantities.drywall, active: state.addDrywall || state.solidWallsOnly },
                 { id: 'insulation', name: "Insulation (Rolls)", qty: estimate.quantities.insulation, active: state.addInsulation || state.solidWallsOnly },
                 { id: 'concrete', name: "Concrete (CY)", qty: estimate.quantities.concrete, active: state.foundationType !== 'none' },
+                { id: 'rebar', name: "Rebar 20' Sticks", qty: estimate.quantities.rebar, active: state.foundationType !== 'none' },
+                { id: 'anchorBolts', name: "Anchor Bolts", qty: estimate.quantities.anchorBolts, active: state.foundationType !== 'none' },
+                { id: 'nails', name: "Framing Nails (Boxes)", qty: estimate.quantities.nails, active: true },
+                { id: 'houseWrap', name: "House Wrap (Rolls)", qty: estimate.quantities.houseWrap, active: state.addSheathing || state.solidWallsOnly },
                 { id: 'joist', name: "Floor Joists", qty: estimate.quantities.joists, active: state.addFloorFraming },
+                { id: 'joistHangers', name: "Joist Hangers", qty: estimate.quantities.joistHangers, active: state.addFloorFraming },
                 { id: 'subfloor', name: "Subfloor (4x8)", qty: estimate.quantities.subfloor, active: state.addFloorFraming && state.addSubfloor },
+                { id: 'adhesive', name: "Subfloor Adhesive", qty: estimate.quantities.adhesive, active: state.addFloorFraming && state.addSubfloor },
                 { id: 'door', name: "Doors", qty: estimate.quantities.doors, active: state.doors.length > 0 },
                 { id: 'window', name: "Windows", qty: estimate.quantities.windows, active: state.windows.length > 0 },
                 { id: 'truss', name: "Roof Trusses", qty: estimate.quantities.trusses, active: state.trussRuns.length > 0 },
-                { id: 'roofSheathing', name: "Roof Sheathing", qty: estimate.quantities.roofSheathing, active: state.roofParts.length > 0 },
+                { id: 'hurricaneTies', name: "Hurricane Ties", qty: estimate.quantities.hurricaneTies, active: state.trussRuns.length > 0 },
+                { id: 'roofSheathing', name: "Roof Sheathing", qty: estimate.quantities.roofSheathing, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
+                { id: 'roofUnderlayment', name: "Roof Underlayment (Rolls)", qty: estimate.quantities.roofUnderlayment, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
               ].map((item) => {
                 const currentCost = isEditing ? editCosts[item.id as keyof MaterialCosts] : (state.materialCosts || DEFAULT_MATERIAL_COSTS)[item.id as keyof MaterialCosts];
                 const totalCost = Number(item.qty) * currentCost;

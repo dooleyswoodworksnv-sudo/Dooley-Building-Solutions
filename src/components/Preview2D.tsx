@@ -885,6 +885,7 @@ export default function Preview2D({
   };
 
   const handleCalibrationClick = (e: React.MouseEvent) => {
+    if (!isCalibrating) return;
     const pt = mousePos;
     
     if (!pdfCalibration.p1) {
@@ -1805,7 +1806,6 @@ export default function Preview2D({
                       h: 240, // 20ft
                     };
                     setShapeBlocks([...shapeBlocks, newBlock]);
-                    setShape('custom');
                   }}
                   className="p-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center justify-center"
                   title="Add Rectangle"
