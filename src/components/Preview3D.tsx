@@ -1,10 +1,12 @@
 import { GableRoof, HipRoof, ShedRoof, RoofFace } from './Roofs';
-import React, { useMemo, Suspense, useState, useEffect } from 'react';
-import { Canvas, ThreeEvent, useThree } from '@react-three/fiber';
+import React, { useMemo, Suspense, useState, useEffect, useRef } from 'react';
+import { Canvas, ThreeEvent, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Center, Environment, ContactShadows, Sky, useGLTF, Line, useTexture } from '@react-three/drei';
 import { Geometry, Base, Subtraction } from '@react-three/csg';
 import * as THREE from 'three';
 import { InteriorWallConfig, ExteriorWallConfig, DoorConfig, WindowConfig, BumpoutConfig, InteriorAsset, RoofPart, TrussConfig, DormerConfig, CustomCamera } from '../App';
+import { useSpaceMouse } from '../hooks/useSpaceMouse';
+import SpaceMouseController from './SpaceMouseController';
 
 interface Preview3DProps {
   shape: 'rectangle' | 'l-shape' | 'u-shape' | 'h-shape' | 't-shape' | 'custom';
@@ -62,6 +64,7 @@ interface Preview3DProps {
   showSky: boolean;
   showSun: boolean;
   showRoof: boolean;
+  showAxes?: boolean;
   additionalStories: number;
   currentFloorIndex: number;
   upperFloorWallHeightIn: number;
@@ -105,7 +108,7 @@ export interface MaterialConfig {
 const TexturedMaterial = ({
   url, roughness = 0.8, config, uvScale,
 }: { url: string; roughness?: number; config?: MaterialConfig, uvScale?: [number, number] }) => {
-  const texture = useTexture(`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`);
+  const texture = useTexture(url);
   
   const scopedTexture = React.useMemo(() => {
     if (!uvScale) return texture;
@@ -187,7 +190,7 @@ const MaterialEditorPanel = ({
   const IMAGE_EXTS = /\.(jpg|jpeg|png|webp)$/i;
 
   React.useEffect(() => {
-    fetch(`http://localhost:3001/api/assets?t=${Date.now()}`)
+    fetch(`/api/assets?t=${Date.now()}`)
       .then(r => r.json())
       .then(d => {
         if (d.assets) setAssets(d.assets.filter((a: any) => IMAGE_EXTS.test(a.name)));
@@ -268,7 +271,7 @@ const MaterialEditorPanel = ({
           <div className="w-20 h-20 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-800 flex-shrink-0">
             {editTarget ? (
               <img
-                src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(editTarget)}`}
+                src={editTarget}
                 alt="preview"
                 className="w-full h-full object-cover"
               />
@@ -319,7 +322,7 @@ const MaterialEditorPanel = ({
               <div className="bg-zinc-800/60 border border-zinc-700 rounded-xl p-3 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden border border-zinc-600 flex-shrink-0">
                   <img
-                    src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(activePaintMaterial)}`}
+                    src={activePaintMaterial}
                     className="w-full h-full object-cover"
                     alt="brush"
                   />
@@ -375,7 +378,7 @@ const MaterialEditorPanel = ({
                             isHid ? 'bg-zinc-800/50' : 'hover:bg-zinc-800/30'
                           }`}>
                             <img
-                              src={`http://localhost:3001/api/serve-file?path=${encodeURIComponent(url)}`}
+                              src={url}
                               className={`w-8 h-8 rounded object-cover border border-zinc-700 flex-shrink-0 ${isHid ? 'opacity-40' : ''}`}
                               alt={asset.name}
                             />
@@ -524,7 +527,6 @@ const MaterialEditorPanel = ({
 // ─── Split-aware Wall component ───────────────────────────────────────────
 const Wall = ({
   x, y, z, w, h, d, color = "#e4e4e7", openings = [],
-  isMeasuring, handleMeasureClick, handleMeasurePointerMove,
   surfaceId, appliedMaterials, activePaintMaterial, onSurfacePainted,
   materialConfigs = {},
   splitAt = 0,
@@ -532,9 +534,6 @@ const Wall = ({
   x: number; y: number; z: number; w: number; h: number; d: number;
   color?: string;
   openings?: { x: number; y: number; z: number; w: number; h: number; d: number }[];
-  isMeasuring?: boolean;
-  handleMeasureClick?: (e: any) => void;
-  handleMeasurePointerMove?: (e: any) => void;
   surfaceId?: string;
   appliedMaterials?: Record<string, string>;
   activePaintMaterial?: string | null;
@@ -564,13 +563,8 @@ const Wall = ({
   const makeClickHandler = (sid?: string) => (e: any) => {
     e.stopPropagation();
     if (isPaintMode && sid && activePaintMaterial && onSurfacePainted) {
-      onSurfacePainted(sid, activePaintMaterial);
-    } else if (isMeasuring && handleMeasureClick) {
-      handleMeasureClick(e);
-    }
+      onSurfacePainted(sid, activePaintMaterial);}
   };
-
-  const pointerMove = (e: any) => { if (isMeasuring && handleMeasurePointerMove) handleMeasurePointerMove(e); };
 
   const ZoneMesh = ({
     zoneY, zoneH, setHov, hov, sid, texUrl,
@@ -582,7 +576,6 @@ const Wall = ({
       <mesh
         castShadow receiveShadow
         onClick={makeClickHandler(sid)}
-        onPointerMove={pointerMove}
         onPointerOver={() => setHov(true)}
         onPointerOut={() => setHov(false)}
       >
@@ -641,15 +634,11 @@ const Wall = ({
 
 const FoundationPart = ({
   x, y, z, w, h, d, color = "#a1a1aa",
-  isMeasuring, handleMeasureClick, handleMeasurePointerMove,
   surfaceId, appliedMaterials, activePaintMaterial, onSurfacePainted,
   materialConfigs = {},
 }: {
   x: number; y: number; z: number; w: number; h: number; d: number;
   color?: string;
-  isMeasuring?: boolean;
-  handleMeasureClick?: (e: any) => void;
-  handleMeasurePointerMove?: (e: any) => void;
   surfaceId?: string;
   appliedMaterials?: Record<string, string>;
   activePaintMaterial?: string | null;
@@ -668,12 +657,8 @@ const FoundationPart = ({
       onClick={(e) => {
         e.stopPropagation();
         if (isPaintMode && surfaceId && activePaintMaterial && onSurfacePainted) {
-          onSurfacePainted(surfaceId, activePaintMaterial);
-        } else if (isMeasuring && handleMeasureClick) {
-          handleMeasureClick(e);
-        }
+          onSurfacePainted(surfaceId, activePaintMaterial);}
       }}
-      onPointerMove={(e) => { if (isMeasuring && handleMeasurePointerMove) handleMeasurePointerMove(e); }}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
@@ -683,17 +668,10 @@ const FoundationPart = ({
   );
 };
 
-const Ground = ({
-  onClick, onPointerMove,
-}: {
-  onClick: (e: any) => void;
-  onPointerMove: (e: any) => void;
-}) => {
+const Ground = () => {
   return (
     <mesh
       rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow
-      onClick={onClick}
-      onPointerMove={onPointerMove}
     >
       <planeGeometry args={[2000, 2000]} />
       <meshStandardMaterial color="#2d3a1a" roughness={1} />
@@ -734,12 +712,130 @@ const Opening = ({ x, y, z, w, h, d }: { x: number, y: number, z: number, w: num
   );
 };
 
-const Asset = ({ asset }: { asset: InteriorAsset }) => {
-  return (
-    <mesh position={[asset.x / 12, 0, asset.y / 12]} rotation={[0, asset.rotation * Math.PI / 180, 0]}>
-      <boxGeometry args={[asset.scale * 3, asset.scale * 3, asset.scale * 3]} />
-      <meshStandardMaterial color="#a1a1aa" />
+const ASSET_3D_COLORS: Record<string, string> = {
+  bathroom: '#60a5fa',
+  kitchen: '#fb923c',
+  bedroom: '#a78bfa',
+  living: '#4ade80',
+  misc: '#a1a1aa',
+  furniture: '#a1a1aa',
+  custom: '#818cf8',
+};
+
+// Sub-component that loads and renders a .glb model, auto-scaled to fit the asset dimensions
+// stretch=true: scales each axis independently to fill the target box exactly (for doors/windows)
+// stretch=false: uniform scale preserving proportions (for interior assets)
+const LinkedModel = ({ url, widthFt, depthFt, heightFt, stretch = false }: { url: string; widthFt: number; depthFt: number; heightFt: number; stretch?: boolean }) => {
+  const { scene } = useGLTF(url);
+  
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    
+    // Calculate bounding box to auto-scale
+    const box = new THREE.Box3().setFromObject(clone);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    
+    if (size.x > 0 && size.y > 0 && size.z > 0) {
+      const scaleX = widthFt / size.x;
+      const scaleY = heightFt / size.y;
+      const scaleZ = depthFt / size.z;
+      
+      if (stretch) {
+        // Per-axis scaling — fill the opening exactly
+        clone.scale.set(scaleX, scaleY, scaleZ);
+      } else {
+        // Uniform scaling — preserve proportions
+        const uniformScale = Math.min(scaleX, scaleY, scaleZ);
+        clone.scale.setScalar(uniformScale);
+      }
+      
+      // Recalculate box after scaling
+      const newBox = new THREE.Box3().setFromObject(clone);
+      const newCenter = new THREE.Vector3();
+      newBox.getCenter(newCenter);
+      
+      // Center horizontally, sit on ground
+      clone.position.set(-newCenter.x, -newBox.min.y, -newCenter.z);
+    }
+    
+    // Enable shadows
+    clone.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const mesh = obj as THREE.Mesh;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+    
+    return clone;
+  }, [scene, widthFt, depthFt, heightFt, stretch]);
+  
+  return <primitive object={clonedScene} />;
+};
+
+// Error boundary for 3D model loading — prevents Canvas crash
+class ModelErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[Asset] 3D model failed to load:', error.message);
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
+const AssetPlaceholderBox = ({ w, h, d, color, errored }: { w: number; h: number; d: number; color: string; errored?: boolean }) => (
+  <>
+    <mesh position={[0, h / 2, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color={errored ? '#ef4444' : color} opacity={errored ? 0.5 : 0.7} transparent />
     </mesh>
+    <mesh position={[0, h / 2, 0]}>
+      <boxGeometry args={[w, h, d]} />
+      <meshBasicMaterial color={errored ? '#ef4444' : color} wireframe opacity={0.4} transparent />
+    </mesh>
+  </>
+);
+
+const Asset = ({ asset, floorY = 0 }: { asset: InteriorAsset; floorY?: number }) => {
+  const w = (asset.widthIn || 24) * asset.scale;   // Inches (same unit as walls/foundation)
+  const d = (asset.depthIn || 24) * asset.scale;
+  const h = (asset.heightIn || 36) * asset.scale;
+  const color = ASSET_3D_COLORS[asset.category] || '#a1a1aa';
+  
+  return (
+    <group 
+      position={[asset.x, floorY, asset.y]} 
+      rotation={[0, -asset.rotation * Math.PI / 180, 0]}
+    >
+      {asset.modelUrl ? (
+        // Render actual 3D model with error boundary fallback
+        <ModelErrorBoundary fallback={<AssetPlaceholderBox w={w} h={h} d={d} color={color} errored />}>
+          <Suspense fallback={
+            <mesh position={[0, h / 2, 0]}>
+              <boxGeometry args={[w, h, d]} />
+              <meshStandardMaterial color={color} opacity={0.3} transparent wireframe />
+            </mesh>
+          }>
+            <LinkedModel url={asset.modelUrl} widthFt={w} depthFt={d} heightFt={h} />
+          </Suspense>
+        </ModelErrorBoundary>
+      ) : (
+        // Placeholder box
+        <AssetPlaceholderBox w={w} h={h} d={d} color={color} />
+      )}
+    </group>
   );
 };
 
@@ -1073,7 +1169,7 @@ export default function Preview3D({
   studSpacing, studThickness, topPlates, bottomPlates, headerType, headerHeight,
   solidWallsOnly,
   noFramingFloorOnly,
-  showGround, showSky, showSun, showRoof,
+  showGround, showSky, showSun, showRoof, showAxes = true,
   additionalStories, currentFloorIndex, upperFloorWallHeightIn, upperFloorJoistSize, combinedBlocks, shapeBlocks,
   referenceModelUrl, modelScale, modelOffset, modelRotation, modelOpacity,
   roofParts, roofType, roofPitch, roofOverhangIn, roofWidthIn, roofHeightIn,
@@ -1086,14 +1182,10 @@ export default function Preview3D({
   activePaintMaterial: activePaintMaterialProp = null,
   onSurfacePainted,
 }: Preview3DProps) {
-  const [isMeasuring, setIsMeasuring] = useState(false);
-  const [measurePoints, setMeasurePoints] = useState<THREE.Vector3[]>([]);
-  const [allMeasurements, setAllMeasurements] = useState<{ points: THREE.Vector3[], distance: number }[]>([]);
-  const [currentMousePoint, setCurrentMousePoint] = useState<THREE.Vector3 | null>(null);
-  const [axisLock, setAxisLock] = useState<'x' | 'y' | 'z' | null>(null);
-  const [measureLabelPos, setMeasureLabelPos] = useState<{ x: number; y: number } | null>(null);
+
   const [cameraPresetTrigger, setCameraPresetTrigger] = useState<string | null>(null);
   const [isFloorPlanView, setIsFloorPlanView] = useState(false);
+  const [isDroneMode, setIsDroneMode] = useState(false);
   // Material Painter internal state (supports standalone use without App wiring)
   const [localAppliedMaterials, setLocalAppliedMaterials] = useState<Record<string, string>>(appliedMaterialsProp);
   const [localActivePaint, setLocalActivePaint] = useState<string | null>(activePaintMaterialProp);
@@ -1102,9 +1194,12 @@ export default function Preview3D({
   const [materialConfigs, setMaterialConfigs] = useState<Record<string, MaterialConfig>>({});
   const [splitHeight, setSplitHeight] = useState(0);
 
+  // 3Dconnexion SpaceMouse
+  const { connect: connectSpaceMouse, disconnect: disconnectSpaceMouse, isConnected: spaceMouseConnected, deviceName: spaceMouseName, axes: spaceMouseAxes } = useSpaceMouse();
+
   // Load saved material configs on mount
   React.useEffect(() => {
-    fetch('http://localhost:3001/api/material-configs')
+    fetch('/api/material-configs')
       .then(r => r.json())
       .then(d => setMaterialConfigs(d))
       .catch(() => {});
@@ -1120,17 +1215,7 @@ export default function Preview3D({
     if (onSurfacePainted) onSurfacePainted(surfaceId, url);
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isMeasuring) return;
-      if (e.key === 'Escape') { setAxisLock(null); return; }
-      if (e.key === 'x' || e.key === 'X') setAxisLock(prev => prev === 'x' ? null : 'x');
-      if (e.key === 'y' || e.key === 'Y') setAxisLock(prev => prev === 'y' ? null : 'y');
-      if (e.key === 'z' || e.key === 'Z') setAxisLock(prev => prev === 'z' ? null : 'z');
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMeasuring]);
+
 
   // Listen for double-click selections from the Asset Library
   useEffect(() => {
@@ -1145,84 +1230,7 @@ export default function Preview3D({
   }, []);
 
   
-  const lastMeasureClickMs = React.useRef(0);
 
-  // Apply axis lock — only constrains when explicitly locked by user (X/Y/Z keys)
-  const applyAxisLock = (start: THREE.Vector3, raw: THREE.Vector3, lock: 'x'|'y'|'z'|null): THREE.Vector3 => {
-    const pt = raw.clone();
-    if (lock === 'x') { pt.y = start.y; pt.z = start.z; }
-    else if (lock === 'y') { pt.x = start.x; pt.z = start.z; }
-    else if (lock === 'z') { pt.x = start.x; pt.y = start.y; }
-    return pt;
-  };
-
-  const handleMeasureClick = (event: any) => {
-    if (!isMeasuring) return;
-    // Debounce: ignore duplicate events from overlapping meshes within 80ms
-    const now = Date.now();
-    if (now - lastMeasureClickMs.current < 80) return;
-    lastMeasureClickMs.current = now;
-    event.stopPropagation();
-    const raw = event.point.clone();
-
-    setMeasurePoints(prev => {
-      if (prev.length === 0) {
-        return [raw];
-      } else if (prev.length === 1) {
-        const point = applyAxisLock(prev[0], raw, axisLock);
-        const dist = prev[0].distanceTo(point) / 0.0254;
-        setAllMeasurements(m => [...m, { points: [prev[0], point], distance: dist }]);
-        setMeasureLabelPos(null);
-        return [];
-      } else {
-        return [raw];
-      }
-    });
-  };
-
-  const clearMeasurements = () => {
-    setAllMeasurements([]);
-    setMeasurePoints([]);
-    setMeasureLabelPos(null);
-  };
-
-  useEffect(() => {
-    if (measurePoints.length === 0) setCurrentMousePoint(null);
-  }, [measurePoints]);
-
-  const handleMeasurePointerMove = (e: any) => {
-    if (!isMeasuring) return;
-    const raw = e.point.clone();
-    if (measurePoints.length === 1) {
-      const point = applyAxisLock(measurePoints[0], raw, axisLock);
-      setCurrentMousePoint(point);
-    } else {
-      setCurrentMousePoint(raw);
-    }
-  };
-
-  // liveAxis just reflects the explicit user lock (no auto-detection)
-  const liveAxis = axisLock;
-
-  const distance = useMemo(() => {
-    if (measurePoints.length === 1 && currentMousePoint) {
-      return measurePoints[0].distanceTo(currentMousePoint) / 0.0254;
-    }
-    return null;
-  }, [measurePoints, currentMousePoint]);
-
-  const fmtDistance = (inches: number) => {
-    const ft = Math.floor(inches / 12);
-    const inc = Math.round(inches % 12);
-    return inc === 0 ? `${ft}'` : `${ft}' ${inc}"`;
-  };
-
-  const axisColor = (axis: 'x'|'y'|'z'|null) => {
-    if (axis === 'x') return '#ef4444'; // red
-    if (axis === 'z') return '#3b82f6'; // blue
-    if (axis === 'y') return '#22c55e'; // green
-    return '#ffffff'; // white
-  };
 
   const foundationHeight = useMemo(() => {
     if (foundationType === 'none') return 0;
@@ -1243,6 +1251,7 @@ export default function Preview3D({
 
   const walls = useMemo(() => {
     const wallList: { x: number, y: number, z: number, w: number, h: number, d: number, color?: string }[] = [];
+    const framingList: { x: number, y: number, z: number, w: number, h: number, d: number, color?: string }[] = [];
     
     const addWallsForStory = (currentY: number, currentWallHeight: number, floorIndex: number) => {
       const isUpper = floorIndex > 0;
@@ -1299,49 +1308,206 @@ export default function Preview3D({
         extWalls.push({ id: 8, x: stemX, y: tTopLengthIn + tStemLengthIn - thicknessIn, w: tStemWidthIn, h: thicknessIn, isHorizontal: true, exteriorSide: 1 });
       }
 
-      if (shape === 'custom') {
-        exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(wall => {
-          const x = wall.xFt * 12 + wall.xInches;
-          const y = wall.yFt * 12 + wall.yInches;
-          const len = wall.lengthFt * 12 + wall.lengthInches;
-          const isHorizontal = wall.orientation === 'horizontal';
-          
-          let w = isHorizontal ? len : wall.thicknessIn;
-          let h = isHorizontal ? wall.thicknessIn : len;
-          let finalX = x;
-          let finalY = y;
+      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(wall => {
+        const x = wall.xFt * 12 + wall.xInches;
+        const y = wall.yFt * 12 + wall.yInches;
+        const len = wall.lengthFt * 12 + wall.lengthInches;
+        const isHorizontal = wall.orientation === 'horizontal';
+        
+        let w = isHorizontal ? len : wall.thicknessIn;
+        let h = isHorizontal ? wall.thicknessIn : len;
+        let finalX = x;
+        let finalY = y;
 
-          if (w < 0) {
-            finalX += w;
-            w = Math.abs(w);
-          }
-          if (h < 0) {
-            finalY += h;
-            h = Math.abs(h);
-          }
+        if (w < 0) {
+          finalX += w;
+          w = Math.abs(w);
+        }
+        if (h < 0) {
+          finalY += h;
+          h = Math.abs(h);
+        }
 
-          if (isHorizontal) {
-            if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
-          } else {
-            if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
-          }
+        if (isHorizontal) {
+          if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
+        } else {
+          if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
+        }
 
-          extWalls.push({
-            id: wall.id,
-            x: finalX,
-            y: finalY,
-            w,
-            h,
-            isHorizontal,
-            exteriorSide: wall.exteriorSide
-          });
+        extWalls.push({
+          id: wall.id,
+          x: finalX,
+          y: finalY,
+          w,
+          h,
+          isHorizontal,
+          exteriorSide: wall.exteriorSide
         });
-      }
+      });
 
       // Add exterior walls to 3D list
       extWalls.forEach(w => {
-        // Add core wall
-        wallList.push({ x: w.x, y: currentY, z: w.y, w: w.w, h: currentWallHeight, d: w.h, color: "#e4e4e7" });
+        if (solidWallsOnly) {
+          // Add core wall as solid block
+          wallList.push({ x: w.x, y: currentY, z: w.y, w: w.w, h: currentWallHeight, d: w.h, color: "#e4e4e7" });
+        } else {
+          // Generate detailed framing members
+          const sSpacing = studSpacing || 16;
+          const sThick = studThickness || 1.5;
+          const plateH = 1.5;
+          const bottomPlateTotal = (bottomPlates || 1) * plateH;
+          const topPlateTotal = (topPlates || 2) * plateH;
+          const studH = currentWallHeight - bottomPlateTotal - topPlateTotal;
+          const headerH = headerType === 'lvl' ? 9.25 : (headerType === 'double' ? 5.5 : 5.5);
+          const len = w.isHorizontal ? w.w : w.h;
+          const depth = w.isHorizontal ? w.h : w.w;
+
+          // Collect openings on this wall
+          const myOpenings: { start: number, end: number, type: string, width: number, height: number, sill?: number }[] = [];
+          doors.filter(d => (d.floorIndex || 0) === floorIndex && d.wall === w.id).forEach(d => {
+            const opStart = (d.xFt * 12) + (d.xInches || 0) - (d.widthIn / 2);
+            myOpenings.push({ start: opStart, end: opStart + d.widthIn, type: 'door', width: d.widthIn, height: d.heightIn });
+          });
+          windows.filter(win => (win.floorIndex || 0) === floorIndex && win.wall === w.id).forEach(win => {
+            const opStart = (win.xFt * 12) + (win.xInches || 0) - (win.widthIn / 2);
+            myOpenings.push({ start: opStart, end: opStart + win.widthIn, type: 'window', width: win.widthIn, height: win.heightIn, sill: win.sillHeightIn });
+          });
+
+          // Bottom plates
+          for (let p = 0; p < (bottomPlates || 1); p++) {
+            framingList.push({ x: w.x, y: currentY + (p * plateH), z: w.y, w: w.w, h: plateH, d: w.h, color: "#deb887" });
+          }
+          // Top plates
+          for (let p = 0; p < (topPlates || 2); p++) {
+            framingList.push({ x: w.x, y: currentY + currentWallHeight - plateH - (p * plateH), z: w.y, w: w.w, h: plateH, d: w.h, color: "#deb887" });
+          }
+
+          // Studs
+          const numStuds = Math.ceil(len / sSpacing) + 1;
+          for (let si = 0; si < numStuds; si++) {
+            const curPos = Math.min(si * sSpacing, len - sThick);
+            let inOpening = false;
+            for (const op of myOpenings) {
+              if (curPos + sThick > op.start && curPos < op.end) { inOpening = true; break; }
+            }
+            if (!inOpening) {
+              framingList.push({
+                x: w.isHorizontal ? w.x + curPos : w.x,
+                y: currentY + bottomPlateTotal,
+                z: w.isHorizontal ? w.y : w.y + curPos,
+                w: w.isHorizontal ? sThick : depth,
+                h: studH,
+                d: w.isHorizontal ? depth : sThick,
+                color: "#deb887"
+              });
+            }
+          }
+
+          // Headers and king studs for openings
+          for (const op of myOpenings) {
+            const opY = currentY + bottomPlateTotal + (op.type === 'door' ? op.height : ((op.sill || 0) + op.height));
+            // Header
+            framingList.push({
+              x: w.isHorizontal ? w.x + op.start : w.x,
+              y: opY,
+              z: w.isHorizontal ? w.y : w.y + op.start,
+              w: w.isHorizontal ? op.width : depth,
+              h: headerH,
+              d: w.isHorizontal ? depth : op.width,
+              color: "#c49a6c"
+            });
+            // King stud left (full height — bottom plate to top plate)
+            framingList.push({
+              x: w.isHorizontal ? w.x + op.start - sThick : w.x,
+              y: currentY + bottomPlateTotal,
+              z: w.isHorizontal ? w.y : w.y + op.start - sThick,
+              w: w.isHorizontal ? sThick : depth,
+              h: studH,
+              d: w.isHorizontal ? depth : sThick,
+              color: "#deb887"
+            });
+            // King stud right (full height — bottom plate to top plate)
+            framingList.push({
+              x: w.isHorizontal ? w.x + op.start + op.width : w.x,
+              y: currentY + bottomPlateTotal,
+              z: w.isHorizontal ? w.y : w.y + op.start + op.width,
+              w: w.isHorizontal ? sThick : depth,
+              h: studH,
+              d: w.isHorizontal ? depth : sThick,
+              color: "#deb887"
+            });
+            // Jack/trimmer stud left (bottom plate to header)
+            framingList.push({
+              x: w.isHorizontal ? w.x + op.start : w.x,
+              y: currentY + bottomPlateTotal,
+              z: w.isHorizontal ? w.y : w.y + op.start,
+              w: w.isHorizontal ? sThick : depth,
+              h: opY - currentY - bottomPlateTotal,
+              d: w.isHorizontal ? depth : sThick,
+              color: "#deb887"
+            });
+            // Jack/trimmer stud right (bottom plate to header)
+            framingList.push({
+              x: w.isHorizontal ? w.x + op.start + op.width - sThick : w.x,
+              y: currentY + bottomPlateTotal,
+              z: w.isHorizontal ? w.y : w.y + op.start + op.width - sThick,
+              w: w.isHorizontal ? sThick : depth,
+              h: opY - currentY - bottomPlateTotal,
+              d: w.isHorizontal ? depth : sThick,
+              color: "#deb887"
+            });
+            // Window sill plate
+            if (op.type === 'window' && op.sill) {
+              framingList.push({
+                x: w.isHorizontal ? w.x + op.start : w.x,
+                y: currentY + bottomPlateTotal + op.sill,
+                z: w.isHorizontal ? w.y : w.y + op.start,
+                w: w.isHorizontal ? op.width : depth,
+                h: sThick,
+                d: w.isHorizontal ? depth : op.width,
+                color: "#c49a6c"
+              });
+            }
+            // Cripple studs above header to top plate
+            const crippleTop = currentY + currentWallHeight - topPlateTotal;
+            const crippleBottom = opY + headerH;
+            if (crippleTop > crippleBottom) {
+              const crippleCount = Math.ceil(op.width / sSpacing) + 1;
+              for (let ci = 0; ci < crippleCount; ci++) {
+                const cPos = Math.min(ci * sSpacing, op.width - sThick);
+                framingList.push({
+                  x: w.isHorizontal ? w.x + op.start + cPos : w.x,
+                  y: crippleBottom,
+                  z: w.isHorizontal ? w.y : w.y + op.start + cPos,
+                  w: w.isHorizontal ? sThick : depth,
+                  h: crippleTop - crippleBottom,
+                  d: w.isHorizontal ? depth : sThick,
+                  color: "#deb887"
+                });
+              }
+            }
+            // Cripple studs below window sill
+            if (op.type === 'window' && op.sill) {
+              const sillBottom = currentY + bottomPlateTotal;
+              const sillTop = currentY + bottomPlateTotal + op.sill;
+              if (sillTop > sillBottom) {
+                const crippleCount = Math.ceil(op.width / sSpacing) + 1;
+                for (let ci = 0; ci < crippleCount; ci++) {
+                  const cPos = Math.min(ci * sSpacing, op.width - sThick);
+                  framingList.push({
+                    x: w.isHorizontal ? w.x + op.start + cPos : w.x,
+                    y: sillBottom,
+                    z: w.isHorizontal ? w.y : w.y + op.start + cPos,
+                    w: w.isHorizontal ? sThick : depth,
+                    h: sillTop - sillBottom,
+                    d: w.isHorizontal ? depth : sThick,
+                    color: "#deb887"
+                  });
+                }
+              }
+            }
+          }
+        }
         
         if (addFloorFraming && addSheathing && !solidWallsOnly) {
           const shT = sheathingThickness;
@@ -1409,13 +1575,122 @@ export default function Preview3D({
             depth = Math.abs(depth);
           }
 
-          wallList.push({
-            x: finalX, y: currentY, z: finalZ,
-            w: width,
-            h: currentWallHeight,
-            d: depth,
-            color: "#d4d4d8"
-          });
+          if (solidWallsOnly) {
+            wallList.push({
+              x: finalX, y: currentY, z: finalZ,
+              w: width,
+              h: currentWallHeight,
+              d: depth,
+              color: "#d4d4d8"
+            });
+          } else {
+            // Generate framing for interior walls
+            const intLen = isHorizontal ? width : depth;
+            const intDepth = isHorizontal ? depth : width;
+            const sSpacing = studSpacing || 16;
+            const sThick = studThickness || 1.5;
+            const plateH = 1.5;
+            const bottomPlateTotal = (bottomPlates || 1) * plateH;
+            const topPlateTotal = (topPlates || 2) * plateH;
+            const studH = currentWallHeight - bottomPlateTotal - topPlateTotal;
+            const headerH = headerType === 'lvl' ? 9.25 : (headerType === 'double' ? 5.5 : 5.5);
+
+            // Collect openings on this interior wall
+            const myOpenings: { start: number, end: number, type: string, width: number, height: number, sill?: number }[] = [];
+            doors.filter(d => (d.floorIndex || 0) === floorIndex && d.wall === w.id).forEach(d => {
+              const opStart = (d.xFt * 12) + (d.xInches || 0) - (d.widthIn / 2);
+              myOpenings.push({ start: opStart, end: opStart + d.widthIn, type: 'door', width: d.widthIn, height: d.heightIn });
+            });
+            windows.filter(win => (win.floorIndex || 0) === floorIndex && win.wall === w.id).forEach(win => {
+              const opStart = (win.xFt * 12) + (win.xInches || 0) - (win.widthIn / 2);
+              myOpenings.push({ start: opStart, end: opStart + win.widthIn, type: 'window', width: win.widthIn, height: win.heightIn, sill: win.sillHeightIn });
+            });
+
+            // Bottom plates
+            for (let p = 0; p < (bottomPlates || 1); p++) {
+              framingList.push({ x: finalX, y: currentY + (p * plateH), z: finalZ, w: width, h: plateH, d: depth, color: "#deb887" });
+            }
+            // Top plates
+            for (let p = 0; p < (topPlates || 2); p++) {
+              framingList.push({ x: finalX, y: currentY + currentWallHeight - plateH - (p * plateH), z: finalZ, w: width, h: plateH, d: depth, color: "#deb887" });
+            }
+
+            // Studs
+            const numStuds = Math.ceil(intLen / sSpacing) + 1;
+            for (let si = 0; si < numStuds; si++) {
+              const curPos = Math.min(si * sSpacing, intLen - sThick);
+              let inOpening = false;
+              for (const op of myOpenings) {
+                if (curPos + sThick > op.start && curPos < op.end) { inOpening = true; break; }
+              }
+              if (!inOpening) {
+                framingList.push({
+                  x: isHorizontal ? finalX + curPos : finalX,
+                  y: currentY + bottomPlateTotal,
+                  z: isHorizontal ? finalZ : finalZ + curPos,
+                  w: isHorizontal ? sThick : intDepth,
+                  h: studH,
+                  d: isHorizontal ? intDepth : sThick,
+                  color: "#deb887"
+                });
+              }
+            }
+
+            // Headers and king studs for interior wall openings
+            for (const op of myOpenings) {
+              const opY = currentY + bottomPlateTotal + (op.type === 'door' ? op.height : ((op.sill || 0) + op.height));
+              // Header
+              framingList.push({
+                x: isHorizontal ? finalX + op.start : finalX,
+                y: opY,
+                z: isHorizontal ? finalZ : finalZ + op.start,
+                w: isHorizontal ? op.width : intDepth,
+                h: headerH,
+                d: isHorizontal ? intDepth : op.width,
+                color: "#c49a6c"
+              });
+              // King stud left (full height — bottom plate to top plate)
+              framingList.push({
+                x: isHorizontal ? finalX + op.start - sThick : finalX,
+                y: currentY + bottomPlateTotal,
+                z: isHorizontal ? finalZ : finalZ + op.start - sThick,
+                w: isHorizontal ? sThick : intDepth,
+                h: studH,
+                d: isHorizontal ? intDepth : sThick,
+                color: "#deb887"
+              });
+              // King stud right (full height — bottom plate to top plate)
+              framingList.push({
+                x: isHorizontal ? finalX + op.start + op.width : finalX,
+                y: currentY + bottomPlateTotal,
+                z: isHorizontal ? finalZ : finalZ + op.start + op.width,
+                w: isHorizontal ? sThick : intDepth,
+                h: studH,
+                d: isHorizontal ? intDepth : sThick,
+                color: "#deb887"
+              });
+              // Jack/trimmer stud left (bottom plate to header)
+              framingList.push({
+                x: isHorizontal ? finalX + op.start : finalX,
+                y: currentY + bottomPlateTotal,
+                z: isHorizontal ? finalZ : finalZ + op.start,
+                w: isHorizontal ? sThick : intDepth,
+                h: opY - currentY - bottomPlateTotal,
+                d: isHorizontal ? intDepth : sThick,
+                color: "#deb887"
+              });
+              // Jack/trimmer stud right (bottom plate to header)
+              framingList.push({
+                x: isHorizontal ? finalX + op.start + op.width - sThick : finalX,
+                y: currentY + bottomPlateTotal,
+                z: isHorizontal ? finalZ : finalZ + op.start + op.width - sThick,
+                w: isHorizontal ? sThick : intDepth,
+                h: opY - currentY - bottomPlateTotal,
+                d: isHorizontal ? intDepth : sThick,
+                color: "#deb887"
+              });
+            }
+          }
 
           if (addFloorFraming && addInsulation && !solidWallsOnly) {
             const inT = Math.min(insulationThickness, w.thicknessIn - 0.5);
@@ -1492,8 +1767,8 @@ export default function Preview3D({
       currentZ += upperFloorWallHeightIn;
     }
 
-    return wallList;
-  }, [shape, widthIn, lengthIn, thicknessIn, lRightDepthIn, lBackWidthIn, uWallsIn, exteriorWalls, interiorWalls, bumpouts, wallHeightIn, totalBaseHeight, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
+    return { wallList, framingList };
+  }, [shape, widthIn, lengthIn, thicknessIn, lRightDepthIn, lBackWidthIn, uWallsIn, exteriorWalls, interiorWalls, bumpouts, wallHeightIn, totalBaseHeight, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex, solidWallsOnly, studSpacing, studThickness, bottomPlates, topPlates, headerType, headerHeight, doors, windows]);
 
   const roofs = useMemo(() => {
     const totalWallHeight = wallHeightIn + (additionalStories * upperFloorWallHeightIn);
@@ -1583,9 +1858,9 @@ export default function Preview3D({
       } else if (foundationShape === 'l-shape') {
         drawFoundationPart(0, 0, widthIn, t, true);
         drawFoundationPart(widthIn - t, t, lRightDepthIn - t, t, false);
-        drawFoundationPart(lBackWidthIn - t, lRightDepthIn - t, widthIn - lBackWidthIn, t, true);
-        drawFoundationPart(lBackWidthIn - t, lRightDepthIn, lengthIn - lRightDepthIn - t, t, false);
-        drawFoundationPart(0, lengthIn - t, lBackWidthIn, t, true);
+        drawFoundationPart(lBackWidthIn, lRightDepthIn - t, widthIn - lBackWidthIn - t, t, true);
+        drawFoundationPart(lBackWidthIn, lRightDepthIn, lengthIn - lRightDepthIn - t, t, false);
+        drawFoundationPart(0, lengthIn - t, lBackWidthIn + t, t, true);
         drawFoundationPart(0, t, lengthIn - 2 * t, t, false);
       } else if (foundationShape === 'u-shape') {
         drawFoundationPart(0, 0, uWallsIn.w1, t, true);
@@ -1627,28 +1902,24 @@ export default function Preview3D({
       }
       
       // Custom walls foundation
-      if (foundationShape === 'custom') {
-        exteriorWalls.forEach(wall => {
-          const x = wall.xFt * 12 + wall.xInches;
-          const z = wall.yFt * 12 + wall.yInches;
-          const len = wall.lengthFt * 12 + wall.lengthInches;
-          drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
-        });
-      }
+      exteriorWalls.forEach(wall => {
+        const x = wall.xFt * 12 + wall.xInches;
+        const z = wall.yFt * 12 + wall.yInches;
+        const len = wall.lengthFt * 12 + wall.lengthInches;
+        drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
+      });
     }
 
     // Additional foundation for custom walls (for both stem-wall and slab types)
     // We already handled exteriorWalls inside stem-wall block for stem-wall specific parts,
     // but for slab it was missing. Let's make it consistent.
     if (foundationType === 'slab' || foundationType === 'slab-on-grade') {
-      if (foundationShape === 'custom') {
-        exteriorWalls.forEach(wall => {
-          const x = wall.xFt * 12 + wall.xInches;
-          const z = wall.yFt * 12 + wall.yInches;
-          const len = wall.lengthFt * 12 + wall.lengthInches;
-          drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
-        });
-      }
+      exteriorWalls.forEach(wall => {
+        const x = wall.xFt * 12 + wall.xInches;
+        const z = wall.yFt * 12 + wall.yInches;
+        const len = wall.lengthFt * 12 + wall.lengthInches;
+        drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
+      });
     }
 
     // Interior walls foundation
@@ -1671,9 +1942,9 @@ export default function Preview3D({
       } else if (shape === 'l-shape') {
         extWallList.push({ id: 1, x: 0, y: 0, w: widthIn, h: t, isHorizontal: true, exteriorSide: -1 });
         extWallList.push({ id: 2, x: widthIn - t, y: t, w: t, h: lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
-        extWallList.push({ id: 3, x: lBackWidthIn - t, y: lRightDepthIn - t, w: widthIn - lBackWidthIn, h: t, isHorizontal: true, exteriorSide: 1 });
-        extWallList.push({ id: 4, x: lBackWidthIn - t, y: lRightDepthIn, w: t, h: lengthIn - lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
-        extWallList.push({ id: 5, x: 0, y: lengthIn - t, w: lBackWidthIn, h: t, isHorizontal: true, exteriorSide: 1 });
+        extWallList.push({ id: 3, x: lBackWidthIn, y: lRightDepthIn - t, w: widthIn - lBackWidthIn - t, h: t, isHorizontal: true, exteriorSide: 1 });
+        extWallList.push({ id: 4, x: lBackWidthIn, y: lRightDepthIn, w: t, h: lengthIn - lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
+        extWallList.push({ id: 5, x: 0, y: lengthIn - t, w: lBackWidthIn + t, h: t, isHorizontal: true, exteriorSide: 1 });
         extWallList.push({ id: 6, x: 0, y: t, w: t, h: lengthIn - 2 * t, isHorizontal: false, exteriorSide: -1 });
       } else if (shape === 'u-shape') {
         extWallList.push({ id: 1, x: 0, y: 0, w: uWallsIn.w1, h: t, isHorizontal: true, exteriorSide: -1 });
@@ -1810,43 +2081,41 @@ export default function Preview3D({
     const calculateOpeningsForStory = (currentY: number, currentWallHeight: number, floorIndex: number) => {
       const extWalls: { id: number, x: number, y: number, w: number, h: number, isHorizontal: boolean }[] = [];
 
-      if (shape === 'custom') {
-        exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
-          const x = w.xFt * 12 + w.xInches;
-          const y = w.yFt * 12 + w.yInches;
-          const len = w.lengthFt * 12 + w.lengthInches;
-          const isHorizontal = w.orientation === 'horizontal';
-          
-          let width = isHorizontal ? len : w.thicknessIn;
-          let depth = isHorizontal ? w.thicknessIn : len;
-          let finalX = x;
-          let finalY = y;
+      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
+        const x = w.xFt * 12 + w.xInches;
+        const y = w.yFt * 12 + w.yInches;
+        const len = w.lengthFt * 12 + w.lengthInches;
+        const isHorizontal = w.orientation === 'horizontal';
+        
+        let width = isHorizontal ? len : w.thicknessIn;
+        let depth = isHorizontal ? w.thicknessIn : len;
+        let finalX = x;
+        let finalY = y;
 
-          if (width < 0) {
-            finalX += width;
-            width = Math.abs(width);
-          }
-          if (depth < 0) {
-            finalY += depth;
-            depth = Math.abs(depth);
-          }
+        if (width < 0) {
+          finalX += width;
+          width = Math.abs(width);
+        }
+        if (depth < 0) {
+          finalY += depth;
+          depth = Math.abs(depth);
+        }
 
-          if (isHorizontal) {
-            if (w.exteriorSide === 1) finalY -= w.thicknessIn;
-          } else {
-            if (w.exteriorSide === 1) finalX -= w.thicknessIn;
-          }
+        if (isHorizontal) {
+          if (w.exteriorSide === 1) finalY -= w.thicknessIn;
+        } else {
+          if (w.exteriorSide === 1) finalX -= w.thicknessIn;
+        }
 
-          extWalls.push({
-            id: w.id,
-            x: finalX,
-            y: finalY,
-            w: width,
-            h: depth,
-            isHorizontal
-          });
+        extWalls.push({
+          id: w.id,
+          x: finalX,
+          y: finalY,
+          w: width,
+          h: depth,
+          isHorizontal
         });
-      }
+      });
 
       if (shape === 'rectangle') {
         extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
@@ -1856,11 +2125,17 @@ export default function Preview3D({
       } else if (shape === 'l-shape') {
         extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 2, x: widthIn - thicknessIn, y: thicknessIn, w: thicknessIn, h: lRightDepthIn - thicknessIn, isHorizontal: false });
-        extWalls.push({ id: 3, x: lBackWidthIn - thicknessIn, y: lRightDepthIn - thicknessIn, w: widthIn - lBackWidthIn, h: thicknessIn, isHorizontal: true });
-        extWalls.push({ id: 4, x: lBackWidthIn - thicknessIn, y: lRightDepthIn, w: thicknessIn, h: lengthIn - lRightDepthIn - thicknessIn, isHorizontal: false });
-        extWalls.push({ id: 5, x: 0, y: lengthIn - thicknessIn, w: lBackWidthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 3, x: lBackWidthIn, y: lRightDepthIn - thicknessIn, w: widthIn - lBackWidthIn - thicknessIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 4, x: lBackWidthIn, y: lRightDepthIn, w: thicknessIn, h: lengthIn - lRightDepthIn - thicknessIn, isHorizontal: false });
+        extWalls.push({ id: 5, x: 0, y: lengthIn - thicknessIn, w: lBackWidthIn + thicknessIn, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 6, x: 0, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
 
+        if (lDirection === 'front-right' || lDirection === 'back-right') {
+          extWalls.forEach(w => w.x = widthIn - w.x - w.w);
+        }
+        if (lDirection === 'back-left' || lDirection === 'back-right') {
+          extWalls.forEach(w => w.y = lengthIn - w.y - w.h);
+        }
       } else if (shape === 'u-shape') {
         extWalls.push({ id: 1, x: 0, y: 0, w: uWallsIn.w1, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 2, x: uWallsIn.w1 - thicknessIn, y: thicknessIn, w: thicknessIn, h: uWallsIn.w2 - thicknessIn, isHorizontal: false });
@@ -1895,55 +2170,49 @@ export default function Preview3D({
         extWalls.push({ id: 8, x: stemX, y: tTopLengthIn + tStemLengthIn - thicknessIn, w: tStemWidthIn, h: thicknessIn, isHorizontal: true });
       }
 
-      interiorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
-        const x = w.xFt * 12 + w.xInches;
-        const y = w.yFt * 12 + w.yInches;
-        const len = w.lengthFt * 12 + w.lengthInches;
-        const isHorizontal = w.orientation === 'horizontal';
-        
-        let width = isHorizontal ? len : w.thicknessIn;
-        let depth = isHorizontal ? w.thicknessIn : len;
-        let finalX = x;
-        let finalY = y;
-
-        if (width < 0) {
-          finalX += width;
-          width = Math.abs(width);
-        }
-        if (depth < 0) {
-          finalY += depth;
-          depth = Math.abs(depth);
-        }
-
-        extWalls.push({
-          id: w.id,
-          x: finalX,
-          y: finalY,
-          w: width,
-          h: depth,
-          isHorizontal
-        });
-      });
-
       doors.filter(d => (d.floorIndex || 0) === floorIndex).forEach(d => {
-        const wall = extWalls.find(w => w.id === d.wall);
-        if (!wall) return;
+        const extWall = extWalls.find(w => w.id === d.wall);
+        const intWall = interiorWalls.find(w => w.id === d.wall && (w.floorIndex || 0) === floorIndex);
+        
         const ox = d.xFt * 12 + d.xInches;
-        if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY, z: wall.y - 10, w: d.widthIn, h: d.heightIn, d: wall.h + 20 });
-        } else {
-          list.push({ x: wall.x - 10, y: currentY, z: wall.y + ox, w: wall.w + 20, h: d.heightIn, d: d.widthIn });
+        
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            list.push({ x: extWall.x + ox, y: currentY, z: extWall.y - 1, w: d.widthIn, h: d.heightIn, d: thicknessIn + 2 });
+          } else {
+            list.push({ x: extWall.x - 1, y: currentY, z: extWall.y + ox, w: thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            list.push({ x: ix + ox, y: currentY, z: iy - 1, w: d.widthIn, h: d.heightIn, d: intWall.thicknessIn + 2 });
+          } else {
+            list.push({ x: ix - 1, y: currentY, z: iy + ox, w: intWall.thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+          }
         }
       });
 
       windows.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
-        const wall = extWalls.find(wall => wall.id === w.wall);
-        if (!wall) return;
+        const extWall = extWalls.find(wall => wall.id === w.wall);
+        const intWall = interiorWalls.find(wall => wall.id === w.wall && (wall.floorIndex || 0) === floorIndex);
+        
         const ox = w.xFt * 12 + w.xInches;
-        if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY + w.sillHeightIn, z: wall.y - 10, w: w.widthIn, h: w.heightIn, d: wall.h + 20 });
-        } else {
-          list.push({ x: wall.x - 10, y: currentY + w.sillHeightIn, z: wall.y + ox, w: wall.w + 20, h: w.heightIn, d: w.widthIn });
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            list.push({ x: extWall.x + ox, y: currentY + w.sillHeightIn, z: extWall.y - 1, w: w.widthIn, h: w.heightIn, d: thicknessIn + 2 });
+          } else {
+            list.push({ x: extWall.x - 1, y: currentY + w.sillHeightIn, z: extWall.y + ox, w: thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            list.push({ x: ix + ox, y: currentY + w.sillHeightIn, z: iy - 1, w: w.widthIn, h: w.heightIn, d: intWall.thicknessIn + 2 });
+          } else {
+            list.push({ x: ix - 1, y: currentY + w.sillHeightIn, z: iy + ox, w: intWall.thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+          }
         }
       });
     };
@@ -1966,7 +2235,94 @@ export default function Preview3D({
     }
 
     return list;
-  }, [doors, windows, exteriorWalls, shape, widthIn, lengthIn, thicknessIn, uWallsIn, lRightDepthIn, lBackWidthIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
+  }, [doors, windows, exteriorWalls, interiorWalls, shape, widthIn, lengthIn, thicknessIn, uWallsIn, lRightDepthIn, lBackWidthIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
+
+  // Compute 3D positions for linked door/window models
+  const openingModels = useMemo(() => {
+    const models: { id: string; modelUrl: string; x: number; y: number; z: number; w: number; h: number; d: number; isHorizontal: boolean }[] = [];
+
+    const calcForStory = (currentY: number, floorIndex: number) => {
+      const extWalls: { id: number, x: number, y: number, w: number, h: number, isHorizontal: boolean }[] = [];
+
+      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
+        const x = w.xFt * 12 + w.xInches;
+        const y = w.yFt * 12 + w.yInches;
+        const len = w.lengthFt * 12 + w.lengthInches;
+        const isHorizontal = w.orientation === 'horizontal';
+        let width = isHorizontal ? len : w.thicknessIn;
+        let depth = isHorizontal ? w.thicknessIn : len;
+        let finalX = x; let finalY = y;
+        if (width < 0) { finalX += width; width = Math.abs(width); }
+        if (depth < 0) { finalY += depth; depth = Math.abs(depth); }
+        extWalls.push({ id: w.id, x: finalX, y: finalY, w: width, h: depth, isHorizontal });
+      });
+
+      if (shape === 'rectangle') {
+        extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 2, x: widthIn - thicknessIn, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
+        extWalls.push({ id: 3, x: 0, y: lengthIn - thicknessIn, w: widthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 4, x: 0, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
+      }
+      // Note: Other shapes (l-shape, u-shape, etc.) already handled by exteriorWalls entries above
+
+      // Doors with linked models
+      doors.filter(d => (d.floorIndex || 0) === floorIndex && d.modelUrl).forEach(d => {
+        const extWall = extWalls.find(w => w.id === d.wall);
+        const intWall = interiorWalls.find(w => w.id === d.wall && (w.floorIndex || 0) === floorIndex);
+        const ox = d.xFt * 12 + d.xInches;
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: extWall.x + ox, y: currentY, z: extWall.y, w: d.widthIn, h: d.heightIn, d: thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: extWall.x, y: currentY, z: extWall.y + ox, w: thicknessIn, h: d.heightIn, d: d.widthIn, isHorizontal: false });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: ix + ox, y: currentY, z: iy, w: d.widthIn, h: d.heightIn, d: intWall.thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: d.id, modelUrl: d.modelUrl!, x: ix, y: currentY, z: iy + ox, w: intWall.thicknessIn, h: d.heightIn, d: d.widthIn, isHorizontal: false });
+          }
+        }
+      });
+
+      // Windows with linked models
+      windows.filter(w => (w.floorIndex || 0) === floorIndex && w.modelUrl).forEach(w => {
+        const extWall = extWalls.find(wall => wall.id === w.wall);
+        const intWall = interiorWalls.find(wall => wall.id === w.wall && (wall.floorIndex || 0) === floorIndex);
+        const ox = w.xFt * 12 + w.xInches;
+
+        if (extWall) {
+          if (extWall.isHorizontal) {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: extWall.x + ox, y: currentY + w.sillHeightIn, z: extWall.y, w: w.widthIn, h: w.heightIn, d: thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: extWall.x, y: currentY + w.sillHeightIn, z: extWall.y + ox, w: thicknessIn, h: w.heightIn, d: w.widthIn, isHorizontal: false });
+          }
+        } else if (intWall) {
+          const ix = intWall.xFt * 12 + intWall.xInches;
+          const iy = intWall.yFt * 12 + intWall.yInches;
+          if (intWall.orientation === 'horizontal') {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: ix + ox, y: currentY + w.sillHeightIn, z: iy, w: w.widthIn, h: w.heightIn, d: intWall.thicknessIn, isHorizontal: true });
+          } else {
+            models.push({ id: w.id, modelUrl: w.modelUrl!, x: ix, y: currentY + w.sillHeightIn, z: iy + ox, w: intWall.thicknessIn, h: w.heightIn, d: w.widthIn, isHorizontal: false });
+          }
+        }
+      });
+    };
+
+    if (currentFloorIndex === 0) calcForStory(totalBaseHeight, 0);
+    let currentZ = totalBaseHeight + wallHeightIn;
+    for (let i = 0; i < additionalStories; i++) {
+      const upperJoistH = upperFloorJoistSize === '2x6' ? 5.5 : upperFloorJoistSize === '2x8' ? 7.25 : upperFloorJoistSize === '2x10' ? 9.25 : 11.25;
+      currentZ += upperJoistH + (addSubfloor ? subfloorThickness : 0);
+      if (currentFloorIndex === i + 1) calcForStory(currentZ, i + 1);
+      currentZ += upperFloorWallHeightIn;
+    }
+
+    return models;
+  }, [doors, windows, exteriorWalls, interiorWalls, shape, widthIn, lengthIn, thicknessIn, totalBaseHeight, wallHeightIn, additionalStories, upperFloorWallHeightIn, upperFloorJoistSize, addSubfloor, subfloorThickness, currentFloorIndex]);
 
   const floorSystem = useMemo(() => {
     const parts: { x: number, y: number, z: number, w: number, h: number, d: number, color?: string }[] = [];
@@ -2218,7 +2574,8 @@ export default function Preview3D({
       <Canvas shadows dpr={[1, 2]}>
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={[widthIn * 0.03, wallHeightIn * 0.08, lengthIn * 0.03]} fov={50} />
-          <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} />
+          <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2.1} autoRotate={isDroneMode} autoRotateSpeed={1.0} />
+          <SpaceMouseController axes={spaceMouseAxes} enabled={spaceMouseConnected} />
           
           <ambientLight intensity={0.4} />
           {showSky && <Sky distance={450000} sunPosition={[10, 20, 10]} inclination={0} azimuth={0.25} />}
@@ -2245,29 +2602,14 @@ export default function Preview3D({
             isFloorPlanView={isFloorPlanView} 
             cutHeight={activeFloorCutHeight} 
           />
-          <axesHelper args={[500]} rotation={[-Math.PI / 2, 0, 0]} />
+          {showAxes && <axesHelper args={[500]} rotation={[-Math.PI / 2, 0, 0]} />}
           {showGround && <Ground
-            onClick={handleMeasureClick}
-            onPointerMove={(e) => { if (isMeasuring) handleMeasurePointerMove(e); }}
           />}
           
-          {/* Invisible plane: pointer-move ONLY (no click — meshes handle clicks to avoid double-fire) */}
-          {isMeasuring && (
-            <mesh
-              visible={false}
-              onPointerMove={handleMeasurePointerMove}
-              position={[0, 0, 0]}
-              rotation={[-Math.PI / 2, 0, 0]}
-            >
-              <planeGeometry args={[2000, 2000]} />
-              <meshBasicMaterial />
-            </mesh>
-          )}
-          
+
               <group scale={0.0254}> {/* Convert inches to meters for Three.js scale */}
                 {foundation.map((f, i) => (
                   <FoundationPart key={`fd-${i}`} {...f}
-                    isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove}
                     surfaceId="foundation" appliedMaterials={activeMaterials} materialConfigs={materialConfigs}
                     activePaintMaterial={localActivePaint}
                     onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }}
@@ -2275,7 +2617,6 @@ export default function Preview3D({
                 ))}
               {floorSystem.map((f, i) => (
                 <FoundationPart key={`fl-${i}`} {...f}
-                  isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove}
                   surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs}
                   activePaintMaterial={localActivePaint}
                   onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }}
@@ -2283,35 +2624,35 @@ export default function Preview3D({
               ))}
               {!addFloorFraming && (
                 <group>
-                  {shape === 'rectangle' && <FoundationPart x={0} y={foundationHeight} z={0} w={widthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />}
+                  {shape === 'rectangle' && <FoundationPart x={0} y={foundationHeight} z={0} w={widthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />}
                   {shape === 'l-shape' && (
                     <>
-                      <FoundationPart x={0} y={foundationHeight} z={0} w={widthIn} h={subfloorThickness} d={lRightDepthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={0} y={foundationHeight} z={lRightDepthIn} w={lBackWidthIn} h={subfloorThickness} d={lengthIn - lRightDepthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={0} y={foundationHeight} z={0} w={widthIn} h={subfloorThickness} d={lRightDepthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={0} y={foundationHeight} z={lRightDepthIn} w={lBackWidthIn} h={subfloorThickness} d={lengthIn - lRightDepthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
                     </>
                   )}
                   {shape === 'u-shape' && (
                     <>
-                      <FoundationPart x={0} y={foundationHeight} z={0} w={uWallsIn.w7} h={subfloorThickness} d={uWallsIn.w8} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={uWallsIn.w1 - uWallsIn.w3} y={foundationHeight} z={0} w={uWallsIn.w3} h={subfloorThickness} d={uWallsIn.w2} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={uWallsIn.w7} y={foundationHeight} z={0} w={uWallsIn.w1 - uWallsIn.w3 - uWallsIn.w7} h={subfloorThickness} d={uWallsIn.w2 - uWallsIn.w4} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={0} y={foundationHeight} z={0} w={uWallsIn.w7} h={subfloorThickness} d={uWallsIn.w8} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={uWallsIn.w1 - uWallsIn.w3} y={foundationHeight} z={0} w={uWallsIn.w3} h={subfloorThickness} d={uWallsIn.w2} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={uWallsIn.w7} y={foundationHeight} z={0} w={uWallsIn.w1 - uWallsIn.w3 - uWallsIn.w7} h={subfloorThickness} d={uWallsIn.w2 - uWallsIn.w4} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
                     </>
                   )}
                   {shape === 'h-shape' && (
                     <>
-                      <FoundationPart x={0} y={foundationHeight} z={0} w={hLeftBarWidthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={hLeftBarWidthIn} y={foundationHeight} z={hMiddleBarOffsetIn} w={widthIn - hLeftBarWidthIn - hRightBarWidthIn} h={subfloorThickness} d={hMiddleBarHeightIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={widthIn - hRightBarWidthIn} y={foundationHeight} z={0} w={hRightBarWidthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={0} y={foundationHeight} z={0} w={hLeftBarWidthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={hLeftBarWidthIn} y={foundationHeight} z={hMiddleBarOffsetIn} w={widthIn - hLeftBarWidthIn - hRightBarWidthIn} h={subfloorThickness} d={hMiddleBarHeightIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={widthIn - hRightBarWidthIn} y={foundationHeight} z={0} w={hRightBarWidthIn} h={subfloorThickness} d={lengthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
                     </>
                   )}
                   {shape === 't-shape' && (
                     <>
-                      <FoundationPart x={0} y={foundationHeight} z={0} w={tTopWidthIn} h={subfloorThickness} d={tTopLengthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
-                      <FoundationPart x={(tTopWidthIn - tStemWidthIn) / 2} y={foundationHeight} z={tTopLengthIn} w={tStemWidthIn} h={subfloorThickness} d={tStemLengthIn} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={0} y={foundationHeight} z={0} w={tTopWidthIn} h={subfloorThickness} d={tTopLengthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                      <FoundationPart x={(tTopWidthIn - tStemWidthIn) / 2} y={foundationHeight} z={tTopLengthIn} w={tStemWidthIn} h={subfloorThickness} d={tStemLengthIn} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
                     </>
                   )}
                   {shape === 'custom' && (combinedBlocks.length > 0 ? combinedBlocks : shapeBlocks).map(block => (
-                    <FoundationPart key={block.id} x={block.x} y={foundationHeight} z={block.y} w={block.w} h={subfloorThickness} d={block.h} color="#d4d4d8" isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove} surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
+                    <FoundationPart key={block.id} x={block.x} y={foundationHeight} z={block.y} w={block.w} h={subfloorThickness} d={block.h} color="#d4d4d8" surfaceId="floor" appliedMaterials={activeMaterials} materialConfigs={materialConfigs} activePaintMaterial={localActivePaint} onSurfacePainted={(sid, url) => { handleSurfacePainted(sid, url); setActiveSurfaceId(sid); }} />
                   ))}
                 </group>
               )}
@@ -2322,7 +2663,6 @@ export default function Preview3D({
                 const ffh = 0.5; // thin finish layer (0.5")
                 const ffColor = "#c8b89a"; // warm natural tone — overridden by applied texture
                 const ffPaint = {
-                  isMeasuring, handleMeasureClick, handleMeasurePointerMove,
                   surfaceId: "floor-finish" as string,
                   appliedMaterials: activeMaterials,
                   materialConfigs,
@@ -2370,7 +2710,15 @@ export default function Preview3D({
 
 
 
-              {walls.map((w, i) => {
+              {/* Framing System */}
+              {walls.framingList.map((p, i) => (
+                <mesh key={'fr'+i} position={[p.x + p.w / 2, p.y + p.h / 2, p.z + p.d / 2]} castShadow receiveShadow>
+                  <boxGeometry args={[p.w, p.h, p.d]} />
+                  <meshStandardMaterial color={p.color || "#deb887"} roughness={0.8} />
+                </mesh>
+              ))}
+
+              {walls.wallList.map((w, i) => {
                 // Per-face IDs: exterior walls are ext-wall-N, interior/drywall are int-wall-N
                 const isExt = w.color === "#e4e4e7" || w.color === "#c4a484";
                 const isDrywall = w.color === "#ffffff";
@@ -2380,7 +2728,6 @@ export default function Preview3D({
                 const cfg = texUrl ? materialConfigs[texUrl] : undefined;
                 return (
                   <Wall key={i} {...w} openings={openings}
-                    isMeasuring={isMeasuring} handleMeasureClick={handleMeasureClick} handleMeasurePointerMove={handleMeasurePointerMove}
                     surfaceId={surfaceId} appliedMaterials={activeMaterials}
                     materialConfigs={materialConfigs}
                     activePaintMaterial={localActivePaint}
@@ -2447,14 +2794,70 @@ export default function Preview3D({
                 
                 const eaveDrop = overhang * (pitch / 12);
                 const ridgeH = (w / 2) * (pitch / 12) + eaveDrop;
+
+                // Collect all windows for this dormer
+                const dormerWins: { ox: number; winW: number; winH: number; sill: number }[] = [];
+
+                // Legacy single-window from DormerConfig.hasWindow
+                if (d.hasWindow) {
+                  const legW = d.windowWidthIn ?? 24;
+                  const legH = d.windowHeightIn ?? 30;
+                  const legSill = d.windowSillHeightIn ?? 6;
+                  if (legW > 0 && legH > 0 && legW < l && (legSill + legH) < wallH) {
+                    dormerWins.push({ ox: (l - legW) / 2, winW: legW, winH: legH, sill: legSill });
+                  }
+                }
+
+                // Standard windows assigned to this dormer (wall = 9000 + i)
+                windows.filter(win => win.wall === 9000 + i).forEach(win => {
+                  const ox = win.xFt * 12 + win.xInches;
+                  if (win.widthIn > 0 && win.heightIn > 0 && (win.sillHeightIn + win.heightIn) < wallH) {
+                    dormerWins.push({ ox, winW: win.widthIn, winH: win.heightIn, sill: win.sillHeightIn });
+                  }
+                });
+
+                const hasAnyWindow = dormerWins.length > 0;
                 
                 return (
                   <group key={`dormer-${i}`}>
-                    {/* Walls */}
+                    {/* Walls — with optional window cutouts */}
                     <mesh position={[d.x, totalBaseHeight + wallHeightIn + (wallH / 2), d.y]} castShadow receiveShadow>
-                      <boxGeometry args={[w, wallH, l]} />
+                      {hasAnyWindow ? (
+                        <Geometry>
+                          <Base><boxGeometry args={[w, wallH, l]} /></Base>
+                          {dormerWins.map((dw, wi) => (
+                            <Subtraction key={`dw-sub-${wi}`} position={[w / 2, dw.sill + dw.winH / 2 - wallH / 2, dw.ox + dw.winW / 2 - l / 2]}>
+                              <boxGeometry args={[w * 0.4, dw.winH, dw.winW]} />
+                            </Subtraction>
+                          ))}
+                        </Geometry>
+                      ) : (
+                        <boxGeometry args={[w, wallH, l]} />
+                      )}
                       <meshStandardMaterial color="#e4e4e7" roughness={0.7} />
                     </mesh>
+
+                    {/* Glass panes & frames — on the front face (+X side) */}
+                    {dormerWins.map((dw, wi) => {
+                      const glassZ = d.y - l / 2 + dw.ox + dw.winW / 2;
+                      const glassY = totalBaseHeight + wallHeightIn + dw.sill + dw.winH / 2;
+                      return (
+                        <group key={`dw-glass-${wi}`}>
+                          <mesh position={[d.x + w / 2, glassY, glassZ]} castShadow>
+                            <boxGeometry args={[0.5, dw.winH - 1, dw.winW - 1]} />
+                            <meshStandardMaterial color="#87ceeb" transparent opacity={0.35} roughness={0.05} metalness={0.3} />
+                          </mesh>
+                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                            <boxGeometry args={[0.8, dw.winH + 1, dw.winW + 1]} />
+                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                          </mesh>
+                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                            <boxGeometry args={[1, dw.winH - 0.5, dw.winW - 0.5]} />
+                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                          </mesh>
+                        </group>
+                      );
+                    })}
                     
                     {/* Roof */}
                     <DormerRoof 
@@ -2639,76 +3042,51 @@ export default function Preview3D({
 
               {/* Assets */}
               {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).map(asset => (
-                <Asset key={asset.id} asset={asset} />
+                <Asset key={asset.id} asset={asset} floorY={totalBaseHeight} />
               ))}
 
               {/* Openings are now subtracted from walls using CSG, so we don't render them as dark boxes anymore */}
+
+              {/* Door & Window 3D Models */}
+              {openingModels.map(om => (
+                <group
+                  key={`opening-model-${om.id}`}
+                  position={[
+                    om.x + om.w / 2,
+                    om.y,
+                    om.z + om.d / 2
+                  ]}
+                  rotation={[0, om.isHorizontal ? 0 : Math.PI / 2, 0]}
+                >
+                  <ModelErrorBoundary fallback={
+                    <AssetPlaceholderBox
+                      w={om.isHorizontal ? om.w : om.d}
+                      h={om.h}
+                      d={om.isHorizontal ? om.d : om.w}
+                      color="#60a5fa"
+                      errored
+                    />
+                  }>
+                    <Suspense fallback={
+                      <mesh position={[0, om.h / 2, 0]}>
+                        <boxGeometry args={[om.isHorizontal ? om.w : om.d, om.h, om.isHorizontal ? om.d : om.w]} />
+                        <meshStandardMaterial color="#60a5fa" opacity={0.3} transparent wireframe />
+                      </mesh>
+                    }>
+                      <LinkedModel
+                        url={om.modelUrl}
+                        widthFt={om.isHorizontal ? om.w : om.d}
+                        depthFt={om.isHorizontal ? om.d : om.w}
+                        heightFt={om.h}
+                        stretch
+                      />
+                    </Suspense>
+                  </ModelErrorBoundary>
+                </group>
+              ))}
             </group>
 
-              {/* ── Tape Measure Visualization ── */}
-              {isMeasuring && (
-                <group>
-                  {/* Start point: small pulsing blue sphere */}
-                  {measurePoints.length >= 1 && (
-                    <mesh position={measurePoints[0]}>
-                      <sphereGeometry args={[0.04, 16, 16]} />
-                      <meshBasicMaterial color="#60a5fa" depthTest={false} />
-                    </mesh>
-                  )}
 
-                  {/* Live dashed line to cursor */}
-                  {measurePoints.length === 1 && currentMousePoint && (
-                    <Line
-                      points={[measurePoints[0], currentMousePoint]}
-                      color={axisColor(liveAxis)}
-                      lineWidth={2}
-                      dashed
-                      dashSize={0.15}
-                      gapSize={0.1}
-                      depthTest={false}
-                    />
-                  )}
-
-                  {/* Cursor crosshair dot */}
-                  {measurePoints.length === 1 && currentMousePoint && (
-                    <mesh position={currentMousePoint}>
-                      <sphereGeometry args={[0.03, 12, 12]} />
-                      <meshBasicMaterial color={axisColor(liveAxis)} depthTest={false} />
-                    </mesh>
-                  )}
-                </group>
-              )}
-
-              {/* Completed measurements */}
-              {allMeasurements.map((m, i) => {
-                const mid = new THREE.Vector3(
-                  (m.points[0].x + m.points[1].x) / 2,
-                  (m.points[0].y + m.points[1].y) / 2,
-                  (m.points[0].z + m.points[1].z) / 2,
-                );
-                const col = '#ef4444'; // saved measurements in red
-                return (
-                  <group key={i}>
-                    <mesh position={m.points[0]}>
-                      <sphereGeometry args={[0.04, 12, 12]} />
-                      <meshBasicMaterial color={col} depthTest={false} />
-                    </mesh>
-                    <mesh position={m.points[1]}>
-                      <sphereGeometry args={[0.04, 12, 12]} />
-                      <meshBasicMaterial color={col} depthTest={false} />
-                    </mesh>
-                    <Line
-                      points={m.points}
-                      color={col}
-                      lineWidth={2}
-                      dashed
-                      dashSize={0.15}
-                      gapSize={0.1}
-                      depthTest={false}
-                    />
-                  </group>
-                );
-              })}
 
 
           
@@ -2716,69 +3094,10 @@ export default function Preview3D({
         </Suspense>
       </Canvas>
       
-      {/* Live measurement label — follows cursor */}
-      {isMeasuring && measurePoints.length === 1 && distance !== null && (
-        <div
-          className="absolute pointer-events-none z-30"
-          style={{
-            top: '50%', left: '50%',  // fallback; updated via CSS var trick below
-          }}
-        >
-          {/* We use onPointerMove on the canvas wrapper below to position this */}
-        </div>
-      )}
-
-      <div
-        className="absolute inset-0"
-        style={{ cursor: isMeasuring ? 'crosshair' : 'default', pointerEvents: 'none' }}
-        onMouseMove={(e) => {
-          if (!isMeasuring || measurePoints.length !== 1) return;
-          setMeasureLabelPos({ x: e.clientX, y: e.clientY });
-        }}
-      />
-
-      {/* Floating distance label following physical mouse */}
-      {isMeasuring && measurePoints.length === 1 && distance !== null && measureLabelPos && (
-        <div
-          className="fixed pointer-events-none z-50"
-          style={{ left: measureLabelPos.x + 16, top: measureLabelPos.y - 12 }}
-        >
-          <div className={`px-2 py-1 rounded text-xs font-bold text-white shadow-lg ${
-            liveAxis === 'x' ? 'bg-red-600' :
-            liveAxis === 'z' ? 'bg-blue-600' :
-            liveAxis === 'y' ? 'bg-green-600' :
-            'bg-black/80'
-          }`}>
-            {fmtDistance(distance)}
-            {liveAxis && <span className="ml-1 opacity-70 uppercase text-[9px]">{liveAxis}</span>}
-          </div>
-        </div>
-      )}
-
-      <div className="absolute top-4 left-4 flex flex-col gap-2"
-        onMouseMove={(e) => {
-          if (!isMeasuring || measurePoints.length !== 1) return;
-          setMeasureLabelPos({ x: e.clientX, y: e.clientY });
-        }}
-      >
-        <button
-          onClick={() => {
-            setIsMeasuring(!isMeasuring);
-            setMeasurePoints([]);
-            setAxisLock(null);
-          }}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-            isMeasuring
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'bg-white/80 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700'
-          }`}
-        >
-          {isMeasuring ? 'Stop' : <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15.5 2.5 5.8 5.8a1 1 0 0 1 0 1.4l-8.6 8.6a1 1 0 0 1-1.4 0l-5.8-5.8a1 1 0 0 1 0-1.4l8.6-8.6a1 1 0 0 1 1.4 0Z"/><path d="m17 7 3-3"/><path d="m13 11 3 3"/></svg>}
-        </button>
+      <div className="absolute top-4 left-4 flex flex-col gap-2">
         <button
           onClick={() => {
             setIsPainterOpen(v => !v);
-            setIsMeasuring(false);
           }}
           title="Material Painter"
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
@@ -2788,6 +3107,17 @@ export default function Preview3D({
           }`}
         >
           🎨
+        </button>
+        <button
+          onClick={() => spaceMouseConnected ? disconnectSpaceMouse() : connectSpaceMouse()}
+          title={spaceMouseConnected ? `SpaceMouse: ${spaceMouseName} (click to disconnect)` : 'Connect 3Dconnexion SpaceMouse'}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            spaceMouseConnected
+              ? 'bg-cyan-600 text-white shadow-lg'
+              : 'bg-white/80 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700'
+          }`}
+        >
+          🎮
         </button>
         {isPainterOpen && (
           <MaterialEditorPanel
@@ -2800,7 +3130,7 @@ export default function Preview3D({
             onSurfaceConfigChange={(texUrl, cfg) => setMaterialConfigs(prev => ({ ...prev, [texUrl]: cfg }))}
             onSaveMaterialConfig={(texUrl, cfg) => {
               setMaterialConfigs(prev => ({ ...prev, [texUrl]: cfg }));
-              fetch('http://localhost:3001/api/save-material-config', {
+              fetch('/api/save-material-config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ textureUrl: texUrl, config: cfg }),
@@ -2808,58 +3138,6 @@ export default function Preview3D({
             }}
             onClearBrush={() => setLocalActivePaint(null)}
           />
-        )}
-        {isMeasuring && (
-          <div className="bg-black/85 backdrop-blur-md px-3 py-2.5 rounded-xl text-sm text-white border border-white/10 shadow-xl mt-2 min-w-[200px]">
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-bold text-xs uppercase tracking-wider text-zinc-300">📏 Tape Measure</span>
-              <button onClick={clearMeasurements} className="text-[10px] text-red-400 hover:text-red-300">Clear all</button>
-            </div>
-
-            {/* Axis lock indicator */}
-            <div className="flex gap-1 mb-2">
-              {(['x','y','z'] as const).map(ax => (
-                <button
-                  key={ax}
-                  onClick={() => setAxisLock(prev => prev === ax ? null : ax)}
-                  className={`flex-1 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${
-                    axisLock === ax
-                      ? ax === 'x' ? 'bg-red-600 text-white' : ax === 'z' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
-                      : 'bg-white/10 text-zinc-400 hover:bg-white/20'
-                  }`}
-                >
-                  {ax}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-[10px] text-zinc-400 mb-1">
-              {measurePoints.length === 0 ? '· Click a point to start' : '· Click end point to measure'}
-            </p>
-
-            {/* Live reading */}
-            {distance !== null && (
-              <div className={`font-bold text-lg leading-none ${
-                liveAxis === 'x' ? 'text-red-400' : liveAxis === 'z' ? 'text-blue-400' : liveAxis === 'y' ? 'text-green-400' : 'text-white'
-              }`}>
-                {fmtDistance(distance)}
-              </div>
-            )}
-
-            {/* Saved measurements */}
-            {allMeasurements.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-white/10 space-y-1">
-                {allMeasurements.map((m, i) => (
-                  <div key={i} className="flex justify-between text-[11px] text-zinc-300">
-                    <span className="text-zinc-500">{i + 1}.</span>
-                    <span className="font-semibold text-red-300">{fmtDistance(m.distance)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <p className="text-[9px] text-zinc-600 mt-2">Press X/Y/Z to lock axis · Esc to unlock</p>
-          </div>
         )}
       </div>
       
@@ -2875,6 +3153,12 @@ export default function Preview3D({
             className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded transition-colors ${isFloorPlanView ? 'bg-indigo-600 text-white' : 'text-zinc-600 dark:text-zinc-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400'}`}
           >
             {isFloorPlanView ? 'Exit Floor Plan' : 'Floor Plan'}
+          </button>
+          <button 
+            onClick={() => setIsDroneMode(!isDroneMode)} 
+            className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded transition-colors ${isDroneMode ? 'bg-indigo-600 text-white' : 'text-zinc-600 dark:text-zinc-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400'}`}
+          >
+            {isDroneMode ? 'Stop Drone' : 'Drone View'}
           </button>
           <div className="w-px bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
           <button onClick={() => setCameraPresetTrigger(`${Date.now()}-top`)} className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded transition-colors">Top</button>

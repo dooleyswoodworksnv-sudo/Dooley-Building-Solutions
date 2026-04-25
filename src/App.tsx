@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Copy, Check, Settings, Code, Home, DoorOpen, AppWindow, Plus, Trash2, Hammer, LayoutGrid, Magnet, Eye, Camera, Undo2, Redo2, ChevronDown, ChevronRight, ChevronLeft, Construction, Triangle, FileText, Upload, Move, RotateCw, Layers, Ruler, Lock, Unlock, Save, FolderOpen, Calculator, Globe, Cloud, Sun } from 'lucide-react';
+import { Copy, Check, Settings, Code, Home, DoorOpen, AppWindow, Plus, Trash2, Hammer, LayoutGrid, Magnet, Eye, Camera, Undo2, Redo2, ChevronDown, ChevronRight, ChevronLeft, Construction, Triangle, FileText, Upload, Move, RotateCw, Layers, Ruler, Lock, Unlock, Save, FolderOpen, Calculator, Globe, Cloud, Sun, Moon } from 'lucide-react';
 import Preview2D from './components/Preview2D';
 import Preview3D from './components/Preview3D';
+import { SYMBOL_CATALOG, SYMBOL_CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS } from './components/SymbolCatalog';
 import MaterialsEstimate from './components/MaterialsEstimate';
 import AssetLibrary from './components/assets/AssetLibrary';
 import { Box } from 'lucide-react';
@@ -46,6 +47,8 @@ export interface DoorConfig {
   widthIn: number;
   heightIn: number;
   floorIndex?: number;
+  modelUrl?: string;
+  modelFileName?: string;
 }
 
 export interface WindowConfig {
@@ -59,6 +62,8 @@ export interface WindowConfig {
   heightIn: number;
   sillHeightIn: number;
   floorIndex?: number;
+  modelUrl?: string;
+  modelFileName?: string;
 }
 
 export interface InteriorWallConfig {
@@ -139,13 +144,15 @@ export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
 export interface InteriorAsset {
   id: string;
   type: string;
-  category: 'kitchen' | 'bathroom' | 'furniture';
+  category: 'kitchen' | 'bathroom' | 'furniture' | 'bedroom' | 'living' | 'misc';
   name: string;
   x: number;
   y: number;
   rotation: number;
   scale: number;
   floorIndex: number;
+  widthIn?: number;
+  depthIn?: number;
 }
 
 export interface RoofPart {
@@ -447,6 +454,26 @@ const DEFAULT_APP_STATE: AppState = {
 };
 
 export default function App() {
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dbs-dark-mode');
+      if (saved !== null) return saved === 'true';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+
+  // Sync dark class on <html> element
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('dbs-dark-mode', String(darkMode));
+  }, [darkMode]);
+
   const [showPluginModal, setShowPluginModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | '3d' | 'code'>('preview');
   const [generationSection, setGenerationSection] = useState<GenerationSection>('all');
@@ -617,6 +644,7 @@ export default function App() {
 
   // 3D Environment Options
   const [showGround, setShowGround] = useState<boolean>(true);
+  const [showAxes, setShowAxes] = useState<boolean>(true);
   const [showSky, setShowSky] = useState<boolean>(true);
   const [showSun, setShowSun] = useState<boolean>(true);
   const [showRoof, setShowRoof] = useState<boolean>(true);
@@ -709,7 +737,7 @@ export default function App() {
     }
   }, [pdfCalibration.p1, pdfCalibration.p2, appliedCalibration]);
 
-  // Automatically enable floor framing when stem wall is selected, and disable it otherwise
+  // Automatically enable floor framing when stem wall is selected
   useEffect(() => {
     if (isRestoring.current) return;
     if (foundationType === 'stem-wall') {
@@ -717,8 +745,6 @@ export default function App() {
       setAddSubfloor(true);
       setOpenSections(prev => ({ ...prev, walls: true }));
       setActiveWallSection('floor');
-    } else {
-      setAddFloorFraming(false);
     }
   }, [foundationType]);
 
@@ -1175,45 +1201,9 @@ export default function App() {
       if (wallId === 6) return u_w6 - t;
       if (wallId === 7) return u_w7;
       if (wallId === 8) return u_w8 - 2 * t;
-    } else if (shape === 'h-shape') {
-      const hLW = hLeftBarWidthFt * 12 + hLeftBarWidthInches;
-      const hRW = hRightBarWidthFt * 12 + hRightBarWidthInches;
-      const hMH = hMiddleBarHeightFt * 12 + hMiddleBarHeightInches;
-      const hMO = hMiddleBarOffsetFt * 12 + hMiddleBarOffsetInches;
-      // Left Bar
-      if (wallId === 1) return hLW;                                         // top-left horizontal
-      if (wallId === 2) return hMO - t;                                     // inner-left-top vertical
-      if (wallId === 3) return l - (hMO + hMH) - t;                        // inner-left-bottom vertical
-      if (wallId === 4) return hLW;                                         // bottom-left horizontal
-      if (wallId === 5) return l - 2 * t;                                   // outer-left vertical
-      // Middle Bar
-      if (wallId === 6) return w - hLW - hRW;                              // middle-top horizontal
-      if (wallId === 7) return w - hLW - hRW;                              // middle-bottom horizontal
-      // Right Bar
-      if (wallId === 8) return hRW;                                         // top-right horizontal
-      if (wallId === 9) return hMO - t;                                     // inner-right-top vertical
-      if (wallId === 10) return l - (hMO + hMH) - t;                       // inner-right-bottom vertical
-      if (wallId === 11) return hRW;                                        // bottom-right horizontal
-      if (wallId === 12) return l - 2 * t;                                  // outer-right vertical
-    } else if (shape === 't-shape') {
-      const tTW = tTopWidthFt * 12 + tTopWidthInches;
-      const tTL = tTopLengthFt * 12 + tTopLengthInches;
-      const tSW = tStemWidthFt * 12 + tStemWidthInches;
-      const tSL = tStemLengthFt * 12 + tStemLengthInches;
-      const stemX = (tTW - tSW) / 2;
-      // Top Bar
-      if (wallId === 1) return tTW;                                         // top horizontal
-      if (wallId === 2) return tTL - 2 * t;                                 // right vertical
-      if (wallId === 3) return tTW - (stemX + tSW);                         // bottom-right horizontal
-      if (wallId === 4) return stemX;                                       // bottom-left horizontal
-      if (wallId === 5) return tTL - 2 * t;                                 // left vertical
-      // Stem
-      if (wallId === 6) return tSL - t;                                     // stem-left vertical
-      if (wallId === 7) return tSL - t;                                     // stem-right vertical
-      if (wallId === 8) return tSW;                                         // stem-bottom horizontal
     }
     return 0;
-  }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches, hLeftBarWidthFt, hLeftBarWidthInches, hRightBarWidthFt, hRightBarWidthInches, hMiddleBarHeightFt, hMiddleBarHeightInches, hMiddleBarOffsetFt, hMiddleBarOffsetInches, tTopWidthFt, tTopWidthInches, tTopLengthFt, tTopLengthInches, tStemWidthFt, tStemWidthInches, tStemLengthFt, tStemLengthInches]);
+  }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
 
   // Build list of available wall options for door/window dropdowns
   const getAvailableWallOptions = useMemo(() => {
@@ -1284,6 +1274,8 @@ export default function App() {
     let windowsChanged = false;
     const validatedWindows = windows.map(w => {
       let updated = w;
+      // Skip dormer windows (wall >= 9000) — they use special IDs
+      if (w.wall >= 9000) return updated;
       // Reassign window to first available wall if its wall no longer exists
       if (!availableIds.has(w.wall)) {
         windowsChanged = true;
@@ -1413,7 +1405,7 @@ export default function App() {
     setFootingWidthIn(state.footingWidthIn || 16);
     setFootingThicknessIn(state.footingThicknessIn || 8);
     setFoundationShape(state.foundationShape || 'rectangle');
-    setAddFloorFraming((state.addFloorFraming && state.foundationType === 'stem-wall') || false);
+    setAddFloorFraming(state.addFloorFraming || false);
     setJoistSpacing(state.joistSpacing || 16);
     setJoistSize(state.joistSize || '2x10');
     setJoistDirection(state.joistDirection || 'y');
@@ -1594,7 +1586,7 @@ export default function App() {
     setDoors(doors.filter(d => d.id !== id));
   };
 
-  const updateDoor = (id: string, field: keyof DoorConfig, value: number) => {
+  const updateDoor = (id: string, field: keyof DoorConfig, value: number | string | undefined) => {
     setDoors(doors.map(d => {
       if (d.id === id) {
         const updated = { ...d, [field]: value };
@@ -1634,12 +1626,12 @@ export default function App() {
     setWindows(windows.filter(w => w.id !== id));
   };
 
-  const updateWindow = (id: string, field: keyof WindowConfig, value: number) => {
+  const updateWindow = (id: string, field: keyof WindowConfig, value: number | string | undefined) => {
     setWindows(windows.map(w => {
       if (w.id === id) {
         const updated = { ...w, [field]: value };
         if (field === 'heightIn') {
-          updated.sillHeightIn = openingHeaderHeightIn - value;
+          updated.sillHeightIn = openingHeaderHeightIn - Number(value);
         }
         
         const wallLen = getWallLength(updated.wall);
@@ -3819,11 +3811,19 @@ end
             <Home size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">SketchUp House Shell Builder</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Generate Ruby scripts for house shells with rough openings</p>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">Dooley's Building Solutions</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Structural design, framing & materials estimation</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDarkMode(prev => !prev)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="hidden sm:inline">{darkMode ? 'Light' : 'Dark'}</span>
+          </button>
           <button
             onClick={() => setShowPluginModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
@@ -4906,8 +4906,7 @@ end
                   type="checkbox" 
                   checked={addFloorFraming}
                   onChange={(e) => setAddFloorFraming(e.target.checked)}
-                  disabled={foundationType !== 'stem-wall'}
-                  className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:bg-zinc-800"
                 />
                 <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Add Floor Framing</span>
               </div>
@@ -5362,6 +5361,46 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         />
                       </div>
                     </div>
+                    {/* Link 3D Model (.glb) */}
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <label className="flex-1">
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                setDoors(prev => prev.map(d => d.id === door.id ? { ...d, modelUrl: url, modelFileName: file.name } : d));
+                              }
+                            }}
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-all">
+                            <Upload size={14} />
+                            {door.modelUrl ? 'Change 3D Model' : 'Link 3D Model (.glb)'}
+                          </div>
+                        </label>
+                        {door.modelUrl && (
+                          <button
+                            onClick={() => {
+                              if (door.modelUrl) URL.revokeObjectURL(door.modelUrl);
+                              setDoors(prev => prev.map(d => d.id === door.id ? { ...d, modelUrl: undefined, modelFileName: undefined } : d));
+                            }}
+                            className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors"
+                            title="Remove linked model"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                      {door.modelFileName && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1.5 truncate" title={door.modelFileName}>
+                          ✓ {door.modelFileName}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -5494,6 +5533,46 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                           className="w-full px-3 py-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-xl font-bold text-zinc-900 dark:text-zinc-100"
                         />
                       </div>
+                    </div>
+                    {/* Link 3D Model (.glb) */}
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <label className="flex-1">
+                          <input
+                            type="file"
+                            accept=".glb,.gltf"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                setWindows(prev => prev.map(w => w.id === win.id ? { ...w, modelUrl: url, modelFileName: file.name } : w));
+                              }
+                            }}
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition-all">
+                            <Upload size={14} />
+                            {win.modelUrl ? 'Change 3D Model' : 'Link 3D Model (.glb)'}
+                          </div>
+                        </label>
+                        {win.modelUrl && (
+                          <button
+                            onClick={() => {
+                              if (win.modelUrl) URL.revokeObjectURL(win.modelUrl);
+                              setWindows(prev => prev.map(w => w.id === win.id ? { ...w, modelUrl: undefined, modelFileName: undefined } : w));
+                            }}
+                            className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors"
+                            title="Remove linked model"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                      {win.modelFileName && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1.5 truncate" title={win.modelFileName}>
+                          ✓ {win.modelFileName}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -6673,6 +6752,8 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                           if (window.confirm("Are you sure you want to delete all dormers from the canvas?")) {
                             setDormers([]);
                             setSelectedDormerId(null);
+                            // Also remove windows assigned to dormers
+                            setWindows(prev => prev.filter(w => w.wall < 9000));
                           }
                         }}
                         disabled={dormers.length === 0}
@@ -6681,6 +6762,113 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                         Clear Dormers
                       </button>
                     </div>
+
+                    {/* Dormer Windows */}
+                    {dormers.length > 0 && (
+                      <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+                        <label className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">DORMER WINDOWS</label>
+                        {dormers.map((dormer, dormerIndex) => {
+                          const dormerWindows = windows.filter(w => w.wall === 9000 + dormerIndex);
+                          return (
+                            <div key={dormer.id} className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 bg-zinc-50/50 dark:bg-zinc-800/30 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                  Dormer {dormerIndex + 1} — {dormerWindows.length} window{dormerWindows.length !== 1 ? 's' : ''}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    const depthIn = dormer.depthIn;
+                                    const winWidth = Math.min(24, depthIn - 4);
+                                    const winHeight = Math.min(30, (dormer.wallHeightIn || 48) - 12);
+                                    const sillHeight = 6;
+                                    const newWin: WindowConfig = {
+                                      id: `win-dormer-${Date.now()}`,
+                                      wall: 9000 + dormerIndex,
+                                      xFt: Math.floor(((depthIn - winWidth) / 2) / 12),
+                                      xInches: ((depthIn - winWidth) / 2) % 12,
+                                      yFt: 0,
+                                      yInches: 0,
+                                      widthIn: winWidth,
+                                      heightIn: winHeight,
+                                      sillHeightIn: sillHeight,
+                                      floorIndex: currentFloorIndex
+                                    };
+                                    setWindows(prev => [...prev, newWin]);
+                                  }}
+                                  className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 px-2 py-1 rounded transition-colors"
+                                >
+                                  <Plus size={12} /> Add Window
+                                </button>
+                              </div>
+                              {dormerWindows.map((win, winIdx) => (
+                                <div key={win.id} className="grid grid-cols-4 gap-2 items-end bg-white dark:bg-zinc-900 rounded p-2 border border-zinc-100 dark:border-zinc-800">
+                                  <div className="space-y-0.5">
+                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">Offset</label>
+                                    <div className="flex gap-1">
+                                      <input
+                                        type="number"
+                                        step="any"
+                                        value={win.xFt}
+                                        onChange={(e) => updateWindow(win.id, 'xFt', Number(e.target.value))}
+                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                        placeholder="ft"
+                                      />
+                                      <input
+                                        type="number"
+                                        step="any"
+                                        value={win.xInches}
+                                        onChange={(e) => updateWindow(win.id, 'xInches', Number(e.target.value))}
+                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                        placeholder="in"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">W (in)</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      value={win.widthIn}
+                                      onChange={(e) => updateWindow(win.id, 'widthIn', Number(e.target.value))}
+                                      className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                    />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">H (in)</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      value={win.heightIn}
+                                      onChange={(e) => updateWindow(win.id, 'heightIn', Number(e.target.value))}
+                                      className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                    />
+                                  </div>
+                                  <div className="flex items-end gap-1">
+                                    <div className="flex-1 space-y-0.5">
+                                      <label className="text-[9px] font-semibold text-zinc-400 uppercase">Sill</label>
+                                      <input
+                                        type="number"
+                                        step="any"
+                                        value={win.sillHeightIn}
+                                        onChange={(e) => updateWindow(win.id, 'sillHeightIn', Number(e.target.value))}
+                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                      />
+                                    </div>
+                                    <button
+                                      onClick={() => removeWindow(win.id)}
+                                      className="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors mb-0.5"
+                                      title="Remove window"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     </div>
                   </div>
                 )}
@@ -7142,6 +7330,21 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                     <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showSun ? 'translate-x-5.5' : 'translate-x-1'}`} />
                   </button>
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-md">
+                      <Ruler size={14} />
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Show Axes</span>
+                  </div>
+                  <button
+                    onClick={() => setShowAxes(!showAxes)}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${showAxes ? 'bg-amber-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showAxes ? 'translate-x-5.5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -7199,6 +7402,66 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                     floorIndex: currentFloorIndex
                   }]);
                 }} />
+
+                {/* Floor Plan Symbols */}
+                <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-4" />
+                <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs uppercase tracking-wider mb-3">Floor Plan Symbols</h3>
+                <div className="space-y-3">
+                  {SYMBOL_CATEGORIES.map(cat => {
+                    const catSymbols = SYMBOL_CATALOG.filter(s => s.category === cat);
+                    const catColor = CATEGORY_COLORS[cat] || '#6366f1';
+                    return (
+                      <div key={cat}>
+                        <div className="text-[10px] font-bold uppercase tracking-wider mb-1.5" style={{ color: catColor }}>
+                          {CATEGORY_LABELS[cat] || cat}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {catSymbols.map(sym => (
+                            <button
+                              key={sym.id}
+                              onClick={() => {
+                                setAssets(prev => [...prev, {
+                                  id: `sym-${Date.now()}`,
+                                  type: sym.id,
+                                  category: sym.category as InteriorAsset['category'],
+                                  name: sym.name,
+                                  widthIn: sym.widthIn,
+                                  depthIn: sym.depthIn,
+                                  x: 120,
+                                  y: 120,
+                                  rotation: 0,
+                                  scale: 1,
+                                  floorIndex: currentFloorIndex
+                                }]);
+                              }}
+                              className="flex items-center gap-2 px-2.5 py-2 text-left text-[11px] font-semibold rounded-lg border transition-all hover:shadow-sm"
+                              style={{
+                                borderColor: `${catColor}33`,
+                                color: catColor,
+                                backgroundColor: `${catColor}08`
+                              }}
+                              onMouseEnter={(e) => {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = `${catColor}18`;
+                                (e.currentTarget as HTMLElement).style.borderColor = `${catColor}66`;
+                              }}
+                              onMouseLeave={(e) => {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = `${catColor}08`;
+                                (e.currentTarget as HTMLElement).style.borderColor = `${catColor}33`;
+                              }}
+                            >
+                              <svg width="24" height="24" viewBox={`0 0 ${sym.widthIn} ${sym.depthIn}`} className="flex-shrink-0">
+                                {sym.svgPaths.map((p, i) => (
+                                  <path key={i} d={p.d} fill={p.fill || 'none'} stroke={p.stroke || sym.color} strokeWidth={p.strokeWidth || 0.5} />
+                                ))}
+                              </svg>
+                              {sym.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -7278,40 +7541,60 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
 
         {/* Right Column: Code Output & Preview (Expansive) */}
         <div className="flex-grow flex flex-col overflow-hidden">
-          <div className="flex gap-2 p-6 pb-4 flex-shrink-0">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === 'preview'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Eye size={18} />
-              2D Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('3d')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === '3d'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Box size={18} />
-              3D Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
-                activeTab === 'code'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
-                  : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-              }`}
-            >
-              <Code size={18} />
-              Ruby Code
-            </button>
+          <div className="flex items-center justify-between gap-2 p-6 pb-4 flex-shrink-0">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === 'preview'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Eye size={18} />
+                2D Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('3d')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === '3d'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Box size={18} />
+                3D Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('code')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all ${
+                  activeTab === 'code'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none'
+                    : 'bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
+                }`}
+              >
+                <Code size={18} />
+                Ruby Code
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveToDevice}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                title="Save project to device"
+              >
+                <Save size={16} />
+                Save Project
+              </button>
+              <button
+                onClick={handleLoadFromDevice}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                title="Load project from device"
+              >
+                <FolderOpen size={16} />
+                Load Project
+              </button>
+            </div>
           </div>
 
           <div className="flex-grow overflow-hidden px-6 pb-6">
@@ -7480,6 +7763,7 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                 showSky={showSky}
                 showSun={showSun}
                 showRoof={showRoof}
+                showAxes={showAxes}
                 additionalStories={additionalStories}
                 currentFloorIndex={currentFloorIndex}
                 upperFloorWallHeightIn={upperFloorWallHeightFt * 12 + upperFloorWallHeightIn}

@@ -65,11 +65,11 @@ export const generateSketchUpCode = (state: AppState, section: GenerationSection
   ).join(",\n");
 
   const doorsRuby = doors.map(d => 
-    `  {id: '${d.id}', wall: ${d.wall}, x_in: ${toInches(d.xFt, d.xInches)}, width_in: ${sanitize(d.widthIn)}, height_in: ${sanitize(d.heightIn)}}`
+    `  {id: '${d.id}', wall: ${d.wall}, x_in: ${toInches(d.xFt, d.xInches)}, width_in: ${sanitize(d.widthIn)}, height_in: ${sanitize(d.heightIn)}, floor_index: ${d.floorIndex || 0}}`
   ).join(",\n");
 
   const windowsRuby = windows.map(w => 
-    `  {id: '${w.id}', wall: ${w.wall}, x_in: ${toInches(w.xFt, w.xInches)}, width_in: ${sanitize(w.widthIn)}, height_in: ${sanitize(w.heightIn)}, sill_height_in: ${sanitize(w.sillHeightIn)}}`
+    `  {id: '${w.id}', wall: ${w.wall}, x_in: ${toInches(w.xFt, w.xInches)}, width_in: ${sanitize(w.widthIn)}, height_in: ${sanitize(w.heightIn)}, sill_height_in: ${sanitize(w.sillHeightIn)}, floor_index: ${w.floorIndex || 0}}`
   ).join(",\n");
 
   const blocksToUse = (combinedBlocks && combinedBlocks.length > 0) ? combinedBlocks : shapeBlocks;
@@ -97,7 +97,7 @@ export const generateSketchUpCode = (state: AppState, section: GenerationSection
 
     const absLen = Math.abs(len);
 
-    return `  {id: ${w.id}, x_in: ${x}, y_in: ${y}, length_in: ${absLen}, thickness_in: ${w.thicknessIn}, orientation: '${w.orientation}'}`;
+    return `  {id: ${w.id}, x_in: ${x}, y_in: ${y}, length_in: ${absLen}, thickness_in: ${w.thicknessIn}, orientation: '${w.orientation}', floor_index: ${w.floorIndex || 0}}`;
   }).join(",\n");
 
   let allExteriorWalls = [...exteriorWalls];
@@ -858,8 +858,8 @@ begin
         all_ops = (openings[:doors].map{|d| d.merge(type: :door)} + 
                    openings[:windows].map{|w| w.merge(type: :window)}).sort_by{|o| o[:os]}
         
-        current_pos = 0
-        end_pos = length
+        current_pos = is_x ? sx : sy
+        end_pos = current_pos + length
         
         # Get material for solid walls
         mat = get_material.call("Wall Framing", "#e4e4e7")
@@ -869,23 +869,23 @@ begin
           # Wall segment before opening
           if op[:os] > current_pos
             seg_len = op[:os] - current_pos
-            seg_x = is_x ? sx + current_pos : sx
-            seg_y = is_x ? sy : sy + current_pos
+            seg_x = is_x ? current_pos : sx
+            seg_y = is_x ? sy : current_pos
             draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? seg_len : depth, is_x ? depth : seg_len, w_height, "Solid Wall", mat)
           end
           
           # Wall segment under window
           if op[:type] == :window && op[:sill] > 0
-            seg_x = is_x ? sx + op[:os] : sx
-            seg_y = is_x ? sy : sy + op[:os]
+            seg_x = is_x ? op[:os] : sx
+            seg_y = is_x ? sy : op[:os]
             draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? op[:w] : depth, is_x ? depth : op[:w], op[:sill], "Solid Wall Under Window", mat)
           end
           
           # Wall segment over opening (header area)
           op_top = op[:type] == :door ? op[:h] : op[:sill] + op[:h]
           if op_top < w_height
-            seg_x = is_x ? sx + op[:os] : sx
-            seg_y = is_x ? sy : sy + op[:os]
+            seg_x = is_x ? op[:os] : sx
+            seg_y = is_x ? sy : op[:os]
             draw_box.call(w_ents, seg_x, seg_y, z_off + op_top, is_x ? op[:w] : depth, is_x ? depth : op[:w], w_height - op_top, "Solid Wall Over Opening", mat)
           end
           
@@ -895,14 +895,14 @@ begin
         # Wall segment after last opening
         if current_pos < end_pos
           seg_len = end_pos - current_pos
-          seg_x = is_x ? sx + current_pos : sx
-          seg_y = is_x ? sy : sy + current_pos
+          seg_x = is_x ? current_pos : sx
+          seg_y = is_x ? sy : current_pos
           draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? seg_len : depth, is_x ? depth : seg_len, w_height, "Solid Wall", mat)
         end
       }
     
       # --- THE DIRECTOR ---
-      draw_wall_framing = -> (wall_id, start_x, start_y, length, depth, is_x_dir, ext_dir, sh_s=0, sh_e=0, dw_s=0, dw_e=0, is_int=false, add_corners=false, target_ents = f_ents, w_height = wall_height_in, z_off = 0) {
+      draw_wall_framing = -> (wall_id, start_x, start_y, length, depth, is_x_dir, ext_dir, sh_s=0, sh_e=0, dw_s=0, dw_e=0, is_int=false, add_corners=false, target_ents = f_ents, w_height = wall_height_in, z_off = 0, floor_idx = 0) {
         return if "all".to_i > 0 && "all".to_i != wall_id
         
         wall_group = target_ents.add_group
@@ -913,14 +913,14 @@ begin
         curr_stud_h = w_height - (bottom_plates + top_plates) * plate_height
         curr_start_z = z_off + bottom_plates * plate_height
 
-        # Prepare Data Bundles
+        # Prepare Data Bundles — filter openings by wall_id AND floor_index
         params = {id: wall_id, sx: start_x, sy: start_y, len: length, dep: depth, is_x: is_x_dir, ext: ext_dir}
         openings = {
-          doors: doors.select{|d| d[:wall] == wall_id}.map{|d| 
+          doors: doors.select{|d| d[:wall] == wall_id && (d[:floor_index] || 0) == floor_idx}.map{|d| 
             w_total = d[:width_in] + door_ro_allowance + (2 * stud_thickness)
             { ox: d[:x_in], os: d[:x_in] - w_total/2.0, oe: d[:x_in] + w_total/2.0, w: w_total, h: d[:height_in] + door_ro_allowance }
           },
-          windows: windows.select{|w| w[:wall] == wall_id}.map{|w| 
+          windows: windows.select{|w| w[:wall] == wall_id && (w[:floor_index] || 0) == floor_idx}.map{|w| 
             w_total = w[:width_in] + window_ro_allowance + (2 * stud_thickness)
             { ox: w[:x_in], os: w[:x_in] - w_total/2.0, oe: w[:x_in] + w_total/2.0, w: w_total, h: w[:height_in] + window_ro_allowance, sill: w[:sill_height_in] }
           }
@@ -1064,8 +1064,13 @@ begin
     curr_joist_h = 11.25 if j_size == '2x12'
     curr_floor_sys_h = curr_joist_h + (add_subfloor ? subfloor_thickness : 0)
 
-    pts = pts_raw.map { |p| p.is_a?(Geom::Point3d) ? p : Geom::Point3d.new(p[0], p[1], p[2] + z_off) }
+    # The raw points already carry the correct Z for this floor level.
+    # Do NOT add z_off again — upper-story callers embed upper_z directly in p[2].
+    pts = pts_raw.map { |p| p.is_a?(Geom::Point3d) ? p : Geom::Point3d.new(p[0], p[1], p[2]) }
     
+    # Derive the actual floor-plane Z from the points themselves.
+    floor_z = pts.map(&:z).min
+
     # Calculate local bounds
     min_x = pts.map(&:x).min
     max_x = pts.map(&:x).max
@@ -1079,8 +1084,8 @@ begin
       sf_group.name = "Subfloor"
       sf_group.layer = model.layers.add("Subfloor")
       
-      # Subfloor is drawn from z = z_off - subfloor_thickness to z = z_off
-      sf_pts = pts.map { |p| Geom::Point3d.new(p.x, p.y, p.z - subfloor_thickness) }
+      # Subfloor sits just below the floor plane (floor_z is the top of the subfloor)
+      sf_pts = pts.map { |p| Geom::Point3d.new(p.x, p.y, floor_z - subfloor_thickness) }
       face = sf_group.entities.add_face(sf_pts)
       if face
         face.reverse! if face.normal.z < 0
@@ -1090,19 +1095,27 @@ begin
     
     # Joists Area
     j_group = fl_ents.add_group
-    j_group.name = "Floor Joists"
-    j_group.layer = model.layers.add("Floor Joists")
+    j_group.name = solid_walls_only ? "Solid Floor System" : "Floor Joists"
+    j_group.layer = model.layers.add(solid_walls_only ? "Solid Floor System" : "Floor Joists")
     
-    j_z = z_off - curr_floor_sys_h
+    # Joists hang below the floor plane by the full floor system height.
+    j_z = floor_z - curr_floor_sys_h
     t = 1.5 # Joist thickness
     rt = rim_joist_thickness
 
-    if joist_direction == 'y'
-      # Rim joists (front and back) — skip shared front rim for shapes that handle it themselves
-      if shape != 'h-shape'
-        draw_box.call(j_group.entities, min_x, min_y, j_z, local_w, rt, curr_joist_h, "Rim Joist")
+    if solid_walls_only
+      j_pts = pts.map { |p| Geom::Point3d.new(p.x, p.y, j_z) }
+      face = j_group.entities.add_face(j_pts)
+      if face
+        face.reverse! if face.normal.z < 0
+        face.pushpull(curr_joist_h)
       end
-      if shape == 'rectangle'
+      mat = get_material.call("Floor System Solid", "#e4e4e7")
+      j_group.material = mat
+    elsif joist_direction == 'y'
+      # Rim joists (front and back)
+      draw_box.call(j_group.entities, min_x, min_y, j_z, local_w, rt, curr_joist_h, "Rim Joist")
+      if shape == 'rectangle' || shape == 'custom'
         draw_box.call(j_group.entities, min_x, max_y - rt, j_z, local_w, rt, curr_joist_h, "Rim Joist")
       elsif shape == 'l-shape'
         draw_box.call(j_group.entities, 0, length_in - rt, j_z, lBackWidthIn, rt, curr_joist_h, "Rim Joist")
@@ -1112,54 +1125,13 @@ begin
         draw_box.call(j_group.entities, u_w1 - u_w3, u_w2 - rt, j_z, u_w3, rt, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, u_w7, u_w2 - u_w4 - rt, j_z, u_w1 - u_w3 - u_w7, rt, curr_joist_h, "Rim Joist")
       elsif shape == 'h-shape'
-        mOff = hMiddleBarOffsetIn
-        mH = hMiddleBarHeightIn
-        hLBW = hLeftBarWidthIn
-        hRBW = hRightBarWidthIn
-        midW = width_in - hLBW - hRBW
-        # Front of left bar (horizontal)
-        draw_box.call(j_group.entities, 0, 0, j_z, hLBW, rt, curr_joist_h, "Rim Joist")
-        # Back of left bar (horizontal)
-        draw_box.call(j_group.entities, 0, length_in - rt, j_z, hLBW, rt, curr_joist_h, "Rim Joist")
-        # Front of right bar (horizontal)
-        draw_box.call(j_group.entities, width_in - hRBW, 0, j_z, hRBW, rt, curr_joist_h, "Rim Joist")
-        # Back of right bar (horizontal)
-        draw_box.call(j_group.entities, width_in - hRBW, length_in - rt, j_z, hRBW, rt, curr_joist_h, "Rim Joist")
-        # Bottom of middle bar (horizontal)
-        draw_box.call(j_group.entities, hLBW, mOff, j_z, midW, rt, curr_joist_h, "Rim Joist")
-        # Top of middle bar (horizontal)
-        draw_box.call(j_group.entities, hLBW, mOff + mH - rt, j_z, midW, rt, curr_joist_h, "Rim Joist")
-        # Left outer side (vertical)
-        draw_box.call(j_group.entities, 0, rt, j_z, rt, length_in - 2 * rt, curr_joist_h, "Rim Joist")
-        # Right outer side (vertical)
-        draw_box.call(j_group.entities, width_in - rt, rt, j_z, rt, length_in - 2 * rt, curr_joist_h, "Rim Joist")
-        # Right side of left bar, below middle (vertical)
-        draw_box.call(j_group.entities, hLBW - rt, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
-        # Right side of left bar, above middle (vertical)
-        draw_box.call(j_group.entities, hLBW - rt, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
-        # Left side of right bar, below middle (vertical)
-        draw_box.call(j_group.entities, width_in - hRBW, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
-        # Left side of right bar, above middle (vertical)
-        draw_box.call(j_group.entities, width_in - hRBW, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, 0, 0, j_z, hLeftBarWidthIn, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, 0, length_in - rt, j_z, hLeftBarWidthIn, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, width_in - hRightBarWidthIn, 0, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, width_in - hRightBarWidthIn, length_in - rt, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
-        stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
-        stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
-        # Front rim (top of T)
         draw_box.call(j_group.entities, 0, 0, j_z, tTopWidthIn, rt, curr_joist_h, "Rim Joist")
-        # Back rim (bottom of stem)
-        draw_box.call(j_group.entities, stem_left, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn, rt, curr_joist_h, "Rim Joist")
-        # Left side of top bar
-        draw_box.call(j_group.entities, 0, rt, j_z, rt, tTopLengthIn - rt, curr_joist_h, "Rim Joist")
-        # Right side of top bar
-        draw_box.call(j_group.entities, tTopWidthIn - rt, rt, j_z, rt, tTopLengthIn - rt, curr_joist_h, "Rim Joist")
-        # Left side of stem
-        draw_box.call(j_group.entities, stem_left, tTopLengthIn, j_z, rt, tStemLengthIn - rt, curr_joist_h, "Rim Joist")
-        # Right side of stem
-        draw_box.call(j_group.entities, stem_right - rt, tTopLengthIn, j_z, rt, tStemLengthIn - rt, curr_joist_h, "Rim Joist")
-        # Left shoulder step-back (horizontal, from left edge of top bar to left edge of stem)
-        draw_box.call(j_group.entities, rt, tTopLengthIn - rt, j_z, stem_left - rt, rt, curr_joist_h, "Rim Joist")
-        # Right shoulder step-back (horizontal, from right edge of stem to right edge of top bar)
-        draw_box.call(j_group.entities, stem_right, tTopLengthIn - rt, j_z, tTopWidthIn - stem_right - rt, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, (tTopWidthIn - tStemWidthIn) / 2.0, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn, rt, curr_joist_h, "Rim Joist")
       end
 
       num_joists = (local_w / joist_spacing).ceil + 1
@@ -1167,7 +1139,7 @@ begin
         jx = min_x + i * joist_spacing
         jx = max_x - t if jx + t > max_x
         
-        if shape == 'rectangle'
+        if shape == 'rectangle' || shape == 'custom'
           draw_box.call(j_group.entities, jx, min_y + rt, j_z, t, local_l - 2 * rt, curr_joist_h, "Floor Joist")
         elsif shape == 'l-shape'
           len = jx < lBackWidthIn ? length_in : lRightDepthIn
@@ -1197,7 +1169,7 @@ begin
     else
       # Rim joists (left and right)
       draw_box.call(j_group.entities, min_x, min_y, j_z, rt, local_l, curr_joist_h, "Rim Joist")
-      if shape == 'rectangle'
+      if shape == 'rectangle' || shape == 'custom'
         draw_box.call(j_group.entities, max_x - rt, min_y, j_z, rt, local_l, curr_joist_h, "Rim Joist")
       elsif shape == 'l-shape'
         draw_box.call(j_group.entities, width_in - rt, 0, j_z, rt, lRightDepthIn, curr_joist_h, "Rim Joist")
@@ -1206,58 +1178,15 @@ begin
         draw_box.call(j_group.entities, u_w1 - rt, 0, j_z, rt, u_w2, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, u_w7 - rt, u_w2 - u_w4, j_z, rt, u_w8 - (u_w2 - u_w4), curr_joist_h, "Rim Joist")
       elsif shape == 'h-shape'
-        mOff = hMiddleBarOffsetIn
-        mH = hMiddleBarHeightIn
-        hLBW = hLeftBarWidthIn
-        hRBW = hRightBarWidthIn
-        midW = width_in - hLBW - hRBW
-        # Left outer side (vertical)
         draw_box.call(j_group.entities, 0, 0, j_z, rt, length_in, curr_joist_h, "Rim Joist")
-        # Right outer side (vertical)
         draw_box.call(j_group.entities, width_in - rt, 0, j_z, rt, length_in, curr_joist_h, "Rim Joist")
-        # Right side of left bar, below middle (vertical)
-        draw_box.call(j_group.entities, hLBW - rt, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
-        # Right side of left bar, above middle (vertical)
-        draw_box.call(j_group.entities, hLBW - rt, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
-        # Left side of middle bar (vertical)
-        draw_box.call(j_group.entities, hLBW, mOff + rt, j_z, rt, mH - 2 * rt, curr_joist_h, "Rim Joist")
-        # Right side of middle bar (vertical)
-        draw_box.call(j_group.entities, width_in - hRBW - rt, mOff + rt, j_z, rt, mH - 2 * rt, curr_joist_h, "Rim Joist")
-        # Left side of right bar, below middle (vertical)
-        draw_box.call(j_group.entities, width_in - hRBW, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
-        # Left side of right bar, above middle (vertical)
-        draw_box.call(j_group.entities, width_in - hRBW, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
-        # Front of left bar (horizontal)
-        draw_box.call(j_group.entities, rt, 0, j_z, hLBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Back of left bar (horizontal)
-        draw_box.call(j_group.entities, rt, length_in - rt, j_z, hLBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Front of right bar (horizontal)
-        draw_box.call(j_group.entities, width_in - hRBW + rt, 0, j_z, hRBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Back of right bar (horizontal)
-        draw_box.call(j_group.entities, width_in - hRBW + rt, length_in - rt, j_z, hRBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Bottom of middle bar (horizontal)
-        draw_box.call(j_group.entities, hLBW + rt, mOff, j_z, midW - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Top of middle bar (horizontal)
-        draw_box.call(j_group.entities, hLBW + rt, mOff + mH - rt, j_z, midW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, hLeftBarWidthIn, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, width_in - hRightBarWidthIn - rt, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
-        stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
-        stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
-        # Left side of top bar
         draw_box.call(j_group.entities, 0, 0, j_z, rt, tTopLengthIn, curr_joist_h, "Rim Joist")
-        # Right side of top bar
         draw_box.call(j_group.entities, tTopWidthIn - rt, 0, j_z, rt, tTopLengthIn, curr_joist_h, "Rim Joist")
-        # Left side of stem
-        draw_box.call(j_group.entities, stem_left, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
-        # Right side of stem
-        draw_box.call(j_group.entities, stem_right - rt, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
-        # Front rim (top of T, horizontal)
-        draw_box.call(j_group.entities, rt, 0, j_z, tTopWidthIn - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Back rim (bottom of stem, horizontal)
-        draw_box.call(j_group.entities, stem_left + rt, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn - 2 * rt, rt, curr_joist_h, "Rim Joist")
-        # Left shoulder step-back (vertical rim from left of top bar down to left of stem)
-        draw_box.call(j_group.entities, rt, tTopLengthIn - rt, j_z, stem_left - rt, rt, curr_joist_h, "Rim Joist")
-        # Right shoulder step-back (vertical rim from right of stem to right of top bar)
-        draw_box.call(j_group.entities, stem_right, tTopLengthIn - rt, j_z, tTopWidthIn - stem_right - rt, rt, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, (tTopWidthIn - tStemWidthIn) / 2.0, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
+        draw_box.call(j_group.entities, (tTopWidthIn + tStemWidthIn) / 2.0 - rt, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
       end
 
       num_joists = (local_l / joist_spacing).ceil + 1
@@ -1265,7 +1194,7 @@ begin
         jz = min_y + i * joist_spacing
         jz = max_y - t if jz + t > max_y
         
-        if shape == 'rectangle'
+        if shape == 'rectangle' || shape == 'custom'
           draw_box.call(j_group.entities, min_x + rt, jz, j_z, local_w - 2 * rt, t, curr_joist_h, "Floor Joist")
         elsif shape == 'l-shape'
           wid = jz < lRightDepthIn ? width_in : lBackWidthIn
@@ -1458,15 +1387,8 @@ begin
       draw_wall_framing.call(8, (tTopWidthIn-tStemWidthIn)/2, tTopLengthIn-t, tStemLengthIn, t, false, -1, -t, 0.5, 0.5, -t)
     elsif shape == 'custom'
       custom_exterior_walls.each do |ew|
-        final_x = ew[:x_in]
-        final_y = ew[:y_in]
-        if ew[:orientation] == 'horizontal'
-          final_y -= ew[:thickness_in] if ew[:exteriorSide] == 1
-        else
-          final_x -= ew[:thickness_in] if ew[:exteriorSide] == 1
-        end
         # For custom walls, we just use 0 extensions for now to avoid complexity, or simple overlap
-        draw_wall_framing.call(ew[:id], final_x, final_y, ew[:length_in], ew[:thickness_in], ew[:orientation] == 'horizontal', ew[:exteriorSide], 0, 0, 0, 0, false, true)
+        draw_wall_framing.call(ew[:id], ew[:x_in], ew[:y_in], ew[:length_in], ew[:thickness_in], ew[:orientation] == 'horizontal', ew[:exteriorSide], 0, 0, 0, 0, false, true)
       end
     end
   end
@@ -1474,8 +1396,102 @@ begin
   # 4. Interior Walls
   if ['all', 'interior'].include?("${section}") || "${section}".to_i > 0
     puts "Generating interior walls..."
-    interior_walls.each do |iw|
+    interior_walls.select{|iw| (iw[:floor_index] || 0) == 0}.each do |iw|
       draw_wall_framing.call(iw[:id], iw[:x_in], iw[:y_in], iw[:length_in], iw[:thickness_in], iw[:orientation] == 'horizontal', 1, 0, 0, 0, 0, true, false)
+    end
+  end
+
+  # 5. Upper Stories — floor framing + walls for each additional story
+  if ['all', 'exterior', 'interior', 'floor'].include?("${section}") && additional_stories > 0
+    puts "Generating upper stories..."
+    upper_z = wall_height_in
+    
+    additional_stories.times do |story_i|
+      floor_num = story_i + 1
+      upper_joist_h = upper_floor_joist_size == '2x6' ? 5.5 : upper_floor_joist_size == '2x8' ? 7.25 : upper_floor_joist_size == '2x10' ? 9.25 : 11.25
+      upper_floor_sys_h = upper_joist_h + (add_subfloor ? subfloor_thickness : 0)
+      
+      # Upper story wall Z offset (this is the top of the upper floor system)
+      wall_z = upper_z + upper_floor_sys_h
+
+      # Upper floor framing
+      if ['all', 'floor'].include?("${section}") && add_floor_framing
+        puts "Generating floor #{floor_num + 1} framing at z=#{wall_z}..."
+        if shape == 'rectangle'
+          f_pts = [[0,0,wall_z], [w,0,wall_z], [w,l,wall_z], [0,l,wall_z]]
+          draw_floor_framing.call(f_pts, f_ents, wall_z, upper_floor_joist_size)
+        elsif shape == 'l-shape'
+          l1 = lRightDepthIn
+          w2 = lBackWidthIn
+          f_pts = [[0,0,wall_z], [w,0,wall_z], [w,l1,wall_z], [w2,l1,wall_z], [w2,l,wall_z], [0,l,wall_z]]
+          draw_floor_framing.call(f_pts, f_ents, wall_z, upper_floor_joist_size)
+        elsif shape == 'u-shape'
+          f_pts = [[0,0,wall_z], [u_w1,0,wall_z], [u_w1,u_w2,wall_z], [u_w1-u_w3,u_w2,wall_z], [u_w1-u_w3,u_w2-u_w4,wall_z], [u_w1-u_w3-u_w5,u_w2-u_w4,wall_z], [u_w1-u_w3-u_w5,u_w2,wall_z], [0,u_w2,wall_z]]
+          draw_floor_framing.call(f_pts, f_ents, wall_z, upper_floor_joist_size)
+        elsif shape == 'h-shape'
+          f_pts = [
+            [0, 0, wall_z], [hLeftBarWidthIn, 0, wall_z], [hLeftBarWidthIn, hMiddleBarOffsetIn, wall_z],
+            [w - hRightBarWidthIn, hMiddleBarOffsetIn, wall_z], [w - hRightBarWidthIn, 0, wall_z], [w, 0, wall_z],
+            [w, l, wall_z], [w - hRightBarWidthIn, l, wall_z], [w - hRightBarWidthIn, hMiddleBarOffsetIn + hMiddleBarHeightIn, wall_z],
+            [hLeftBarWidthIn, hMiddleBarOffsetIn + hMiddleBarHeightIn, wall_z], [hLeftBarWidthIn, l, wall_z], [0, l, wall_z]
+          ]
+          draw_floor_framing.call(f_pts, f_ents, wall_z, upper_floor_joist_size)
+        elsif shape == 't-shape'
+          f_pts = [
+            [0, 0, wall_z], [tTopWidthIn, 0, wall_z], [tTopWidthIn, tTopLengthIn, wall_z],
+            [(tTopWidthIn + tStemWidthIn) / 2, tTopLengthIn, wall_z], [(tTopWidthIn + tStemWidthIn) / 2, tTopLengthIn + tStemLengthIn, wall_z],
+            [(tTopWidthIn - tStemWidthIn) / 2, tTopLengthIn + tStemLengthIn, wall_z], [(tTopWidthIn - tStemWidthIn) / 2, tTopLengthIn, wall_z],
+            [0, tTopLengthIn, wall_z]
+          ]
+          draw_floor_framing.call(f_pts, f_ents, wall_z, upper_floor_joist_size)
+        end
+      end
+      
+      # Upper story exterior walls
+      if ['all', 'exterior'].include?("${section}")
+        puts "Generating floor #{floor_num + 1} exterior walls at z=#{wall_z}..."
+        if shape == 'rectangle'
+          t = wall_thickness_in
+          draw_wall_framing.call(1, 0, 0, width_in, t, true, -1, 0.5, 0.5, -t, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(3, 0, length_in-t, width_in, t, true, 1, 0.5, 0.5, -t, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(4, 0, t, length_in - 2*t, t, false, -1, t, t, 0, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(2, width_in-t, t, length_in - 2*t, t, false, 1, t, t, 0, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+        elsif shape == 'l-shape'
+          l1 = lRightDepthIn
+          w2 = lBackWidthIn
+          t = wall_thickness_in
+          draw_wall_framing.call(1, 0, 0, width_in, t, true, -1, 0.5, 0.5, -t, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(2, width_in-t, t, l1-t, t, false, 1, t, 0, 0, -t - 0.5, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(3, w2-t, l1-t, width_in - w2, t, true, 1, -t, t + 0.5, 0.5, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(4, w2-t, l1, length_in - l1 - t, t, false, 1, -0.5, t, t + 0.5, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(5, 0, length_in-t, w2, t, true, 1, 0.5, 0.5, -t, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(6, 0, t, length_in - 2*t, t, false, -1, t, t, 0, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+        elsif shape == 'u-shape'
+          t = wall_thickness_in
+          draw_wall_framing.call(1, 0, 0, u_w1, t, true, -1, 0.5, 0.5, -t, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(2, u_w1-t, t, u_w2-t, t, false, 1, t, 0, 0, -t-0.5, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(3, u_w1-u_w3, u_w2-t, u_w3, t, true, 1, -t, t+0.5, 0.5, -t, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(4, u_w1-u_w3, u_w2-u_w4, u_w4-t, t, false, -1, -0.5, t, t+0.5, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(5, u_w7-t, u_w2-u_w4-t, u_w5+2*t, t, true, 1, -t, -t, t+0.5, t+0.5, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(6, u_w7-t, u_w8-u_w6, u_w6-t, t, false, 1, t, -0.5, 0, t+0.5, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(7, 0, u_w8-t, u_w7, t, true, 1, 0.5, -t, -t, 0.5, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          draw_wall_framing.call(8, 0, t, u_w8-2*t, t, false, -1, t, t, 0, 0, false, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+        elsif shape == 'custom'
+          custom_exterior_walls.each do |ew|
+            draw_wall_framing.call(ew[:id], ew[:x_in], ew[:y_in], ew[:length_in], ew[:thickness_in], ew[:orientation] == 'horizontal', ew[:exteriorSide], 0, 0, 0, 0, false, true, f_ents, upper_floor_wall_height, wall_z, floor_num)
+          end
+        end
+      end
+      
+      # Upper story interior walls
+      if ['all', 'interior'].include?("${section}")
+        puts "Generating floor #{floor_num + 1} interior walls at z=#{wall_z}..."
+        interior_walls.select{|iw| (iw[:floor_index] || 0) == floor_num}.each do |iw|
+          draw_wall_framing.call(iw[:id], iw[:x_in], iw[:y_in], iw[:length_in], iw[:thickness_in], iw[:orientation] == 'horizontal', 1, 0, 0, 0, 0, true, false, f_ents, upper_floor_wall_height, wall_z, floor_num)
+        end
+      end
+      
+      upper_z += upper_floor_sys_h + upper_floor_wall_height
     end
   end
 

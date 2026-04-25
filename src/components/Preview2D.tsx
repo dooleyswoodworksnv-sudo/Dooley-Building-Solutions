@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { sanitize } from '../utils/math';
 import { InteriorWallConfig, ExteriorWallConfig, DoorConfig, WindowConfig, BumpoutConfig, Guide, SnapPoint, InteriorAsset, RoofPart, TrussConfig, DormerConfig, CustomCamera } from '../App';
+import { getSymbolById, CATEGORY_COLORS } from './SymbolCatalog';
 import { ZoomIn, ZoomOut, Maximize, Minimize, Focus, Hand, ChevronLeft, ChevronRight, Ruler, Trash2, Undo2, Search, Lock, MousePointer2, Save, FolderOpen, ChevronDown, ChevronUp, Square, Box as BoxIcon, Combine, Layers, Home, Grid, Camera } from 'lucide-react';
 
 interface Preview2DProps {
@@ -134,6 +135,10 @@ export default function Preview2D({
   const [draggingBumpout, setDraggingBumpout] = useState<{ id: string, initialOx: number } | null>(null);
   const [draggingCameraId, setDraggingCameraId] = useState<string | null>(null);
   const [rotatingCameraId, setRotatingCameraId] = useState<string | null>(null);
+  const [draggingAssetId, setDraggingAssetId] = useState<string | null>(null);
+  const [rotatingAssetId, setRotatingAssetId] = useState<string | null>(null);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [draggingPdf, setDraggingPdf] = useState<boolean>(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragStartPt, setDragStartPt] = useState({ x: 0, y: 0 });
@@ -374,57 +379,55 @@ export default function Preview2D({
   }
 
   // Add custom exterior walls to extWalls
-  if (shape === 'custom') {
-    exteriorWalls.forEach(wall => {
-      const wallFloor = wall.floorIndex || 0;
-      const x = wall.xFt * 12 + wall.xInches;
-      const y = wall.yFt * 12 + wall.yInches;
-      const len = wall.lengthFt * 12 + wall.lengthInches;
-      const isHorizontal = wall.orientation === 'horizontal';
-      
-      let w = isHorizontal ? len : wall.thicknessIn;
-      let h = isHorizontal ? wall.thicknessIn : len;
-      let finalX = x;
-      let finalY = y;
+  exteriorWalls.forEach(wall => {
+    const wallFloor = wall.floorIndex || 0;
+    const x = wall.xFt * 12 + wall.xInches;
+    const y = wall.yFt * 12 + wall.yInches;
+    const len = wall.lengthFt * 12 + wall.lengthInches;
+    const isHorizontal = wall.orientation === 'horizontal';
+    
+    let w = isHorizontal ? len : wall.thicknessIn;
+    let h = isHorizontal ? wall.thicknessIn : len;
+    let finalX = x;
+    let finalY = y;
 
-      if (w < 0) {
-        finalX += w;
-        w = Math.abs(w);
-      }
-      if (h < 0) {
-        finalY += h;
-        h = Math.abs(h);
-      }
+    if (w < 0) {
+      finalX += w;
+      w = Math.abs(w);
+    }
+    if (h < 0) {
+      finalY += h;
+      h = Math.abs(h);
+    }
 
-      if (isHorizontal) {
-        if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
-      } else {
-        if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
-      }
+    if (isHorizontal) {
+      if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
+    } else {
+      if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
+    }
 
-      if (wallFloor === currentFloorIndex) {
-        extWalls.push({
-          id: wall.id,
-          x: finalX,
-          y: finalY,
-          w,
-          h,
-          isHorizontal,
-          exteriorSide: wall.exteriorSide
-        });
-      } else if (wallFloor === currentFloorIndex - 1) {
-        ghostWalls.push({
-          id: `ghost-ext-${wall.id}`,
-          x: finalX,
-          y: finalY,
-          w,
-          h,
-          isHorizontal,
-          type: 'exterior'
-        });
-      }
-    });
-  }
+    if (wallFloor === currentFloorIndex) {
+      extWalls.push({
+        id: wall.id,
+        x: finalX,
+        y: finalY,
+        w,
+        h,
+        isHorizontal,
+        exteriorSide: wall.exteriorSide
+      });
+    } else if (wallFloor === currentFloorIndex - 1) {
+      ghostWalls.push({
+        id: `ghost-ext-${wall.id}`,
+        x: finalX,
+        y: finalY,
+        w,
+        h,
+        isHorizontal,
+        type: 'exterior'
+      });
+    }
+  });
 
   // Calculate bumpout walls
   bumpouts.forEach(b => {
@@ -873,6 +876,10 @@ export default function Preview2D({
   };
 
   const handleMouseDownPan = (e: React.MouseEvent) => {
+    // Deselect asset when clicking background
+    if (selectedAssetId && e.button === 0 && !e.altKey && !isSpaceDown && !isPanMode && !isZoomSelectionMode && !e.shiftKey) {
+      setSelectedAssetId(null);
+    }
     if ((isZoomSelectionMode || e.shiftKey) && e.button === 0) {
       e.preventDefault();
       const pt = getSvgPoint(e);
@@ -887,7 +894,6 @@ export default function Preview2D({
   };
 
   const handleCalibrationClick = (e: React.MouseEvent) => {
-    if (!isCalibrating) return;
     const pt = mousePos;
     
     if (!pdfCalibration.p1) {
@@ -927,8 +933,6 @@ export default function Preview2D({
     const ox = opening.xFt * 12 + opening.xInches;
 
     // We only care about the offset along the wall's axis
-    // For horizontal walls, offset is along X; for vertical walls, offset is along Y
-    // But the opening position is always stored in xFt/xInches
     if (isHorizontal) {
       setDragOffset({ x: pt.x - ox, y: 0 });
     } else {
@@ -948,7 +952,7 @@ export default function Preview2D({
     let isHorizontal = true;
     if (extWall) isHorizontal = extWall.isHorizontal;
 
-    const ox = bumpout.xFt * 12 + bumpout.xInches;
+    const ox = isHorizontal ? (bumpout.xFt * 12 + bumpout.xInches) : (bumpout.yFt * 12 + bumpout.yInches);
 
     if (isHorizontal) {
       setDragOffset({ x: pt.x - ox, y: 0 });
@@ -965,6 +969,8 @@ export default function Preview2D({
     e.preventDefault();
     const pt = getSvgPoint(e);
     setDraggingCameraId(cam.id);
+    setSelectedCameraId(cam.id);
+    setSelectedAssetId(null);
     setDragOffset({ x: pt.x - cam.x, y: pt.y - cam.y });
   };
 
@@ -973,6 +979,26 @@ export default function Preview2D({
     e.stopPropagation();
     e.preventDefault();
     setRotatingCameraId(cam.id);
+  };
+
+  const handleAssetMouseDown = (e: React.MouseEvent, asset: InteriorAsset) => {
+    if (isCalibrating || isZoomSelectionMode || e.button === 1 || isSpaceDown || isPanMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const pt = getSvgPoint(e);
+    setDraggingAssetId(asset.id);
+    setSelectedAssetId(asset.id);
+    setSelectedCameraId(null);
+    setDragOffset({ x: pt.x - asset.x, y: pt.y - asset.y });
+    setDragStartPt(pt);
+    setDragAxis(null);
+  };
+
+  const handleAssetRotateMouseDown = (e: React.MouseEvent, asset: InteriorAsset) => {
+    if (isCalibrating || isZoomSelectionMode || e.button === 1 || isSpaceDown || isPanMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    setRotatingAssetId(asset.id);
   };
 
   const handlePdfMouseDown = (e: React.MouseEvent) => {
@@ -1076,7 +1102,7 @@ export default function Preview2D({
         if (currentDragAxis === 'x') {
           newX = pt.x - dragOffset.x;
         } else {
-          newY = draggingWall.initialY - (pt.y - dragStartPt.y);
+          newY = pt.y - dragOffset.y;
         }
 
         // Snapping logic
@@ -1269,7 +1295,7 @@ export default function Preview2D({
         if (isHorizontal) {
           newOx = pt.x - dragOffset.x;
         } else {
-          newOx = pt.y - dragOffset.y;
+          newOx = draggingBumpout.initialOx + (pt.y - dragStartPt.y);
         }
 
         // Snapping logic
@@ -1337,6 +1363,108 @@ export default function Preview2D({
         }
         
         setCustomCameras(prev => prev.map(c => c.id === cam.id ? { ...c, rotation: angle } : c));
+      } else if (draggingAssetId !== null) {
+        const pt = getSvgPoint(e);
+        const asset = assets.find(a => a.id === draggingAssetId);
+        if (!asset) return;
+
+        // Axis-constrained dragging (unless Alt is held for free movement)
+        let currentDragAxis = dragAxis;
+        if (!e.altKey) {
+          if (!currentDragAxis) {
+            const dx = Math.abs(pt.x - dragStartPt.x);
+            const dy = Math.abs(pt.y - dragStartPt.y);
+            if (dx > 5 || dy > 5) {
+              currentDragAxis = dx > dy ? 'x' : 'y';
+              setDragAxis(currentDragAxis);
+            } else {
+              return; // Wait until threshold is met
+            }
+          }
+        } else {
+          // Alt held — allow free movement, clear any locked axis
+          currentDragAxis = null;
+          if (dragAxis !== null) setDragAxis(null);
+        }
+
+        let newX = currentDragAxis === 'y' ? asset.x : pt.x - dragOffset.x;
+        let newY = currentDragAxis === 'x' ? asset.y : pt.y - dragOffset.y;
+
+        // Snap to wall / opening endpoints
+        const snapDist = 12;
+        const assetW = (asset.widthIn || 24) * asset.scale;
+        const assetD = (asset.depthIn || 24) * asset.scale;
+        const snapPointsX = getSnapPoints('x');
+        const snapPointsY = getSnapPoints('y');
+        const newSnapLines: { axis: 'x' | 'y', pos: number, crossPos?: number, type?: 'end' | 'mid' }[] = [];
+
+        if (currentDragAxis !== 'y') {
+          for (const p of snapPointsX) {
+            // Snap center
+            if (Math.abs(newX - p.pos) < snapDist) {
+              newX = p.pos;
+              newSnapLines.push({ axis: 'x', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+            // Snap left edge
+            if (Math.abs((newX - assetW / 2) - p.pos) < snapDist) {
+              newX = p.pos + assetW / 2;
+              newSnapLines.push({ axis: 'x', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+            // Snap right edge
+            if (Math.abs((newX + assetW / 2) - p.pos) < snapDist) {
+              newX = p.pos - assetW / 2;
+              newSnapLines.push({ axis: 'x', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+          }
+        }
+
+        if (currentDragAxis !== 'x') {
+          for (const p of snapPointsY) {
+            // Snap center
+            if (Math.abs(newY - p.pos) < snapDist) {
+              newY = p.pos;
+              newSnapLines.push({ axis: 'y', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+            // Snap top edge
+            if (Math.abs((newY - assetD / 2) - p.pos) < snapDist) {
+              newY = p.pos + assetD / 2;
+              newSnapLines.push({ axis: 'y', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+            // Snap bottom edge
+            if (Math.abs((newY + assetD / 2) - p.pos) < snapDist) {
+              newY = p.pos - assetD / 2;
+              newSnapLines.push({ axis: 'y', pos: p.pos, crossPos: p.crossPos, type: p.type });
+              break;
+            }
+          }
+        }
+
+        setSnapLines(newSnapLines);
+        setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, x: newX, y: newY } : a));
+      } else if (rotatingAssetId !== null) {
+        const pt = getSvgPoint(e);
+        const asset = assets.find(a => a.id === rotatingAssetId);
+        if (!asset) return;
+        
+        const dx = pt.x - asset.x;
+        const dy = pt.y - asset.y;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (e.altKey) {
+          // Alt held — free rotation, no snapping
+        } else if (e.shiftKey) {
+          // Shift — snap to 45° increments
+          angle = Math.round(angle / 45) * 45;
+        } else {
+          // Default — snap to 90° (axis-aligned)
+          angle = Math.round(angle / 90) * 90;
+        }
+        
+        setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, rotation: angle } : a));
       } else if (draggingPdf) {
         const pt = getSvgPoint(e);
         setPdfOffset({
@@ -1390,12 +1518,15 @@ export default function Preview2D({
       setDraggingBumpout(null);
       setDraggingCameraId(null);
       setRotatingCameraId(null);
+      setDraggingAssetId(null);
+      setRotatingAssetId(null);
       setDraggingPdf(false);
+      setDragAxis(null);
       setSnapLines([]);
       setIsPanning(false);
     };
 
-    if (draggingWall !== null || draggingOpening !== null || draggingBumpout !== null || draggingCameraId !== null || rotatingCameraId !== null || draggingPdf || isPanning || isCalibrating || isSpaceDown || isZoomSelectionMode || zoomSelectionStart !== null || isPanMode) {
+    if (draggingWall !== null || draggingOpening !== null || draggingBumpout !== null || draggingCameraId !== null || rotatingCameraId !== null || draggingAssetId !== null || rotatingAssetId !== null || draggingPdf || isPanning || isCalibrating || isSpaceDown || isZoomSelectionMode || zoomSelectionStart !== null || isPanMode) {
       window.addEventListener('mousemove', handleGlobalMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       document.addEventListener('mouseleave', handleMouseUp);
@@ -1450,11 +1581,28 @@ export default function Preview2D({
         setTargetPan({ x: 0, y: 0 });
       }
       if ((e.key === 'Backspace' || e.key === 'Delete') && document.activeElement?.tagName !== 'INPUT') {
-        if (isCalibrating && pdfCalibration.p1 && !pdfCalibration.p2) {
+        if (selectedAssetId) {
+          setAssets(prev => prev.filter(a => a.id !== selectedAssetId));
+          setSelectedAssetId(null);
+        } else if (isCalibrating && pdfCalibration.p1 && !pdfCalibration.p2) {
           setPdfCalibration({ ...pdfCalibration, p1: null });
         } else if (guides.length > 0) {
           onDeleteLastGuide();
         }
+      }
+      // Arrow keys — rotate selected asset
+      if (selectedAssetId && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && document.activeElement?.tagName !== 'INPUT') {
+        e.preventDefault();
+        const step = e.altKey ? 1 : e.shiftKey ? 45 : 90;
+        const dir = e.key === 'ArrowLeft' ? -1 : 1;
+        setAssets(prev => prev.map(a => a.id === selectedAssetId ? { ...a, rotation: a.rotation + dir * step } : a));
+      }
+      // Arrow keys — rotate selected camera
+      if (selectedCameraId && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && document.activeElement?.tagName !== 'INPUT') {
+        e.preventDefault();
+        const step = e.altKey ? 1 : e.shiftKey ? 45 : 90;
+        const dir = e.key === 'ArrowLeft' ? -1 : 1;
+        setCustomCameras(prev => prev.map(c => c.id === selectedCameraId ? { ...c, rotation: c.rotation + dir * step } : c));
       }
       if (e.key.toLowerCase() === 's' && (e.ctrlKey || e.metaKey) && document.activeElement?.tagName !== 'INPUT') {
         e.preventDefault();
@@ -1465,20 +1613,26 @@ export default function Preview2D({
         onLoad?.();
       }
       if (e.key === 'Escape') {
-        setIsFullscreen(false);
-        setTargetZoom(1);
-        setPan({ x: 0, y: 0 });
-        setTargetPan({ x: 0, y: 0 });
-        setIsCalibrating(false);
-        setIsZoomSelectionMode(false);
-        setIsPanMode(false);
-        setZoomSelectionStart(null);
-        setZoomSelectionEnd(null);
-        setDraggingWall(null);
-        setDraggingOpening(null);
-        setDraggingBumpout(null);
-        setDraggingPdf(false);
-        setIsMagnifierActive(false);
+        if (selectedAssetId) {
+          setSelectedAssetId(null);
+        } else if (selectedCameraId) {
+          setSelectedCameraId(null);
+        } else {
+          setIsFullscreen(false);
+          setTargetZoom(1);
+          setPan({ x: 0, y: 0 });
+          setTargetPan({ x: 0, y: 0 });
+          setIsCalibrating(false);
+          setIsZoomSelectionMode(false);
+          setIsPanMode(false);
+          setZoomSelectionStart(null);
+          setZoomSelectionEnd(null);
+          setDraggingWall(null);
+          setDraggingOpening(null);
+          setDraggingBumpout(null);
+          setDraggingPdf(false);
+          setIsMagnifierActive(false);
+        }
       }
     };
 
@@ -1519,7 +1673,7 @@ export default function Preview2D({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [draggingWall, draggingOpening, draggingBumpout, draggingPdf, isPanning, isCalibrating, isRulerMode, isSpaceDown, isShiftDown, isZoomSelectionMode, zoomSelectionStart, zoomSelectionEnd, appliedCalibration, dragOffset, interiorWalls, doors, windows, bumpouts, getSnapPoints, updateInteriorWallFields, updateDoorFields, updateWindowFields, updateBumpoutFields, setPdfOffset, viewSize, viewWidth, svgAspect, setIsCalibrating, setPdfCalibration, baseSize, cx, cy, isPanMode]);
+  }, [draggingWall, draggingOpening, draggingBumpout, draggingPdf, isPanning, isCalibrating, isRulerMode, isSpaceDown, isShiftDown, isZoomSelectionMode, zoomSelectionStart, zoomSelectionEnd, appliedCalibration, dragOffset, interiorWalls, doors, windows, bumpouts, getSnapPoints, updateInteriorWallFields, updateDoorFields, updateWindowFields, updateBumpoutFields, setPdfOffset, viewSize, viewWidth, svgAspect, setIsCalibrating, setPdfCalibration, baseSize, cx, cy, isPanMode, selectedAssetId, selectedCameraId]);
 
   return (
     <div className={`bg-white dark:bg-[#1E1E1E] shadow-lg border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden select-none relative ${isFullscreen || zoom > 1 ? 'fixed inset-0 z-50 rounded-none' : 'w-full h-full rounded-xl'}`}>
@@ -1810,6 +1964,7 @@ export default function Preview2D({
                       h: 240, // 20ft
                     };
                     setShapeBlocks([...shapeBlocks, newBlock]);
+                    setShape('custom');
                   }}
                   className="p-4 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center justify-center"
                   title="Add Rectangle"
@@ -2722,7 +2877,7 @@ export default function Preview2D({
 
             {/* Interior Walls */}
             <g className="interior-walls">
-              {interiorWalls.map(wall => {
+              {interiorWalls.filter(wall => (wall.floorIndex || 0) === currentFloorIndex).map(wall => {
                 const x = wall.xFt * 12 + wall.xInches;
                 const y = wall.yFt * 12 + wall.yInches;
                 const len = wall.lengthFt * 12 + wall.lengthInches;
@@ -2784,23 +2939,116 @@ export default function Preview2D({
               />
             )}
 
-            {/* Assets */}
+            {/* Assets — Camera-style placement with SVG symbols */}
             {viewMode === 'floor' && (
               <g className="assets">
-                {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).map(asset => (
-                  <rect
-                    key={`asset-${asset.id}`}
-                    x={asset.x}
-                    y={asset.y}
-                    width={40 * asset.scale}
-                    height={40 * asset.scale}
-                    fill="#e4e4e7"
-                    stroke="#71717a"
-                    strokeWidth={1}
-                    transform={`rotate(${asset.rotation}, ${asset.x + 20 * asset.scale}, ${asset.y + 20 * asset.scale})`}
-                    className="cursor-grab hover:brightness-110 transition-all"
-                  />
-                ))}
+                {assets.filter(a => (a.floorIndex || 0) === currentFloorIndex).map(asset => {
+                  const sym = getSymbolById(asset.type);
+                  const isDragging = draggingAssetId === asset.id;
+                  const isRotating = rotatingAssetId === asset.id;
+                  const isSelected = selectedAssetId === asset.id;
+                  const w = (asset.widthIn || 24) * asset.scale;
+                  const h = (asset.depthIn || 24) * asset.scale;
+                  const catColor = CATEGORY_COLORS[asset.category] || '#6366f1';
+                  // Handle radius for rotation
+                  const handleDist = Math.max(w, h) / 2 + 14;
+                  
+                  return (
+                    <g 
+                      key={`asset-${asset.id}`}
+                      transform={`translate(${asset.x}, ${asset.y}) rotate(${asset.rotation})`}
+                    >
+                      {/* Interaction Hit Area */}
+                      <rect
+                        x={-w / 2} y={-h / 2}
+                        width={w} height={h}
+                        fill="transparent"
+                        className="cursor-move"
+                        onMouseDown={(e) => handleAssetMouseDown(e, asset)}
+                      />
+
+                      {/* Symbol border */}
+                      <rect
+                        x={-w / 2} y={-h / 2}
+                        width={w} height={h}
+                        fill={isDragging ? `${catColor}22` : isSelected ? `${catColor}18` : `${catColor}11`}
+                        stroke={isSelected ? catColor : isDragging ? catColor : `${catColor}88`}
+                        strokeWidth={isSelected || isDragging ? 2 : 1}
+                        strokeDasharray={isSelected || isDragging ? 'none' : '4 2'}
+                        rx={2}
+                        className="pointer-events-none transition-colors"
+                      />
+
+                      {/* SVG Symbol artwork — scaled from symbol native coords to asset dims */}
+                      {sym && (
+                        <g transform={`translate(${-w / 2}, ${-h / 2}) scale(${asset.scale})`} className="pointer-events-none">
+                          {sym.svgPaths.map((p, i) => (
+                            <path
+                              key={i}
+                              d={p.d}
+                              fill={p.fill || 'none'}
+                              stroke={p.stroke || sym.color}
+                              strokeWidth={p.strokeWidth || 0.5}
+                            />
+                          ))}
+                        </g>
+                      )}
+
+                      {/* Fallback: no symbol found — show a simple colored rect */}
+                      {!sym && (
+                        <rect
+                          x={-w / 2 + 2} y={-h / 2 + 2}
+                          width={w - 4} height={h - 4}
+                          fill={`${catColor}33`}
+                          stroke={catColor}
+                          strokeWidth={0.8}
+                          rx={2}
+                          className="pointer-events-none"
+                        />
+                      )}
+
+                      {/* Rotation Handle — yellow circle (same as cameras) */}
+                      <g
+                        className="cursor-pointer"
+                        onMouseDown={(e) => handleAssetRotateMouseDown(e, asset)}
+                      >
+                        {/* Invisible hit area */}
+                        <circle cx={handleDist} cy={0} r={16} fill="transparent" />
+                        {/* Stalk line */}
+                        <line
+                          x1={w / 2} y1={0}
+                          x2={handleDist - 5} y2={0}
+                          stroke="#fbbf24"
+                          strokeWidth={1.5}
+                          className="pointer-events-none"
+                        />
+                        {/* Visible yellow handle */}
+                        <circle
+                          cx={handleDist} cy={0} r={5}
+                          fill="#fcd34d"
+                          stroke="#fbbf24"
+                          strokeWidth={1.5}
+                          className="pointer-events-none"
+                        />
+                      </g>
+
+                      {/* Name label — counter-rotated for readability */}
+                      <text
+                        x={0}
+                        y={h / 2 + 10}
+                        fill={catColor}
+                        fontSize="8"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        dominantBaseline="hanging"
+                        transform={`rotate(${-asset.rotation})`}
+                        className="select-none pointer-events-none font-sans"
+                      >
+                        {asset.name}
+                      </text>
+                    </g>
+                  );
+                })}
               </g>
             )}
 
@@ -2810,12 +3058,24 @@ export default function Preview2D({
                 {customCameras.filter(c => (c.floorIndex || 0) === currentFloorIndex).map(cam => {
                   const isDragging = draggingCameraId === cam.id;
                   const isRotating = rotatingCameraId === cam.id;
+                  const isSelected = selectedCameraId === cam.id;
                   const iconSize = 24;
                   return (
                     <g 
                       key={`cam-${cam.id}`}
                       transform={`translate(${cam.x}, ${cam.y}) rotate(${cam.rotation})`}
                     >
+                      {/* Selection Ring */}
+                      {isSelected && (
+                        <circle 
+                          cx="0" cy="0" r={iconSize/2 + 5}
+                          fill="none"
+                          stroke="#818cf8"
+                          strokeWidth="2"
+                          strokeDasharray="4,3"
+                          className="pointer-events-none"
+                        />
+                      )}
                       {/* Interaction Hit Area */}
                       <circle 
                         cx="0" cy="0" r="20" 
@@ -2883,8 +3143,8 @@ export default function Preview2D({
             {/* Doors and Windows */}
             {viewMode === 'floor' && (
               <g className="openings">
-                {doors.map(door => renderOpening(door, true))}
-                {windows.map(window => renderOpening(window, false))}
+                {doors.filter(d => (d.floorIndex || 0) === currentFloorIndex).map(door => renderOpening(door, true))}
+                {windows.filter(w => (w.floorIndex || 0) === currentFloorIndex).map(window => renderOpening(window, false))}
               </g>
             )}
           </g>
