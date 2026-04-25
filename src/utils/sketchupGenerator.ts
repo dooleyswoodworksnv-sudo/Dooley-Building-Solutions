@@ -858,8 +858,8 @@ begin
         all_ops = (openings[:doors].map{|d| d.merge(type: :door)} + 
                    openings[:windows].map{|w| w.merge(type: :window)}).sort_by{|o| o[:os]}
         
-        current_pos = is_x ? sx : sy
-        end_pos = current_pos + length
+        current_pos = 0
+        end_pos = length
         
         # Get material for solid walls
         mat = get_material.call("Wall Framing", "#e4e4e7")
@@ -869,23 +869,23 @@ begin
           # Wall segment before opening
           if op[:os] > current_pos
             seg_len = op[:os] - current_pos
-            seg_x = is_x ? current_pos : sx
-            seg_y = is_x ? sy : current_pos
+            seg_x = is_x ? sx + current_pos : sx
+            seg_y = is_x ? sy : sy + current_pos
             draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? seg_len : depth, is_x ? depth : seg_len, w_height, "Solid Wall", mat)
           end
           
           # Wall segment under window
           if op[:type] == :window && op[:sill] > 0
-            seg_x = is_x ? op[:os] : sx
-            seg_y = is_x ? sy : op[:os]
+            seg_x = is_x ? sx + op[:os] : sx
+            seg_y = is_x ? sy : sy + op[:os]
             draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? op[:w] : depth, is_x ? depth : op[:w], op[:sill], "Solid Wall Under Window", mat)
           end
           
           # Wall segment over opening (header area)
           op_top = op[:type] == :door ? op[:h] : op[:sill] + op[:h]
           if op_top < w_height
-            seg_x = is_x ? op[:os] : sx
-            seg_y = is_x ? sy : op[:os]
+            seg_x = is_x ? sx + op[:os] : sx
+            seg_y = is_x ? sy : sy + op[:os]
             draw_box.call(w_ents, seg_x, seg_y, z_off + op_top, is_x ? op[:w] : depth, is_x ? depth : op[:w], w_height - op_top, "Solid Wall Over Opening", mat)
           end
           
@@ -895,8 +895,8 @@ begin
         # Wall segment after last opening
         if current_pos < end_pos
           seg_len = end_pos - current_pos
-          seg_x = is_x ? current_pos : sx
-          seg_y = is_x ? sy : current_pos
+          seg_x = is_x ? sx + current_pos : sx
+          seg_y = is_x ? sy : sy + current_pos
           draw_box.call(w_ents, seg_x, seg_y, z_off, is_x ? seg_len : depth, is_x ? depth : seg_len, w_height, "Solid Wall", mat)
         end
       }
@@ -1100,7 +1100,7 @@ begin
     if joist_direction == 'y'
       # Rim joists (front and back)
       draw_box.call(j_group.entities, min_x, min_y, j_z, local_w, rt, curr_joist_h, "Rim Joist")
-      if shape == 'rectangle' || shape == 'custom'
+      if shape == 'rectangle'
         draw_box.call(j_group.entities, min_x, max_y - rt, j_z, local_w, rt, curr_joist_h, "Rim Joist")
       elsif shape == 'l-shape'
         draw_box.call(j_group.entities, 0, length_in - rt, j_z, lBackWidthIn, rt, curr_joist_h, "Rim Joist")
@@ -1124,7 +1124,7 @@ begin
         jx = min_x + i * joist_spacing
         jx = max_x - t if jx + t > max_x
         
-        if shape == 'rectangle' || shape == 'custom'
+        if shape == 'rectangle'
           draw_box.call(j_group.entities, jx, min_y + rt, j_z, t, local_l - 2 * rt, curr_joist_h, "Floor Joist")
         elsif shape == 'l-shape'
           len = jx < lBackWidthIn ? length_in : lRightDepthIn
@@ -1154,7 +1154,7 @@ begin
     else
       # Rim joists (left and right)
       draw_box.call(j_group.entities, min_x, min_y, j_z, rt, local_l, curr_joist_h, "Rim Joist")
-      if shape == 'rectangle' || shape == 'custom'
+      if shape == 'rectangle'
         draw_box.call(j_group.entities, max_x - rt, min_y, j_z, rt, local_l, curr_joist_h, "Rim Joist")
       elsif shape == 'l-shape'
         draw_box.call(j_group.entities, width_in - rt, 0, j_z, rt, lRightDepthIn, curr_joist_h, "Rim Joist")
@@ -1179,7 +1179,7 @@ begin
         jz = min_y + i * joist_spacing
         jz = max_y - t if jz + t > max_y
         
-        if shape == 'rectangle' || shape == 'custom'
+        if shape == 'rectangle'
           draw_box.call(j_group.entities, min_x + rt, jz, j_z, local_w - 2 * rt, t, curr_joist_h, "Floor Joist")
         elsif shape == 'l-shape'
           wid = jz < lRightDepthIn ? width_in : lBackWidthIn
@@ -1372,8 +1372,15 @@ begin
       draw_wall_framing.call(8, (tTopWidthIn-tStemWidthIn)/2, tTopLengthIn-t, tStemLengthIn, t, false, -1, -t, 0.5, 0.5, -t)
     elsif shape == 'custom'
       custom_exterior_walls.each do |ew|
+        final_x = ew[:x_in]
+        final_y = ew[:y_in]
+        if ew[:orientation] == 'horizontal'
+          final_y -= ew[:thickness_in] if ew[:exteriorSide] == 1
+        else
+          final_x -= ew[:thickness_in] if ew[:exteriorSide] == 1
+        end
         # For custom walls, we just use 0 extensions for now to avoid complexity, or simple overlap
-        draw_wall_framing.call(ew[:id], ew[:x_in], ew[:y_in], ew[:length_in], ew[:thickness_in], ew[:orientation] == 'horizontal', ew[:exteriorSide], 0, 0, 0, 0, false, true)
+        draw_wall_framing.call(ew[:id], final_x, final_y, ew[:length_in], ew[:thickness_in], ew[:orientation] == 'horizontal', ew[:exteriorSide], 0, 0, 0, 0, false, true)
       end
     end
   end
