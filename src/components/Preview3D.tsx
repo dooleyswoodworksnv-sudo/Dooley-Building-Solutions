@@ -1297,57 +1297,46 @@ export default function Preview3D({
         extWalls.push({ id: 6, x: stemX, y: tTopLengthIn, w: thicknessIn, h: tStemLengthIn - thicknessIn, isHorizontal: false, exteriorSide: -1 });
         extWalls.push({ id: 7, x: stemX + tStemWidthIn - thicknessIn, y: tTopLengthIn, w: thicknessIn, h: tStemLengthIn - thicknessIn, isHorizontal: false, exteriorSide: 1 });
         extWalls.push({ id: 8, x: stemX, y: tTopLengthIn + tStemLengthIn - thicknessIn, w: tStemWidthIn, h: thicknessIn, isHorizontal: true, exteriorSide: 1 });
-      } else if (shape === 'custom') {
-        const blocksToUse = (combinedBlocks && combinedBlocks.length > 0) ? combinedBlocks : shapeBlocks;
-        blocksToUse.forEach((block, index) => {
-          const baseId = (index + 1) * 100;
-          // Top
-          extWalls.push({ id: baseId + 1, x: block.x, y: block.y, w: block.w, h: thicknessIn, isHorizontal: true, exteriorSide: -1 });
-          // Bottom
-          extWalls.push({ id: baseId + 2, x: block.x, y: block.y + block.h - thicknessIn, w: block.w, h: thicknessIn, isHorizontal: true, exteriorSide: 1 });
-          // Left
-          extWalls.push({ id: baseId + 3, x: block.x, y: block.y + thicknessIn, w: thicknessIn, h: block.h - 2 * thicknessIn, isHorizontal: false, exteriorSide: -1 });
-          // Right
-          extWalls.push({ id: baseId + 4, x: block.x + block.w - thicknessIn, y: block.y + thicknessIn, w: thicknessIn, h: block.h - 2 * thicknessIn, isHorizontal: false, exteriorSide: 1 });
-        });
       }
 
-      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(wall => {
-        const x = wall.xFt * 12 + wall.xInches;
-        const y = wall.yFt * 12 + wall.yInches;
-        const len = wall.lengthFt * 12 + wall.lengthInches;
-        const isHorizontal = wall.orientation === 'horizontal';
-        
-        let w = isHorizontal ? len : wall.thicknessIn;
-        let h = isHorizontal ? wall.thicknessIn : len;
-        let finalX = x;
-        let finalY = y;
+      if (shape === 'custom') {
+        exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(wall => {
+          const x = wall.xFt * 12 + wall.xInches;
+          const y = wall.yFt * 12 + wall.yInches;
+          const len = wall.lengthFt * 12 + wall.lengthInches;
+          const isHorizontal = wall.orientation === 'horizontal';
+          
+          let w = isHorizontal ? len : wall.thicknessIn;
+          let h = isHorizontal ? wall.thicknessIn : len;
+          let finalX = x;
+          let finalY = y;
 
-        if (w < 0) {
-          finalX += w;
-          w = Math.abs(w);
-        }
-        if (h < 0) {
-          finalY += h;
-          h = Math.abs(h);
-        }
+          if (w < 0) {
+            finalX += w;
+            w = Math.abs(w);
+          }
+          if (h < 0) {
+            finalY += h;
+            h = Math.abs(h);
+          }
 
-        if (isHorizontal) {
-          if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
-        } else {
-          if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
-        }
+          if (isHorizontal) {
+            if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
+          } else {
+            if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
+          }
 
-        extWalls.push({
-          id: wall.id,
-          x: finalX,
-          y: finalY,
-          w,
-          h,
-          isHorizontal,
-          exteriorSide: wall.exteriorSide
+          extWalls.push({
+            id: wall.id,
+            x: finalX,
+            y: finalY,
+            w,
+            h,
+            isHorizontal,
+            exteriorSide: wall.exteriorSide
+          });
         });
-      });
+      }
 
       // Add exterior walls to 3D list
       extWalls.forEach(w => {
@@ -1594,9 +1583,9 @@ export default function Preview3D({
       } else if (foundationShape === 'l-shape') {
         drawFoundationPart(0, 0, widthIn, t, true);
         drawFoundationPart(widthIn - t, t, lRightDepthIn - t, t, false);
-        drawFoundationPart(lBackWidthIn, lRightDepthIn - t, widthIn - lBackWidthIn - t, t, true);
-        drawFoundationPart(lBackWidthIn, lRightDepthIn, lengthIn - lRightDepthIn - t, t, false);
-        drawFoundationPart(0, lengthIn - t, lBackWidthIn + t, t, true);
+        drawFoundationPart(lBackWidthIn - t, lRightDepthIn - t, widthIn - lBackWidthIn, t, true);
+        drawFoundationPart(lBackWidthIn - t, lRightDepthIn, lengthIn - lRightDepthIn - t, t, false);
+        drawFoundationPart(0, lengthIn - t, lBackWidthIn, t, true);
         drawFoundationPart(0, t, lengthIn - 2 * t, t, false);
       } else if (foundationShape === 'u-shape') {
         drawFoundationPart(0, 0, uWallsIn.w1, t, true);
@@ -1638,24 +1627,28 @@ export default function Preview3D({
       }
       
       // Custom walls foundation
-      exteriorWalls.forEach(wall => {
-        const x = wall.xFt * 12 + wall.xInches;
-        const z = wall.yFt * 12 + wall.yInches;
-        const len = wall.lengthFt * 12 + wall.lengthInches;
-        drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
-      });
+      if (foundationShape === 'custom') {
+        exteriorWalls.forEach(wall => {
+          const x = wall.xFt * 12 + wall.xInches;
+          const z = wall.yFt * 12 + wall.yInches;
+          const len = wall.lengthFt * 12 + wall.lengthInches;
+          drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
+        });
+      }
     }
 
     // Additional foundation for custom walls (for both stem-wall and slab types)
     // We already handled exteriorWalls inside stem-wall block for stem-wall specific parts,
     // but for slab it was missing. Let's make it consistent.
     if (foundationType === 'slab' || foundationType === 'slab-on-grade') {
-      exteriorWalls.forEach(wall => {
-        const x = wall.xFt * 12 + wall.xInches;
-        const z = wall.yFt * 12 + wall.yInches;
-        const len = wall.lengthFt * 12 + wall.lengthInches;
-        drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
-      });
+      if (foundationShape === 'custom') {
+        exteriorWalls.forEach(wall => {
+          const x = wall.xFt * 12 + wall.xInches;
+          const z = wall.yFt * 12 + wall.yInches;
+          const len = wall.lengthFt * 12 + wall.lengthInches;
+          drawFoundationPart(x, z, len, wall.thicknessIn, wall.orientation === 'horizontal');
+        });
+      }
     }
 
     // Interior walls foundation
@@ -1678,9 +1671,9 @@ export default function Preview3D({
       } else if (shape === 'l-shape') {
         extWallList.push({ id: 1, x: 0, y: 0, w: widthIn, h: t, isHorizontal: true, exteriorSide: -1 });
         extWallList.push({ id: 2, x: widthIn - t, y: t, w: t, h: lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
-        extWallList.push({ id: 3, x: lBackWidthIn, y: lRightDepthIn - t, w: widthIn - lBackWidthIn - t, h: t, isHorizontal: true, exteriorSide: 1 });
-        extWallList.push({ id: 4, x: lBackWidthIn, y: lRightDepthIn, w: t, h: lengthIn - lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
-        extWallList.push({ id: 5, x: 0, y: lengthIn - t, w: lBackWidthIn + t, h: t, isHorizontal: true, exteriorSide: 1 });
+        extWallList.push({ id: 3, x: lBackWidthIn - t, y: lRightDepthIn - t, w: widthIn - lBackWidthIn, h: t, isHorizontal: true, exteriorSide: 1 });
+        extWallList.push({ id: 4, x: lBackWidthIn - t, y: lRightDepthIn, w: t, h: lengthIn - lRightDepthIn - t, isHorizontal: false, exteriorSide: 1 });
+        extWallList.push({ id: 5, x: 0, y: lengthIn - t, w: lBackWidthIn, h: t, isHorizontal: true, exteriorSide: 1 });
         extWallList.push({ id: 6, x: 0, y: t, w: t, h: lengthIn - 2 * t, isHorizontal: false, exteriorSide: -1 });
       } else if (shape === 'u-shape') {
         extWallList.push({ id: 1, x: 0, y: 0, w: uWallsIn.w1, h: t, isHorizontal: true, exteriorSide: -1 });
@@ -1817,41 +1810,43 @@ export default function Preview3D({
     const calculateOpeningsForStory = (currentY: number, currentWallHeight: number, floorIndex: number) => {
       const extWalls: { id: number, x: number, y: number, w: number, h: number, isHorizontal: boolean }[] = [];
 
-      exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
-        const x = w.xFt * 12 + w.xInches;
-        const y = w.yFt * 12 + w.yInches;
-        const len = w.lengthFt * 12 + w.lengthInches;
-        const isHorizontal = w.orientation === 'horizontal';
-        
-        let width = isHorizontal ? len : w.thicknessIn;
-        let depth = isHorizontal ? w.thicknessIn : len;
-        let finalX = x;
-        let finalY = y;
+      if (shape === 'custom') {
+        exteriorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
+          const x = w.xFt * 12 + w.xInches;
+          const y = w.yFt * 12 + w.yInches;
+          const len = w.lengthFt * 12 + w.lengthInches;
+          const isHorizontal = w.orientation === 'horizontal';
+          
+          let width = isHorizontal ? len : w.thicknessIn;
+          let depth = isHorizontal ? w.thicknessIn : len;
+          let finalX = x;
+          let finalY = y;
 
-        if (width < 0) {
-          finalX += width;
-          width = Math.abs(width);
-        }
-        if (depth < 0) {
-          finalY += depth;
-          depth = Math.abs(depth);
-        }
+          if (width < 0) {
+            finalX += width;
+            width = Math.abs(width);
+          }
+          if (depth < 0) {
+            finalY += depth;
+            depth = Math.abs(depth);
+          }
 
-        if (isHorizontal) {
-          if (w.exteriorSide === 1) finalY -= w.thicknessIn;
-        } else {
-          if (w.exteriorSide === 1) finalX -= w.thicknessIn;
-        }
+          if (isHorizontal) {
+            if (w.exteriorSide === 1) finalY -= w.thicknessIn;
+          } else {
+            if (w.exteriorSide === 1) finalX -= w.thicknessIn;
+          }
 
-        extWalls.push({
-          id: w.id,
-          x: finalX,
-          y: finalY,
-          w: width,
-          h: depth,
-          isHorizontal
+          extWalls.push({
+            id: w.id,
+            x: finalX,
+            y: finalY,
+            w: width,
+            h: depth,
+            isHorizontal
+          });
         });
-      });
+      }
 
       if (shape === 'rectangle') {
         extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
@@ -1861,17 +1856,11 @@ export default function Preview3D({
       } else if (shape === 'l-shape') {
         extWalls.push({ id: 1, x: 0, y: 0, w: widthIn, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 2, x: widthIn - thicknessIn, y: thicknessIn, w: thicknessIn, h: lRightDepthIn - thicknessIn, isHorizontal: false });
-        extWalls.push({ id: 3, x: lBackWidthIn, y: lRightDepthIn - thicknessIn, w: widthIn - lBackWidthIn - thicknessIn, h: thicknessIn, isHorizontal: true });
-        extWalls.push({ id: 4, x: lBackWidthIn, y: lRightDepthIn, w: thicknessIn, h: lengthIn - lRightDepthIn - thicknessIn, isHorizontal: false });
-        extWalls.push({ id: 5, x: 0, y: lengthIn - thicknessIn, w: lBackWidthIn + thicknessIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 3, x: lBackWidthIn - thicknessIn, y: lRightDepthIn - thicknessIn, w: widthIn - lBackWidthIn, h: thicknessIn, isHorizontal: true });
+        extWalls.push({ id: 4, x: lBackWidthIn - thicknessIn, y: lRightDepthIn, w: thicknessIn, h: lengthIn - lRightDepthIn - thicknessIn, isHorizontal: false });
+        extWalls.push({ id: 5, x: 0, y: lengthIn - thicknessIn, w: lBackWidthIn, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 6, x: 0, y: thicknessIn, w: thicknessIn, h: lengthIn - 2 * thicknessIn, isHorizontal: false });
 
-        if (lDirection === 'front-right' || lDirection === 'back-right') {
-          extWalls.forEach(w => w.x = widthIn - w.x - w.w);
-        }
-        if (lDirection === 'back-left' || lDirection === 'back-right') {
-          extWalls.forEach(w => w.y = lengthIn - w.y - w.h);
-        }
       } else if (shape === 'u-shape') {
         extWalls.push({ id: 1, x: 0, y: 0, w: uWallsIn.w1, h: thicknessIn, isHorizontal: true });
         extWalls.push({ id: 2, x: uWallsIn.w1 - thicknessIn, y: thicknessIn, w: thicknessIn, h: uWallsIn.w2 - thicknessIn, isHorizontal: false });
@@ -1906,14 +1895,44 @@ export default function Preview3D({
         extWalls.push({ id: 8, x: stemX, y: tTopLengthIn + tStemLengthIn - thicknessIn, w: tStemWidthIn, h: thicknessIn, isHorizontal: true });
       }
 
+      interiorWalls.filter(w => (w.floorIndex || 0) === floorIndex).forEach(w => {
+        const x = w.xFt * 12 + w.xInches;
+        const y = w.yFt * 12 + w.yInches;
+        const len = w.lengthFt * 12 + w.lengthInches;
+        const isHorizontal = w.orientation === 'horizontal';
+        
+        let width = isHorizontal ? len : w.thicknessIn;
+        let depth = isHorizontal ? w.thicknessIn : len;
+        let finalX = x;
+        let finalY = y;
+
+        if (width < 0) {
+          finalX += width;
+          width = Math.abs(width);
+        }
+        if (depth < 0) {
+          finalY += depth;
+          depth = Math.abs(depth);
+        }
+
+        extWalls.push({
+          id: w.id,
+          x: finalX,
+          y: finalY,
+          w: width,
+          h: depth,
+          isHorizontal
+        });
+      });
+
       doors.filter(d => (d.floorIndex || 0) === floorIndex).forEach(d => {
         const wall = extWalls.find(w => w.id === d.wall);
         if (!wall) return;
         const ox = d.xFt * 12 + d.xInches;
         if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY, z: wall.y - 1, w: d.widthIn, h: d.heightIn, d: thicknessIn + 2 });
+          list.push({ x: wall.x + ox, y: currentY, z: wall.y - 10, w: d.widthIn, h: d.heightIn, d: wall.h + 20 });
         } else {
-          list.push({ x: wall.x - 1, y: currentY, z: wall.y + ox, w: thicknessIn + 2, h: d.heightIn, d: d.widthIn });
+          list.push({ x: wall.x - 10, y: currentY, z: wall.y + ox, w: wall.w + 20, h: d.heightIn, d: d.widthIn });
         }
       });
 
@@ -1922,9 +1941,9 @@ export default function Preview3D({
         if (!wall) return;
         const ox = w.xFt * 12 + w.xInches;
         if (wall.isHorizontal) {
-          list.push({ x: wall.x + ox, y: currentY + w.sillHeightIn, z: wall.y - 1, w: w.widthIn, h: w.heightIn, d: thicknessIn + 2 });
+          list.push({ x: wall.x + ox, y: currentY + w.sillHeightIn, z: wall.y - 10, w: w.widthIn, h: w.heightIn, d: wall.h + 20 });
         } else {
-          list.push({ x: wall.x - 1, y: currentY + w.sillHeightIn, z: wall.y + ox, w: thicknessIn + 2, h: w.heightIn, d: w.widthIn });
+          list.push({ x: wall.x - 10, y: currentY + w.sillHeightIn, z: wall.y + ox, w: wall.w + 20, h: w.heightIn, d: w.widthIn });
         }
       });
     };

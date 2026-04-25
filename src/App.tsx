@@ -709,7 +709,7 @@ export default function App() {
     }
   }, [pdfCalibration.p1, pdfCalibration.p2, appliedCalibration]);
 
-  // Automatically enable floor framing when stem wall is selected
+  // Automatically enable floor framing when stem wall is selected, and disable it otherwise
   useEffect(() => {
     if (isRestoring.current) return;
     if (foundationType === 'stem-wall') {
@@ -717,6 +717,8 @@ export default function App() {
       setAddSubfloor(true);
       setOpenSections(prev => ({ ...prev, walls: true }));
       setActiveWallSection('floor');
+    } else {
+      setAddFloorFraming(false);
     }
   }, [foundationType]);
 
@@ -1375,7 +1377,7 @@ export default function App() {
     setFootingWidthIn(state.footingWidthIn || 16);
     setFootingThicknessIn(state.footingThicknessIn || 8);
     setFoundationShape(state.foundationShape || 'rectangle');
-    setAddFloorFraming(state.addFloorFraming || false);
+    setAddFloorFraming((state.addFloorFraming && state.foundationType === 'stem-wall') || false);
     setJoistSpacing(state.joistSpacing || 16);
     setJoistSize(state.joistSize || '2x10');
     setJoistDirection(state.joistDirection || 'y');
@@ -4868,7 +4870,8 @@ end
                   type="checkbox" 
                   checked={addFloorFraming}
                   onChange={(e) => setAddFloorFraming(e.target.checked)}
-                  className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:bg-zinc-800"
+                  disabled={foundationType !== 'stem-wall'}
+                  className="rounded border-zinc-300 dark:border-zinc-700 text-indigo-600 dark:text-indigo-500 focus:ring-indigo-500 dark:focus:ring-indigo-400 dark:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">Add Floor Framing</span>
               </div>

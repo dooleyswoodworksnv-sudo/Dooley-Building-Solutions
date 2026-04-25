@@ -374,55 +374,57 @@ export default function Preview2D({
   }
 
   // Add custom exterior walls to extWalls
-  exteriorWalls.forEach(wall => {
-    const wallFloor = wall.floorIndex || 0;
-    const x = wall.xFt * 12 + wall.xInches;
-    const y = wall.yFt * 12 + wall.yInches;
-    const len = wall.lengthFt * 12 + wall.lengthInches;
-    const isHorizontal = wall.orientation === 'horizontal';
-    
-    let w = isHorizontal ? len : wall.thicknessIn;
-    let h = isHorizontal ? wall.thicknessIn : len;
-    let finalX = x;
-    let finalY = y;
+  if (shape === 'custom') {
+    exteriorWalls.forEach(wall => {
+      const wallFloor = wall.floorIndex || 0;
+      const x = wall.xFt * 12 + wall.xInches;
+      const y = wall.yFt * 12 + wall.yInches;
+      const len = wall.lengthFt * 12 + wall.lengthInches;
+      const isHorizontal = wall.orientation === 'horizontal';
+      
+      let w = isHorizontal ? len : wall.thicknessIn;
+      let h = isHorizontal ? wall.thicknessIn : len;
+      let finalX = x;
+      let finalY = y;
 
-    if (w < 0) {
-      finalX += w;
-      w = Math.abs(w);
-    }
-    if (h < 0) {
-      finalY += h;
-      h = Math.abs(h);
-    }
+      if (w < 0) {
+        finalX += w;
+        w = Math.abs(w);
+      }
+      if (h < 0) {
+        finalY += h;
+        h = Math.abs(h);
+      }
 
-    if (isHorizontal) {
-      if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
-    } else {
-      if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
-    }
+      if (isHorizontal) {
+        if (wall.exteriorSide === 1) finalY -= wall.thicknessIn;
+      } else {
+        if (wall.exteriorSide === 1) finalX -= wall.thicknessIn;
+      }
 
-    if (wallFloor === currentFloorIndex) {
-      extWalls.push({
-        id: wall.id,
-        x: finalX,
-        y: finalY,
-        w,
-        h,
-        isHorizontal,
-        exteriorSide: wall.exteriorSide
-      });
-    } else if (wallFloor === currentFloorIndex - 1) {
-      ghostWalls.push({
-        id: `ghost-ext-${wall.id}`,
-        x: finalX,
-        y: finalY,
-        w,
-        h,
-        isHorizontal,
-        type: 'exterior'
-      });
-    }
-  });
+      if (wallFloor === currentFloorIndex) {
+        extWalls.push({
+          id: wall.id,
+          x: finalX,
+          y: finalY,
+          w,
+          h,
+          isHorizontal,
+          exteriorSide: wall.exteriorSide
+        });
+      } else if (wallFloor === currentFloorIndex - 1) {
+        ghostWalls.push({
+          id: `ghost-ext-${wall.id}`,
+          x: finalX,
+          y: finalY,
+          w,
+          h,
+          isHorizontal,
+          type: 'exterior'
+        });
+      }
+    });
+  }
 
   // Calculate bumpout walls
   bumpouts.forEach(b => {
