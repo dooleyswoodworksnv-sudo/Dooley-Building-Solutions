@@ -924,9 +924,11 @@ export default function Preview2D({
     if (extWall) isHorizontal = extWall.isHorizontal;
     else if (intWall) isHorizontal = intWall.orientation === 'horizontal';
 
-    const ox = isHorizontal ? (opening.xFt * 12 + opening.xInches) : (opening.yFt * 12 + opening.yInches);
+    const ox = opening.xFt * 12 + opening.xInches;
 
     // We only care about the offset along the wall's axis
+    // For horizontal walls, offset is along X; for vertical walls, offset is along Y
+    // But the opening position is always stored in xFt/xInches
     if (isHorizontal) {
       setDragOffset({ x: pt.x - ox, y: 0 });
     } else {
@@ -946,7 +948,7 @@ export default function Preview2D({
     let isHorizontal = true;
     if (extWall) isHorizontal = extWall.isHorizontal;
 
-    const ox = isHorizontal ? (bumpout.xFt * 12 + bumpout.xInches) : (bumpout.yFt * 12 + bumpout.yInches);
+    const ox = bumpout.xFt * 12 + bumpout.xInches;
 
     if (isHorizontal) {
       setDragOffset({ x: pt.x - ox, y: 0 });
@@ -1196,7 +1198,7 @@ export default function Preview2D({
         if (isHorizontal) {
           newOx = pt.x - dragOffset.x;
         } else {
-          newOx = draggingOpening.initialOx + (pt.y - dragStartPt.y);
+          newOx = pt.y - dragOffset.y;
         }
 
         // Snapping logic
@@ -1267,7 +1269,7 @@ export default function Preview2D({
         if (isHorizontal) {
           newOx = pt.x - dragOffset.x;
         } else {
-          newOx = draggingBumpout.initialOx + (pt.y - dragStartPt.y);
+          newOx = pt.y - dragOffset.y;
         }
 
         // Snapping logic

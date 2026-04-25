@@ -1098,8 +1098,10 @@ begin
     rt = rim_joist_thickness
 
     if joist_direction == 'y'
-      # Rim joists (front and back)
-      draw_box.call(j_group.entities, min_x, min_y, j_z, local_w, rt, curr_joist_h, "Rim Joist")
+      # Rim joists (front and back) — skip shared front rim for shapes that handle it themselves
+      if shape != 'h-shape'
+        draw_box.call(j_group.entities, min_x, min_y, j_z, local_w, rt, curr_joist_h, "Rim Joist")
+      end
       if shape == 'rectangle'
         draw_box.call(j_group.entities, min_x, max_y - rt, j_z, local_w, rt, curr_joist_h, "Rim Joist")
       elsif shape == 'l-shape'
@@ -1110,10 +1112,35 @@ begin
         draw_box.call(j_group.entities, u_w1 - u_w3, u_w2 - rt, j_z, u_w3, rt, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, u_w7, u_w2 - u_w4 - rt, j_z, u_w1 - u_w3 - u_w7, rt, curr_joist_h, "Rim Joist")
       elsif shape == 'h-shape'
-        draw_box.call(j_group.entities, 0, 0, j_z, hLeftBarWidthIn, rt, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, 0, length_in - rt, j_z, hLeftBarWidthIn, rt, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, width_in - hRightBarWidthIn, 0, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, width_in - hRightBarWidthIn, length_in - rt, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
+        mOff = hMiddleBarOffsetIn
+        mH = hMiddleBarHeightIn
+        hLBW = hLeftBarWidthIn
+        hRBW = hRightBarWidthIn
+        midW = width_in - hLBW - hRBW
+        # Front of left bar (horizontal)
+        draw_box.call(j_group.entities, 0, 0, j_z, hLBW, rt, curr_joist_h, "Rim Joist")
+        # Back of left bar (horizontal)
+        draw_box.call(j_group.entities, 0, length_in - rt, j_z, hLBW, rt, curr_joist_h, "Rim Joist")
+        # Front of right bar (horizontal)
+        draw_box.call(j_group.entities, width_in - hRBW, 0, j_z, hRBW, rt, curr_joist_h, "Rim Joist")
+        # Back of right bar (horizontal)
+        draw_box.call(j_group.entities, width_in - hRBW, length_in - rt, j_z, hRBW, rt, curr_joist_h, "Rim Joist")
+        # Bottom of middle bar (horizontal)
+        draw_box.call(j_group.entities, hLBW, mOff, j_z, midW, rt, curr_joist_h, "Rim Joist")
+        # Top of middle bar (horizontal)
+        draw_box.call(j_group.entities, hLBW, mOff + mH - rt, j_z, midW, rt, curr_joist_h, "Rim Joist")
+        # Left outer side (vertical)
+        draw_box.call(j_group.entities, 0, rt, j_z, rt, length_in - 2 * rt, curr_joist_h, "Rim Joist")
+        # Right outer side (vertical)
+        draw_box.call(j_group.entities, width_in - rt, rt, j_z, rt, length_in - 2 * rt, curr_joist_h, "Rim Joist")
+        # Right side of left bar, below middle (vertical)
+        draw_box.call(j_group.entities, hLBW - rt, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
+        # Right side of left bar, above middle (vertical)
+        draw_box.call(j_group.entities, hLBW - rt, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
+        # Left side of right bar, below middle (vertical)
+        draw_box.call(j_group.entities, width_in - hRBW, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
+        # Left side of right bar, above middle (vertical)
+        draw_box.call(j_group.entities, width_in - hRBW, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
         stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
         stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
@@ -1179,10 +1206,39 @@ begin
         draw_box.call(j_group.entities, u_w1 - rt, 0, j_z, rt, u_w2, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, u_w7 - rt, u_w2 - u_w4, j_z, rt, u_w8 - (u_w2 - u_w4), curr_joist_h, "Rim Joist")
       elsif shape == 'h-shape'
+        mOff = hMiddleBarOffsetIn
+        mH = hMiddleBarHeightIn
+        hLBW = hLeftBarWidthIn
+        hRBW = hRightBarWidthIn
+        midW = width_in - hLBW - hRBW
+        # Left outer side (vertical)
         draw_box.call(j_group.entities, 0, 0, j_z, rt, length_in, curr_joist_h, "Rim Joist")
+        # Right outer side (vertical)
         draw_box.call(j_group.entities, width_in - rt, 0, j_z, rt, length_in, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, hLeftBarWidthIn, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, width_in - hRightBarWidthIn - rt, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
+        # Right side of left bar, below middle (vertical)
+        draw_box.call(j_group.entities, hLBW - rt, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
+        # Right side of left bar, above middle (vertical)
+        draw_box.call(j_group.entities, hLBW - rt, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
+        # Left side of middle bar (vertical)
+        draw_box.call(j_group.entities, hLBW, mOff + rt, j_z, rt, mH - 2 * rt, curr_joist_h, "Rim Joist")
+        # Right side of middle bar (vertical)
+        draw_box.call(j_group.entities, width_in - hRBW - rt, mOff + rt, j_z, rt, mH - 2 * rt, curr_joist_h, "Rim Joist")
+        # Left side of right bar, below middle (vertical)
+        draw_box.call(j_group.entities, width_in - hRBW, rt, j_z, rt, mOff - rt, curr_joist_h, "Rim Joist")
+        # Left side of right bar, above middle (vertical)
+        draw_box.call(j_group.entities, width_in - hRBW, mOff + mH, j_z, rt, length_in - mOff - mH - rt, curr_joist_h, "Rim Joist")
+        # Front of left bar (horizontal)
+        draw_box.call(j_group.entities, rt, 0, j_z, hLBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Back of left bar (horizontal)
+        draw_box.call(j_group.entities, rt, length_in - rt, j_z, hLBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Front of right bar (horizontal)
+        draw_box.call(j_group.entities, width_in - hRBW + rt, 0, j_z, hRBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Back of right bar (horizontal)
+        draw_box.call(j_group.entities, width_in - hRBW + rt, length_in - rt, j_z, hRBW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Bottom of middle bar (horizontal)
+        draw_box.call(j_group.entities, hLBW + rt, mOff, j_z, midW - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Top of middle bar (horizontal)
+        draw_box.call(j_group.entities, hLBW + rt, mOff + mH - rt, j_z, midW - 2 * rt, rt, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
         stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
         stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
