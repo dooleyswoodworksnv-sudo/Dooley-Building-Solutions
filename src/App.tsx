@@ -1175,9 +1175,45 @@ export default function App() {
       if (wallId === 6) return u_w6 - t;
       if (wallId === 7) return u_w7;
       if (wallId === 8) return u_w8 - 2 * t;
+    } else if (shape === 'h-shape') {
+      const hLW = hLeftBarWidthFt * 12 + hLeftBarWidthInches;
+      const hRW = hRightBarWidthFt * 12 + hRightBarWidthInches;
+      const hMH = hMiddleBarHeightFt * 12 + hMiddleBarHeightInches;
+      const hMO = hMiddleBarOffsetFt * 12 + hMiddleBarOffsetInches;
+      // Left Bar
+      if (wallId === 1) return hLW;                                         // top-left horizontal
+      if (wallId === 2) return hMO - t;                                     // inner-left-top vertical
+      if (wallId === 3) return l - (hMO + hMH) - t;                        // inner-left-bottom vertical
+      if (wallId === 4) return hLW;                                         // bottom-left horizontal
+      if (wallId === 5) return l - 2 * t;                                   // outer-left vertical
+      // Middle Bar
+      if (wallId === 6) return w - hLW - hRW;                              // middle-top horizontal
+      if (wallId === 7) return w - hLW - hRW;                              // middle-bottom horizontal
+      // Right Bar
+      if (wallId === 8) return hRW;                                         // top-right horizontal
+      if (wallId === 9) return hMO - t;                                     // inner-right-top vertical
+      if (wallId === 10) return l - (hMO + hMH) - t;                       // inner-right-bottom vertical
+      if (wallId === 11) return hRW;                                        // bottom-right horizontal
+      if (wallId === 12) return l - 2 * t;                                  // outer-right vertical
+    } else if (shape === 't-shape') {
+      const tTW = tTopWidthFt * 12 + tTopWidthInches;
+      const tTL = tTopLengthFt * 12 + tTopLengthInches;
+      const tSW = tStemWidthFt * 12 + tStemWidthInches;
+      const tSL = tStemLengthFt * 12 + tStemLengthInches;
+      const stemX = (tTW - tSW) / 2;
+      // Top Bar
+      if (wallId === 1) return tTW;                                         // top horizontal
+      if (wallId === 2) return tTL - 2 * t;                                 // right vertical
+      if (wallId === 3) return tTW - (stemX + tSW);                         // bottom-right horizontal
+      if (wallId === 4) return stemX;                                       // bottom-left horizontal
+      if (wallId === 5) return tTL - 2 * t;                                 // left vertical
+      // Stem
+      if (wallId === 6) return tSL - t;                                     // stem-left vertical
+      if (wallId === 7) return tSL - t;                                     // stem-right vertical
+      if (wallId === 8) return tSW;                                         // stem-bottom horizontal
     }
     return 0;
-  }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches]);
+  }, [exteriorWalls, widthFt, widthInches, lengthFt, lengthInches, wallThicknessIn, shape, lRightDepthFt, lRightDepthInches, lBackWidthFt, lBackWidthInches, uWalls, uWallsInches, hLeftBarWidthFt, hLeftBarWidthInches, hRightBarWidthFt, hRightBarWidthInches, hMiddleBarHeightFt, hMiddleBarHeightInches, hMiddleBarOffsetFt, hMiddleBarOffsetInches, tTopWidthFt, tTopWidthInches, tTopLengthFt, tTopLengthInches, tStemWidthFt, tStemWidthInches, tStemLengthFt, tStemLengthInches]);
 
   // Build list of available wall options for door/window dropdowns
   const getAvailableWallOptions = useMemo(() => {
