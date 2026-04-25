@@ -1115,8 +1115,24 @@ begin
         draw_box.call(j_group.entities, width_in - hRightBarWidthIn, 0, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, width_in - hRightBarWidthIn, length_in - rt, j_z, hRightBarWidthIn, rt, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
+        stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
+        stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
+        # Front rim (top of T)
         draw_box.call(j_group.entities, 0, 0, j_z, tTopWidthIn, rt, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, (tTopWidthIn - tStemWidthIn) / 2.0, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn, rt, curr_joist_h, "Rim Joist")
+        # Back rim (bottom of stem)
+        draw_box.call(j_group.entities, stem_left, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn, rt, curr_joist_h, "Rim Joist")
+        # Left side of top bar
+        draw_box.call(j_group.entities, 0, rt, j_z, rt, tTopLengthIn - rt, curr_joist_h, "Rim Joist")
+        # Right side of top bar
+        draw_box.call(j_group.entities, tTopWidthIn - rt, rt, j_z, rt, tTopLengthIn - rt, curr_joist_h, "Rim Joist")
+        # Left side of stem
+        draw_box.call(j_group.entities, stem_left, tTopLengthIn, j_z, rt, tStemLengthIn - rt, curr_joist_h, "Rim Joist")
+        # Right side of stem
+        draw_box.call(j_group.entities, stem_right - rt, tTopLengthIn, j_z, rt, tStemLengthIn - rt, curr_joist_h, "Rim Joist")
+        # Left shoulder step-back (horizontal, from left edge of top bar to left edge of stem)
+        draw_box.call(j_group.entities, rt, tTopLengthIn - rt, j_z, stem_left - rt, rt, curr_joist_h, "Rim Joist")
+        # Right shoulder step-back (horizontal, from right edge of stem to right edge of top bar)
+        draw_box.call(j_group.entities, stem_right, tTopLengthIn - rt, j_z, tTopWidthIn - stem_right - rt, rt, curr_joist_h, "Rim Joist")
       end
 
       num_joists = (local_w / joist_spacing).ceil + 1
@@ -1168,10 +1184,24 @@ begin
         draw_box.call(j_group.entities, hLeftBarWidthIn, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
         draw_box.call(j_group.entities, width_in - hRightBarWidthIn - rt, hMiddleBarOffsetIn, j_z, rt, hMiddleBarHeightIn, curr_joist_h, "Rim Joist")
       elsif shape == 't-shape'
+        stem_left = (tTopWidthIn - tStemWidthIn) / 2.0
+        stem_right = (tTopWidthIn + tStemWidthIn) / 2.0
+        # Left side of top bar
         draw_box.call(j_group.entities, 0, 0, j_z, rt, tTopLengthIn, curr_joist_h, "Rim Joist")
+        # Right side of top bar
         draw_box.call(j_group.entities, tTopWidthIn - rt, 0, j_z, rt, tTopLengthIn, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, (tTopWidthIn - tStemWidthIn) / 2.0, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
-        draw_box.call(j_group.entities, (tTopWidthIn + tStemWidthIn) / 2.0 - rt, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
+        # Left side of stem
+        draw_box.call(j_group.entities, stem_left, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
+        # Right side of stem
+        draw_box.call(j_group.entities, stem_right - rt, tTopLengthIn, j_z, rt, tStemLengthIn, curr_joist_h, "Rim Joist")
+        # Front rim (top of T, horizontal)
+        draw_box.call(j_group.entities, rt, 0, j_z, tTopWidthIn - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Back rim (bottom of stem, horizontal)
+        draw_box.call(j_group.entities, stem_left + rt, tTopLengthIn + tStemLengthIn - rt, j_z, tStemWidthIn - 2 * rt, rt, curr_joist_h, "Rim Joist")
+        # Left shoulder step-back (vertical rim from left of top bar down to left of stem)
+        draw_box.call(j_group.entities, rt, tTopLengthIn - rt, j_z, stem_left - rt, rt, curr_joist_h, "Rim Joist")
+        # Right shoulder step-back (vertical rim from right of stem to right of top bar)
+        draw_box.call(j_group.entities, stem_right, tTopLengthIn - rt, j_z, tTopWidthIn - stem_right - rt, rt, curr_joist_h, "Rim Joist")
       end
 
       num_joists = (local_l / joist_spacing).ceil + 1
