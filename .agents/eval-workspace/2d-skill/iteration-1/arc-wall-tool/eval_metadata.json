@@ -1,0 +1,42 @@
+{
+  "eval_id": 0,
+  "eval_name": "arc-wall-tool",
+  "prompt": "Add a new drawing tool `tool-arc-wall` to the 2D floor plan canvas with three-click arc drawing, BaseTool architecture, and drawArcWall renderer.",
+  "assertions": [
+    {
+      "text": "Output contains a BaseTool subclass with onPointerDown, onPointerMove, onPointerUp, and drawOverlay methods",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "drawArcWall rendering function uses ctx.arc(), ctx.arcTo(), or bezierCurveTo() — not a straight lineTo()",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "JSON wall schema includes start, end, midpoint (or controlPoint), thickness, and type fields",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Exterior wall color #2C2C2C and interior #555555 (or equivalent project palette) used in drawArcWall",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Math.round() or integer pixel coords used for canvas drawing (Hi-DPI / sub-pixel awareness)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "ctx.save() and ctx.restore() bracket the drawing operations",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Three-click workflow correctly staged: click 1 = start, click 2 = end, click 3 = arc midpoint (or equivalent two-phase approach)",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

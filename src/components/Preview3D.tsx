@@ -63,6 +63,11 @@ interface Preview3DProps {
   showGround: boolean;
   showSky: boolean;
   showSun: boolean;
+  sunHour?: number;
+  sunMonth?: number;
+  siteLatitude?: number;
+  hdriPreset?: string;
+  customHdriUrl?: string;
   showRoof: boolean;
   showAxes?: boolean;
   additionalStories: number;
@@ -141,6 +146,27 @@ const TexturedMaterial = ({
   );
 };
 
+// ─── Error boundary for texture loading — prevents Canvas crash ─────────
+class TextureErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[Texture] Failed to load texture:', error.message);
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 const SurfaceMaterial = ({
   textureUrl, color, hovered, isPaintMode, roughness, materialConfig, uvScale,
 }: {
@@ -149,10 +175,13 @@ const SurfaceMaterial = ({
   uvScale?: [number, number];
 }) => {
   if (textureUrl) {
+    const fallbackMat = <meshStandardMaterial color={color} roughness={roughness ?? 0.7} metalness={0.1} />;
     return (
-      <Suspense fallback={<meshStandardMaterial color={color} />}>
-        <TexturedMaterial url={textureUrl} roughness={roughness ?? 0.8} config={materialConfig} uvScale={uvScale} />
-      </Suspense>
+      <TextureErrorBoundary fallback={fallbackMat}>
+        <Suspense fallback={fallbackMat}>
+          <TexturedMaterial url={textureUrl} roughness={roughness ?? 0.8} config={materialConfig} uvScale={uvScale} />
+        </Suspense>
+      </TextureErrorBoundary>
     );
   }
   const paintHover = '#86efac';
@@ -1170,6 +1199,7 @@ export default function Preview3D({
   solidWallsOnly,
   noFramingFloorOnly,
   showGround, showSky, showSun, showRoof, showAxes = true,
+  sunHour = 14, sunMonth = 6, siteLatitude: siteLatitudeProp = 39.5, hdriPreset: hdriPresetProp = 'city', customHdriUrl: customHdriUrlProp = '',
   additionalStories, currentFloorIndex, upperFloorWallHeightIn, upperFloorJoistSize, combinedBlocks, shapeBlocks,
   referenceModelUrl, modelScale, modelOffset, modelRotation, modelOpacity,
   roofParts, roofType, roofPitch, roofOverhangIn, roofWidthIn, roofHeightIn,
@@ -1193,6 +1223,58 @@ export default function Preview3D({
   const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null);
   const [materialConfigs, setMaterialConfigs] = useState<Record<string, MaterialConfig>>({});
   const [splitHeight, setSplitHeight] = useState(0);
+
+  // ─── Sun Position Calculation ─────────────────────────────────────────
+  // Simplified solar position: calculates altitude (elevation) and azimuth
+  // based on hour-of-day and month for ~39°N latitude (Reno, NV area)
+  const sunPosition = useMemo<[number, number, number]>(() => {
+    const latitude = siteLatitudeProp;
+    const latRad = (latitude * Math.PI) / 180;
+
+    // Solar declination angle (simplified sinusoidal model)
+    // Peaks at +23.45° on June 21 (day ~172), minimum at -23.45° on Dec 21
+    const dayOfYear = (sunMonth - 1) * 30.44 + 15; // approximate mid-month
+    const declination = 23.45 * Math.sin(((360 / 365) * (dayOfYear - 81)) * (Math.PI / 180));
+    const decRad = (declination * Math.PI) / 180;
+
+    // Hour angle: 0 at solar noon (12:00), 15° per hour
+    const hourAngle = (sunHour - 12) * 15;
+    const haRad = (hourAngle * Math.PI) / 180;
+
+    // Solar altitude (elevation angle)
+    const sinAlt = Math.sin(latRad) * Math.sin(decRad) + Math.cos(latRad) * Math.cos(decRad) * Math.cos(haRad);
+    const altitude = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+
+    // Solar azimuth (measured from south, positive westward)
+    const cosAz = (Math.sin(decRad) - Math.sin(latRad) * sinAlt) / (Math.cos(latRad) * Math.cos(altitude) + 0.0001);
+    let azimuth = Math.acos(Math.max(-1, Math.min(1, cosAz)));
+    if (hourAngle > 0) azimuth = -azimuth; // afternoon = west
+
+    // Convert spherical to Cartesian (Three.js: Y is up)
+    const distance = 40; // light distance from origin
+    const elevClamped = Math.max(0.03, altitude); // keep sun barely above horizon at minimum
+    const x = distance * Math.cos(elevClamped) * Math.sin(azimuth);
+    const y = distance * Math.sin(elevClamped);
+    const z = distance * Math.cos(elevClamped) * Math.cos(azimuth);
+
+    return [x, y, z];
+  }, [sunHour, sunMonth, siteLatitudeProp]);
+
+  // Sun color temperature — warm at sunrise/sunset, neutral at midday
+  const sunColor = useMemo(() => {
+    const hourNorm = Math.abs(sunHour - 12) / 9; // 0 at noon, ~1 at edges
+    const warmth = Math.pow(hourNorm, 1.5);
+    const r = 1;
+    const g = 1 - warmth * 0.35;
+    const b = 1 - warmth * 0.65;
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+  }, [sunHour]);
+
+  // Sun intensity — brightest at noon, dimmer at dawn/dusk
+  const sunIntensity = useMemo(() => {
+    const alt = Math.asin(sunPosition[1] / 40); // elevation angle from Y
+    return Math.max(0.2, Math.min(2.0, 1.5 * Math.sin(Math.max(0, alt))));
+  }, [sunPosition]);
 
   // 3Dconnexion SpaceMouse
   const { connect: connectSpaceMouse, disconnect: disconnectSpaceMouse, isConnected: spaceMouseConnected, deviceName: spaceMouseName, axes: spaceMouseAxes } = useSpaceMouse();
@@ -2578,20 +2660,34 @@ export default function Preview3D({
           <SpaceMouseController axes={spaceMouseAxes} enabled={spaceMouseConnected} />
           
           <ambientLight intensity={0.4} />
-          {showSky && <Sky distance={450000} sunPosition={[10, 20, 10]} inclination={0} azimuth={0.25} />}
+          {showSky && !customHdriUrlProp && <Sky distance={450000} sunPosition={sunPosition} inclination={0} azimuth={0.25} />}
           {showSun && (
             <directionalLight
-              position={[10, 20, 10]}
-              intensity={1.5}
+              position={sunPosition}
+              intensity={sunIntensity}
+              color={sunColor}
               castShadow
               shadow-mapSize={[2048, 2048]}
               shadow-camera-left={-50}
               shadow-camera-right={50}
               shadow-camera-top={50}
               shadow-camera-bottom={-50}
+              shadow-bias={-0.0001}
             />
           )}
-          <Environment preset="city" />
+          {customHdriUrlProp ? (
+            <TextureErrorBoundary fallback={<Environment preset={hdriPresetProp as any} />}>
+              <Suspense fallback={<Environment preset={hdriPresetProp as any} />}>
+                <Environment
+                  files={customHdriUrlProp}
+                  background
+                  ground={{ height: 15, radius: 120, scale: 100 }}
+                />
+              </Suspense>
+            </TextureErrorBoundary>
+          ) : (
+            <Environment preset={hdriPresetProp as any} />
+          )}
           <CameraController 
             presetTrigger={cameraPresetTrigger} 
             targetCenter={[(widthIn / 2.0) * 0.0254, totalBaseHeight * 0.0254 + (wallHeightIn / 2) * 0.0254, (lengthIn / 2.0) * 0.0254]} 
@@ -2603,7 +2699,7 @@ export default function Preview3D({
             cutHeight={activeFloorCutHeight} 
           />
           {showAxes && <axesHelper args={[500]} rotation={[-Math.PI / 2, 0, 0]} />}
-          {showGround && <Ground
+          {showGround && !customHdriUrlProp && <Ground
           />}
           
 
@@ -2796,7 +2892,7 @@ export default function Preview3D({
                 const ridgeH = (w / 2) * (pitch / 12) + eaveDrop;
 
                 // Collect all windows for this dormer
-                const dormerWins: { ox: number; winW: number; winH: number; sill: number }[] = [];
+                const dormerWins: { ox: number; winW: number; winH: number; sill: number; modelUrl?: string; modelFileName?: string }[] = [];
 
                 // Legacy single-window from DormerConfig.hasWindow
                 if (d.hasWindow) {
@@ -2810,9 +2906,13 @@ export default function Preview3D({
 
                 // Standard windows assigned to this dormer (wall = 9000 + i)
                 windows.filter(win => win.wall === 9000 + i).forEach(win => {
-                  const ox = win.xFt * 12 + win.xInches;
+                  const centerOffset = win.xFt * 12 + win.xInches;
+                  // For dormers, we interpret the xFt/xInches as an offset from the center
+                  // rather than from the left edge. This keeps the window perfectly centered
+                  // when resized, and `centerOffset = 0` means perfectly centered.
+                  const ox = centerOffset + l / 2 - win.widthIn / 2;
                   if (win.widthIn > 0 && win.heightIn > 0 && (win.sillHeightIn + win.heightIn) < wallH) {
-                    dormerWins.push({ ox, winW: win.widthIn, winH: win.heightIn, sill: win.sillHeightIn });
+                    dormerWins.push({ ox, winW: win.widthIn, winH: win.heightIn, sill: win.sillHeightIn, modelUrl: win.modelUrl, modelFileName: win.modelFileName });
                   }
                 });
 
@@ -2843,18 +2943,30 @@ export default function Preview3D({
                       const glassY = totalBaseHeight + wallHeightIn + dw.sill + dw.winH / 2;
                       return (
                         <group key={`dw-glass-${wi}`}>
-                          <mesh position={[d.x + w / 2, glassY, glassZ]} castShadow>
-                            <boxGeometry args={[0.5, dw.winH - 1, dw.winW - 1]} />
-                            <meshStandardMaterial color="#87ceeb" transparent opacity={0.35} roughness={0.05} metalness={0.3} />
-                          </mesh>
-                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
-                            <boxGeometry args={[0.8, dw.winH + 1, dw.winW + 1]} />
-                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
-                          </mesh>
-                          <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
-                            <boxGeometry args={[1, dw.winH - 0.5, dw.winW - 0.5]} />
-                            <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
-                          </mesh>
+                          {dw.modelUrl ? (
+                            <group position={[d.x + w / 2, glassY - dw.winH / 2, glassZ]} rotation={[0, -Math.PI / 2, 0]}>
+                              <ModelErrorBoundary fallback={<mesh />}>
+                                <Suspense fallback={<mesh />}>
+                                  <LinkedModel url={dw.modelUrl} widthFt={dw.winW} depthFt={4} heightFt={dw.winH} stretch />
+                                </Suspense>
+                              </ModelErrorBoundary>
+                            </group>
+                          ) : (
+                            <>
+                              <mesh position={[d.x + w / 2, glassY, glassZ]} castShadow>
+                                <boxGeometry args={[0.5, dw.winH - 1, dw.winW - 1]} />
+                                <meshStandardMaterial color="#87ceeb" transparent opacity={0.35} roughness={0.05} metalness={0.3} />
+                              </mesh>
+                              <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                                <boxGeometry args={[0.8, dw.winH + 1, dw.winW + 1]} />
+                                <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                              </mesh>
+                              <mesh position={[d.x + w / 2 + 0.3, glassY, glassZ]}>
+                                <boxGeometry args={[1, dw.winH - 0.5, dw.winW - 0.5]} />
+                                <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+                              </mesh>
+                            </>
+                          )}
                         </group>
                       );
                     })}

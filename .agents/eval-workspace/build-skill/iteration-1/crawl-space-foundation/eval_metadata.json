@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "crawl-space-foundation",
+  "prompt": "Add crawl-space foundation type with JSON params, geometry rules, draw_crawl_space_foundation pseudocode using draw_box/subtract_intervals, and BIM attribution.",
+  "assertions": [
+    {
+      "text": "New JSON params defined including crawl space height, vent width, vent height, and vent spacing fields",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "draw_box called for each wall segment between vent cutouts (not one monolithic box)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "subtract_intervals used to compute wall segments with vent openings removed",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Vent vertical position: 4 inches above bottom of stem wall (z_off + 4), not at top or bottom",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "apply_bim_data called with 'Footing' type and Concrete material for BIM attribution",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Foundation height calculation updated: crawl space height contributes to the Z offset used by walls above",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

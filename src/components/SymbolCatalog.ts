@@ -16,6 +16,8 @@ export interface SymbolDefinition {
   svgPaths: { d: string; fill?: string; stroke?: string; strokeWidth?: number }[];
   // Optional extra SVG elements (circles, rects, etc.)
   svgExtras?: string;
+  // Optional path to a default .glb 3D model (served via /api/serve-file)
+  glbPath?: string;
 }
 
 export const SYMBOL_CATALOG: SymbolDefinition[] = [
@@ -31,6 +33,7 @@ export const SYMBOL_CATALOG: SymbolDefinition[] = [
     heightIn: 30,
     color: '#93c5fd',
     color3D: '#60a5fa',
+    glbPath: '/assets/toilet/uncategorized/toilet2.glb',
     svgPaths: [
       // Tank (rectangle at back)
       { d: 'M 2 0 L 16 0 L 16 8 L 2 8 Z', fill: '#dbeafe', stroke: '#3b82f6', strokeWidth: 0.8 },

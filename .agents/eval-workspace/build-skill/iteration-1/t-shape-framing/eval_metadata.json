@@ -1,0 +1,37 @@
+{
+  "eval_id": 0,
+  "eval_name": "t-shape-framing",
+  "prompt": "Generate all 8 wall IDs for a T-shaped building with correct inch coordinates, directions, extensions, and dormer truss cut specification.",
+  "assertions": [
+    {
+      "text": "Exactly 8 walls are defined (T-shape uses 8 per the skill's wall count table)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "All coordinates are in inches (40 ft = 480 in, 20 ft = 240 in, 24 ft = 288 in, 5.5 in depth)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Corner overlap extensions accounted for: sheathing/drywall extensions offset by wall depth (5.5 in) at shared corners",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "ext_dir values are correctly assigned (+1 or -1) based on which side of each wall faces the exterior",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Dormer cut range calculated from center of top bar (240 in from left) ± half dormer width, with affected truss indices identified",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "T-junction walls (where stem meets top bar) correctly handled — interior/exterior flags set appropriately",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

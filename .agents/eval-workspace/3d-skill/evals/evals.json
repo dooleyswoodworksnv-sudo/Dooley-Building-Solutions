@@ -1,0 +1,18 @@
+{
+  "skill_name": "3D Preview Agent",
+  "skill_path": ".agents/3D/skill/SKILL.md",
+  "evals": [
+    {
+      "id": 0,
+      "name": "walkthrough-camera",
+      "prompt": "Add a 'Walkthrough' preset camera view to the Three.js building viewer. The camera should position itself just inside the front door of the building at eye height (approximately 5.5 ft = 66 inches above floor), looking inward along the depth of the building. Include: the position and lookAt vectors, how to integrate it into the existing preset view table, and a smooth animated transition using GSAP easing. Follow the project's camera configuration and animation standards exactly.",
+      "expected_output": "Camera positioned at roughly (0, 66, 5) looking toward building interior. GSAP/lerp animated transition using easeInOutCubic. Integration into the preset table. PerspectiveCamera config with correct FOV, near/far. OrbitControls target updated. Named 'Walkthrough' per naming convention."
+    },
+    {
+      "id": 1,
+      "name": "shingles-material-debug",
+      "prompt": "In our Three.js viewer, the roof shingles material is not appearing — the roof faces render as the default gray material instead of the intended dark slate. The material should be named 'RoofShingles', be a MeshStandardMaterial with color #2F2F2F, roughness 0.9, metalness 0.0. Write: (1) a debug checklist of what to check in order, (2) the corrected material creation and assignment code using the project's material cache pattern, (3) how to traverse the roof mesh group and apply the material correctly.",
+      "expected_output": "getMaterial() cache pattern used. MeshStandardMaterial with correct PBR values. model.traverse() to assign material to roof meshes. Debug checklist covers: renderer.info, material.name check, castShadow/receiveShadow, material disposal on rebuild. No duplicate material creation."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "eval_name": "walkthrough-camera",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Camera Y position is approximately 66 inches (5.5 ft eye height above floor at Z=0)",
+      "passed": true,
+      "evidence": "position.y = 66 — correct eye height"
+    },
+    {
+      "text": "Camera position is near the front face of the building (Z small/near-zero or slightly positive)",
+      "passed": true,
+      "evidence": "position.z = 10 — just inside front wall"
+    },
+    {
+      "text": "lookAt target points inward along building depth (Z positive / into building), not outward",
+      "passed": true,
+      "evidence": "lookAt.z = 200 — points inward"
+    },
+    {
+      "text": "GSAP animation or easeInOutCubic lerp used for the camera transition (not an instant snap)",
+      "passed": true,
+      "evidence": "gsap.to() with ease: 'power2.inOut' for both position and target"
+    },
+    {
+      "text": "Integration into the existing preset view table shown with Preset name 'Walkthrough'",
+      "passed": true,
+      "evidence": "PRESETS array extended with Walkthrough entry"
+    },
+    {
+      "text": "OrbitControls target updated to a point inside the building (not left at exterior default)",
+      "passed": true,
+      "evidence": "gsap.to(controls.target) animates to lookAt coordinates"
+    },
+    {
+      "text": "Camera config follows project standards: FOV 50, near 0.1, far 5000",
+      "passed": false,
+      "evidence": "Suggests changing FOV to 70-90 for first-person feel — departs from the project's required FOV 50. Near/far not explicitly confirmed."
+    }
+  ],
+  "pass_count": 6,
+  "total": 7,
+  "pass_rate": 0.857
+}

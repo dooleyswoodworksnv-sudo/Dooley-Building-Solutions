@@ -1,0 +1,42 @@
+{
+  "eval_id": 0,
+  "eval_name": "draw-crawl-space",
+  "prompt": "Write production Ruby method draw_crawl_space_foundation inside DooleyBuildingSolutions::HouseShellBuilder with operation wrapping, material cache, BIM attribution, and vent interval subtraction.",
+  "assertions": [
+    {
+      "text": "Code is inside the DooleyBuildingSolutions::HouseShellBuilder module namespace",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "model.start_operation and model.commit_operation present, with rescue block calling model.abort_operation",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "rescue clause catches a specific exception class (e.g. Sketchup::Error, StandardError) — NOT a bare `rescue`",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "@materials_cache hash pattern used — material is not created anew on every call",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "apply_bim_data called with 'Footing' type for BIM attribution",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "No use of eval, instance_eval, or shell-out (system/backticks)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Individual method bodies are under 20 lines (long logic extracted into helpers)",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

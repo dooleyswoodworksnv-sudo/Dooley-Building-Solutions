@@ -1,0 +1,34 @@
+{
+  "eval_name": "blueprint-drift-fix",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "Correctly identifies root cause: blueprint drawn in screen/pixel space rather than inside the same ctx.setTransform() world-space context as walls",
+      "passed": true,
+      "evidence": "Explicitly states blueprint drawn outside setTransform context, referencing the skill's own diagnostic note"
+    },
+    {
+      "text": "Corrected zoomAtPoint function shown with cursor-pivot math (panOffset adjusted so cursor world point stays fixed)",
+      "passed": true,
+      "evidence": "Converts cursor to world coords before zoom, then recomputes panOffset to keep world point fixed — correct pivot math"
+    },
+    {
+      "text": "Blueprint rendered AFTER ctx.setTransform() is applied so it moves with the world coordinate system",
+      "passed": true,
+      "evidence": "renderCanvas calls ctx.setTransform() first, then draws blueprint inside that context"
+    },
+    {
+      "text": "ctx.save() and ctx.restore() wrap the blueprint draw call; ctx.globalAlpha set and then reset",
+      "passed": true,
+      "evidence": "ctx.save() / ctx.restore() present; ctx.globalAlpha = blueprint.opacity then reset to 1.0 explicitly"
+    },
+    {
+      "text": "Explanation clearly describes that drawing in screen space vs. world space is the mismatch causing drift",
+      "passed": true,
+      "evidence": "Before/after table and prose explanation both articulate the screen-space vs world-space mismatch clearly"
+    }
+  ],
+  "pass_count": 5,
+  "total": 5,
+  "pass_rate": 1.0
+}

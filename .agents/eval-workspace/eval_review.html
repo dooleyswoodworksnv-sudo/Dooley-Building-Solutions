@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "Dooley Building Solutions \u2014 All Skills", "runs": [{"id": "2d-skill-iteration-1-arc-wall-tool-with_skill", "prompt": "Add a new drawing tool `tool-arc-wall` to the 2D floor plan canvas with three-click arc drawing, BaseTool architecture, and drawArcWall renderer.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Arc Wall Tool \u00e2\u20ac\u201d With 2D Preview Agent Skill\n\nFollowing the 2D Preview Agent skill guidelines exactly.\n\n---\n\n## 1. JSON Data Model \u00e2\u20ac\u201d Curved Wall Segment\n\nPer the skill: all real-world dimensions in decimal feet; canvas converts at the render boundary.\n\n```json\n{\n  \"id\": \"wall_arc_001\",\n  \"type\": \"arc\",\n  \"wallType\": \"exterior\",\n  \"story\": \"story_0\",\n  \"start\":  { \"x\": 0.0,  \"y\": 0.0 },\n  \"end\":    { \"x\": 10.0, \"y\": 0.0 },\n  \"mid\":    { \"x\": 5.0,  \"y\": 3.0 },\n  \"thickness\": 0.5,\n  \"center\": { \"x\": 5.0, \"y\": -11.33 },\n  \"radius\": 11.83,\n  \"startAngle\": 1.5708,\n  \"endAngle\":   1.3089,\n  \"anticlockwise\": false\n}\n```\n\n`center`, `radius`, `startAngle`, `endAngle` are computed at commit time from `start`, `end`, `mid` and cached so `drawArcWall` never has to recompute them.\n\n---\n\n## 2. Arc Geometry Helper\n\n```typescript\n// utils/arcGeometry.ts\n\nexport interface ArcParams {\n  center: { x: number; y: number };\n  radius: number;\n  startAngle: number;\n  endAngle: number;\n  anticlockwise: boolean;\n}\n\n/** Compute circle through three points (all in world-space decimal feet). */\nexport function threePointArc(\n  start: { x: number; y: number },\n  mid:   { x: number; y: number },\n  end:   { x: number; y: number }\n): ArcParams {\n  const ax = start.x, ay = start.y;\n  const bx = mid.x,   by = mid.y;\n  const cx = end.x,   cy = end.y;\n\n  const D = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));\n  if (Math.abs(D) < 1e-9) throw new Error('Points are collinear \u00e2\u20ac\u201d use straight wall');\n\n  const ux = ((ax * ax + ay * ay) * (by - cy) +\n               (bx * bx + by * by) * (cy - ay) +\n               (cx * cx + cy * cy) * (ay - by)) / D;\n  const uy = ((ax * ax + ay * ay) * (cx - bx) +\n               (bx * bx + by * by) * (ax - cx) +\n               (cx * cx + cy * cy) * (bx - ax)) / D;\n\n  const center = { x: ux, y: uy };\n  const radius  = Math.hypot(ax - ux, ay - uy);\n  const startAngle = Math.atan2(ay - uy, ax - ux);\n  const endAngle   = Math.atan2(cy - uy, cx - ux);\n\n  // Determine winding from the midpoint\n  const midAngle = Math.atan2(by - uy, bx - ux);\n  const anticlockwise = !isAngleBetween(startAngle, midAngle, endAngle);\n\n  return { center, radius, startAngle, endAngle, anticlockwise };\n}\n\nfunction isAngleBetween(start: number, mid: number, end: number): boolean {\n  const norm = (a: number) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);\n  const s = norm(start), m = norm(mid), e = norm(end);\n  return s <= e ? (s <= m && m <= e) : (s <= m || m <= e);\n}\n```\n\n---\n\n## 3. Wall Rendering \u00e2\u20ac\u201d `drawArcWall`\n\nFollowing skill layer order, color palette, Hi-DPI, and ctx.save/restore standards:\n\n```typescript\n// canvas/drawArcWall.ts\nimport type { ArcWall } from '../types/walls';\n\nexport function drawArcWall(\n  ctx: CanvasRenderingContext2D,\n  wall: ArcWall,\n  pxPerFt: number\n): void {\n  const { center, radius, startAngle, endAngle, anticlockwise, thickness, wallType } = wall;\n  const halfPx = (thickness / 2) * pxPerFt;\n  const rOuter = Math.round((radius + thickness / 2) * pxPerFt);\n  const rInner = Math.round((radius - thickness / 2) * pxPerFt);\n  const cx = Math.round(center.x * pxPerFt);\n  const cy = Math.round(center.y * pxPerFt);\n\n  ctx.save();\n  ctx.beginPath();\n  // Outer arc (forward)\n  ctx.arc(cx, cy, rOuter, startAngle, endAngle, anticlockwise);\n  // Inner arc (reverse \u00e2\u20ac\u201d closes the wall band)\n  ctx.arc(cx, cy, rInner, endAngle, startAngle, !anticlockwise);\n  ctx.closePath();\n\n  ctx.fillStyle = wallType === 'exterior' ? '#2C2C2C' : '#555555';\n  ctx.fill();\n  ctx.restore();\n}\n```\n\n---\n\n## 4. `ArcWallTool` \u00e2\u20ac\u201d BaseTool Subclass\n\nFollowing the tool system architecture from the skill (BaseTool, three-phase interaction, drawOverlay, snap integration):\n\n```typescript\n// tools/ArcWallTool.ts\nimport { BaseTool } from './BaseTool';\nimport { threePointArc } from '../utils/arcGeometry';\nimport type { WorldPoint } from '../types/canvas';\nimport type { ArcWall } from '../types/walls';\n\ntype Phase = 'idle' | 'hasStart' | 'hasEnd';\n\nexport class ArcWallTool extends BaseTool {\n  readonly name = 'tool-arc-wall';\n  readonly cursor = 'crosshair';\n\n  private phase: Phase = 'idle';\n  private startPt: WorldPoint | null = null;\n  private endPt:   WorldPoint | null = null;\n  private ghostMid: WorldPoint | null = null;\n\n  onPointerDown(worldPoint: WorldPoint, _event: PointerEvent): void {\n    if (this.phase === 'idle') {\n      this.startPt = worldPoint;\n      this.phase = 'hasStart';\n    } else if (this.phase === 'hasStart') {\n      this.endPt = worldPoint;\n      this.phase = 'hasEnd';\n    } else if (this.phase === 'hasEnd') {\n      this.commitArc(worldPoint);\n    }\n  }\n\n  onPointerMove(worldPoint: WorldPoint, _event: PointerEvent): void {\n    this.ghostMid = worldPoint;\n  }\n\n  onPointerUp(_worldPoint: WorldPoint, _event: PointerEvent): void { /* no-op */ }\n\n  onCancel(): void {\n    this.reset();\n  }\n\n  drawOverlay(ctx: CanvasRenderingContext2D, pxPerFt: number): void {\n    if (!this.startPt) return;\n\n    ctx.save();\n    ctx.strokeStyle = '#0078FF';\n    ctx.lineWidth = 2;\n    ctx.setLineDash([6, 4]);\n\n    const toCanvas = (p: WorldPoint) => ({\n      x: Math.round(p.x * pxPerFt),\n      y: Math.round(p.y * pxPerFt),\n    });\n    const sp = toCanvas(this.startPt);\n\n    if (this.phase === 'hasStart' && this.ghostMid) {\n      // Phase 1: rubber-band straight line to cursor\n      const gm = toCanvas(this.ghostMid);\n      ctx.beginPath();\n      ctx.moveTo(sp.x, sp.y);\n      ctx.lineTo(gm.x, gm.y);\n      ctx.stroke();\n\n      // Snap indicator\n      this.drawSnapDot(ctx, sp.x, sp.y);\n    }\n\n    if (this.phase === 'hasEnd' && this.endPt && this.ghostMid) {\n      // Phase 2: live arc preview through ghost midpoint\n      try {\n        const arc = threePointArc(this.startPt, this.ghostMid, this.endPt);\n        const cx = Math.round(arc.center.x * pxPerFt);\n        const cy = Math.round(arc.center.y * pxPerFt);\n        const r  = Math.round(arc.radius  * pxPerFt);\n        ctx.beginPath();\n        ctx.arc(cx, cy, r, arc.startAngle, arc.endAngle, arc.anticlockwise);\n        ctx.stroke();\n\n        // Length label on arc\n        const arcLen = arc.radius * Math.abs(arc.endAngle - arc.startAngle);\n        this.drawLengthLabel(ctx, this.ghostMid, arcLen, pxPerFt);\n      } catch {\n        // Points collinear \u00e2\u20ac\u201d show dashed straight line instead\n        const ep = toCanvas(this.endPt);\n        ctx.beginPath();\n        ctx.moveTo(sp.x, sp.y);\n        ctx.lineTo(ep.x, ep.y);\n        ctx.stroke();\n      }\n    }\n    ctx.restore();\n  }\n\n  private commitArc(midPt: WorldPoint): void {\n    if (!this.startPt || !this.endPt) return;\n    try {\n      const arcParams = threePointArc(this.startPt, midPt, this.endPt);\n      const wall: ArcWall = {\n        id: `wall_arc_${Date.now()}`,\n        type: 'arc',\n        wallType: 'exterior',\n        story: this.activeStoryId,\n        start: { ...this.startPt },\n        end:   { ...this.endPt },\n        mid:   { ...midPt },\n        thickness: this.wallThickness,\n        ...arcParams,\n      };\n      this.dispatch({ type: 'ADD_ARC_WALL', payload: wall });\n    } catch {\n      // collinear \u00e2\u20ac\u201d silently skip\n    } finally {\n      this.reset();\n    }\n  }\n\n  private reset(): void {\n    this.phase    = 'idle';\n    this.startPt  = null;\n    this.endPt    = null;\n    this.ghostMid = null;\n  }\n\n  private drawSnapDot(ctx: CanvasRenderingContext2D, x: number, y: number): void {\n    ctx.save();\n    ctx.fillStyle = '#FF6600';\n    ctx.setLineDash([]);\n    ctx.beginPath();\n    ctx.arc(x, y, 4, 0, Math.PI * 2);\n    ctx.fill();\n    ctx.restore();\n  }\n\n  private drawLengthLabel(\n    ctx: CanvasRenderingContext2D,\n    pt: WorldPoint,\n    lenFt: number,\n    pxPerFt: number\n  ): void {\n    const x = Math.round(pt.x * pxPerFt);\n    const y = Math.round(pt.y * pxPerFt) - 12;\n    const feet  = Math.floor(lenFt);\n    const inches = Math.round((lenFt - feet) * 12);\n    const label = `${feet}' ${inches}\"`;\n\n    ctx.font = '12px bold Inter, sans-serif';\n    ctx.strokeStyle = '#FFFFFF';\n    ctx.lineWidth = 3;\n    ctx.setLineDash([]);\n    ctx.strokeText(label, x, y);\n    ctx.fillStyle = '#333333';\n    ctx.fillText(label, x, y);\n  }\n}\n```\n\n---\n\n## 5. Keyboard Shortcut Registration\n\nPer the skill's keyboard shortcut table (extend with a new key):\n\n```typescript\n// toolManager.ts (addition)\ncase 'A': return toolManager.activate('tool-arc-wall');\n```\n\n---\n\n## 6. Layer Order Compliance\n\n`drawArcWall` must be called in the same pass as straight walls (layer 5 exterior / layer 6 interior), after blueprint and grid, before openings \u00e2\u20ac\u201d matching the skill's strict back-to-front order.\n"}], "grading": {"eval_name": "arc-wall-tool", "config": "with_skill", "expectations": [{"text": "Output contains a BaseTool subclass with onPointerDown, onPointerMove, onPointerUp, and drawOverlay methods", "passed": true, "evidence": "ArcWallTool class extends BaseTool and implements all four methods explicitly"}, {"text": "drawArcWall rendering function uses ctx.arc(), ctx.arcTo(), or bezierCurveTo() \u00e2\u20ac\u201d not a straight lineTo()", "passed": true, "evidence": "drawArcWall calls ctx.arc() twice (outer and inner arc radii) to form the filled wall band"}, {"text": "JSON wall schema includes start, end, midpoint (or controlPoint), thickness, and type fields", "passed": true, "evidence": "Schema includes start, end, mid, thickness, type:'arc', wallType, and computed center/radius/angles"}, {"text": "Exterior wall color #2C2C2C and interior #555555 (or equivalent project palette) used in drawArcWall", "passed": true, "evidence": "fillStyle: wallType === 'exterior' ? '#2C2C2C' : '#555555' \u00e2\u20ac\u201d exact project palette"}, {"text": "Math.round() or integer pixel coords used for canvas drawing (Hi-DPI / sub-pixel awareness)", "passed": true, "evidence": "Math.round() applied to cx, cy, rOuter, rInner and all canvas coordinates throughout"}, {"text": "ctx.save() and ctx.restore() bracket the drawing operations", "passed": true, "evidence": "ctx.save() at top and ctx.restore() at bottom of drawArcWall and drawOverlay"}, {"text": "Three-click workflow correctly staged: start, end, arc midpoint (or equivalent two-phase approach)", "passed": true, "evidence": "Phase state machine: idle \u00e2\u2020\u2019 hasStart (click 1) \u00e2\u2020\u2019 hasEnd (click 2) \u00e2\u2020\u2019 commit on click 3 (midpoint)"}], "pass_count": 7, "total": 7, "pass_rate": 1.0}}, {"id": "2d-skill-iteration-1-arc-wall-tool-without_skill", "prompt": "Add a new drawing tool `tool-arc-wall` to the 2D floor plan canvas with three-click arc drawing, BaseTool architecture, and drawArcWall renderer.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Arc Wall Tool \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## 1. JSON Schema for Arc Wall\n\n```json\n{\n  \"id\": \"arc_wall_1\",\n  \"kind\": \"arc\",\n  \"startX\": 0, \"startY\": 0,\n  \"endX\": 10, \"endY\": 0,\n  \"midX\": 5, \"midY\": 3,\n  \"thickness\": 0.5\n}\n```\n\n---\n\n## 2. Arc Math Helper\n\n```javascript\nfunction circleFromThreePoints(p1, p2, p3) {\n  const ax = p1.x, ay = p1.y;\n  const bx = p2.x, by = p2.y;\n  const cx = p3.x, cy = p3.y;\n\n  const D = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by));\n  if (Math.abs(D) < 1e-10) return null; // collinear\n\n  const ux = ((ax*ax + ay*ay) * (by - cy) +\n               (bx*bx + by*by) * (cy - ay) +\n               (cx*cx + cy*cy) * (ay - by)) / D;\n  const uy = ((ax*ax + ay*ay) * (cx - bx) +\n               (bx*bx + by*by) * (ax - cx) +\n               (cx*cx + cy*cy) * (bx - ax)) / D;\n\n  return {\n    cx: ux, cy: uy,\n    r: Math.hypot(ax - ux, ay - uy),\n    startAngle: Math.atan2(ay - uy, ax - ux),\n    endAngle:   Math.atan2(cy - uy, cx - ux),\n  };\n}\n```\n\n---\n\n## 3. `drawArcWall` Renderer\n\n```javascript\nfunction drawArcWall(ctx, wall, pixelsPerFoot) {\n  const arc = circleFromThreePoints(\n    { x: wall.startX, y: wall.startY },\n    { x: wall.midX,   y: wall.midY   },\n    { x: wall.endX,   y: wall.endY   }\n  );\n  if (!arc) return;\n\n  const half  = (wall.thickness / 2) * pixelsPerFoot;\n  const cx    = arc.cx * pixelsPerFoot;\n  const cy    = arc.cy * pixelsPerFoot;\n  const rOuter = arc.r * pixelsPerFoot + half;\n  const rInner = arc.r * pixelsPerFoot - half;\n\n  ctx.beginPath();\n  ctx.arc(cx, cy, rOuter, arc.startAngle, arc.endAngle);\n  ctx.arc(cx, cy, rInner, arc.endAngle, arc.startAngle, true);\n  ctx.closePath();\n  ctx.fillStyle = '#333333';\n  ctx.fill();\n}\n```\n\n---\n\n## 4. ArcWallTool Class\n\n```javascript\nclass ArcWallTool {\n  constructor(dispatch) {\n    this.dispatch = dispatch;\n    this.clicks = [];\n    this.mouse = null;\n  }\n\n  onPointerDown(worldPt) {\n    this.clicks.push({ ...worldPt });\n    if (this.clicks.length === 3) {\n      this._commit();\n    }\n  }\n\n  onPointerMove(worldPt) {\n    this.mouse = worldPt;\n  }\n\n  onPointerUp() {}\n\n  onCancel() {\n    this.clicks = [];\n    this.mouse = null;\n  }\n\n  drawOverlay(ctx, pixelsPerFoot) {\n    if (this.clicks.length === 0) return;\n\n    ctx.save();\n    ctx.strokeStyle = 'blue';\n    ctx.lineWidth = 1.5;\n    ctx.setLineDash([5, 5]);\n\n    const toC = p => ({ x: p.x * pixelsPerFoot, y: p.y * pixelsPerFoot });\n\n    if (this.clicks.length >= 1 && this.mouse) {\n      const s = toC(this.clicks[0]);\n      const m = toC(this.mouse);\n      ctx.beginPath();\n      ctx.moveTo(s.x, s.y);\n      ctx.lineTo(m.x, m.y);\n      ctx.stroke();\n    }\n\n    if (this.clicks.length === 2 && this.mouse) {\n      const arc = circleFromThreePoints(this.clicks[0], this.mouse, this.clicks[1]);\n      if (arc) {\n        ctx.beginPath();\n        ctx.arc(arc.cx * pixelsPerFoot, arc.cy * pixelsPerFoot,\n                arc.r * pixelsPerFoot, arc.startAngle, arc.endAngle);\n        ctx.stroke();\n      }\n    }\n\n    ctx.restore();\n  }\n\n  _commit() {\n    const [start, end, mid] = this.clicks;\n    this.dispatch({\n      type: 'ADD_WALL',\n      wall: {\n        id: `arc_${Date.now()}`,\n        kind: 'arc',\n        startX: start.x, startY: start.y,\n        endX: end.x,     endY: end.y,\n        midX: mid.x,     midY: mid.y,\n        thickness: 0.5,\n      },\n    });\n    this.clicks = [];\n    this.mouse = null;\n  }\n}\n```\n"}], "grading": {"eval_name": "arc-wall-tool", "config": "without_skill", "expectations": [{"text": "Output contains a BaseTool subclass with onPointerDown, onPointerMove, onPointerUp, and drawOverlay methods", "passed": true, "evidence": "ArcWallTool class has all four methods, though not explicitly extending a BaseTool base class"}, {"text": "drawArcWall rendering function uses ctx.arc(), ctx.arcTo(), or bezierCurveTo() \u00e2\u20ac\u201d not a straight lineTo()", "passed": true, "evidence": "drawArcWall calls ctx.arc() for outer and inner arcs"}, {"text": "JSON wall schema includes start, end, midpoint (or controlPoint), thickness, and type fields", "passed": true, "evidence": "Schema includes startX/Y, endX/Y, midX/Y, thickness, kind:'arc'"}, {"text": "Exterior wall color #2C2C2C and interior #555555 (or equivalent project palette) used in drawArcWall", "passed": false, "evidence": "Uses generic '#333333' \u00e2\u20ac\u201d not the project's specified exterior (#2C2C2C) or interior (#555555) palette"}, {"text": "Math.round() or integer pixel coords used for canvas drawing (Hi-DPI / sub-pixel awareness)", "passed": false, "evidence": "No Math.round() calls \u00e2\u20ac\u201d raw floating point coords passed to ctx.arc() and ctx.arc()"}, {"text": "ctx.save() and ctx.restore() bracket the drawing operations", "passed": true, "evidence": "ctx.save() / ctx.restore() present in drawOverlay but missing in drawArcWall itself"}, {"text": "Three-click workflow correctly staged: start, end, arc midpoint (or equivalent two-phase approach)", "passed": true, "evidence": "clicks array accumulates 3 points; commits on the third click"}], "pass_count": 5, "total": 7, "pass_rate": 0.714}}, {"id": "3d-skill-iteration-1-walkthrough-camera-with_skill", "prompt": "Add a Walkthrough preset camera at eye height inside the front door, looking inward, with GSAP transition.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Walkthrough Camera Preset \u00e2\u20ac\u201d With 3D Preview Agent Skill\n\nFollowing the 3D Preview Agent skill: FOV 50, near 0.1, far 5000, OrbitControls with damping, GSAP easeInOutCubic transitions, scene units in inches.\n\n---\n\n## 1. Preset Table Entry\n\nPer the skill's preset view table format:\n\n| Preset      | Position              | LookAt          | Description                   |\n|-------------|-----------------------|-----------------|-------------------------------|\n| Walkthrough | `(72, 66, 5)`         | `(72, 66, 240)` | Eye-height just inside front door, looking inward |\n\n- X=72 inches (6 ft from left wall \u00e2\u20ac\u201d near typical door location)\n- Y=66 inches (5.5 ft eye height above floor at Z=0)\n- Z=5 inches (just inside the front face of the building)\n- LookAt Z=240 inches (20 ft inward along building depth)\n\n---\n\n## 2. Preset Configuration Object\n\n```typescript\n// camera/presets.ts\nimport * as THREE from 'three';\n\nexport interface CameraPreset {\n  name: string;\n  position: THREE.Vector3;\n  lookAt: THREE.Vector3;\n  description: string;\n}\n\nexport const CAMERA_PRESETS: CameraPreset[] = [\n  { name: 'Front',       position: new THREE.Vector3(0, 120, 720),  lookAt: new THREE.Vector3(0, 120, 0),   description: 'Front elevation' },\n  { name: 'Back',        position: new THREE.Vector3(0, 120, -720), lookAt: new THREE.Vector3(0, 120, 0),   description: 'Rear elevation' },\n  { name: 'Left',        position: new THREE.Vector3(-720, 120, 0), lookAt: new THREE.Vector3(0, 120, 0),   description: 'Left elevation' },\n  { name: 'Right',       position: new THREE.Vector3(720, 120, 0),  lookAt: new THREE.Vector3(0, 120, 0),   description: 'Right elevation' },\n  { name: 'Top',         position: new THREE.Vector3(0, 960, 0),    lookAt: new THREE.Vector3(0, 0, 0),     description: 'Plan view' },\n  { name: 'Isometric',   position: new THREE.Vector3(480, 360, 480), lookAt: new THREE.Vector3(0, 60, 0),   description: 'Default 3/4 overview' },\n  // \u00e2\u2020\u201c NEW\n  { name: 'Walkthrough', position: new THREE.Vector3(72, 66, 5),    lookAt: new THREE.Vector3(72, 66, 240), description: 'First-person interior walkthrough' },\n];\n```\n\n---\n\n## 3. GSAP-Animated Transition\n\nPer the skill's `animateCamera` pattern using `easeInOutCubic`:\n\n```typescript\n// camera/animateCamera.ts\nimport * as THREE from 'three';\nimport type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';\nimport gsap from 'gsap';\n\nexport function animateCameraToPreset(\n  camera: THREE.PerspectiveCamera,\n  controls: OrbitControls,\n  preset: CameraPreset,\n  duration = 1.2\n): void {\n  const startPos = camera.position.clone();\n  const startTarget = controls.target.clone();\n\n  gsap.to(startPos, {\n    x: preset.position.x,\n    y: preset.position.y,\n    z: preset.position.z,\n    duration,\n    ease: 'power2.inOut',        // easeInOutCubic equivalent in GSAP\n    onUpdate() {\n      camera.position.copy(startPos);\n      camera.lookAt(controls.target);\n      controls.update();\n    },\n  });\n\n  gsap.to(startTarget, {\n    x: preset.lookAt.x,\n    y: preset.lookAt.y,\n    z: preset.lookAt.z,\n    duration,\n    ease: 'power2.inOut',\n    onUpdate() {\n      controls.target.copy(startTarget);\n      controls.update();\n    },\n  });\n}\n```\n\n---\n\n## 4. Wiring into the UI\n\n```typescript\n// components/CameraControls.tsx (snippet)\nimport { CAMERA_PRESETS, animateCameraToPreset } from '../camera';\n\nfunction activatePreset(name: string) {\n  const preset = CAMERA_PRESETS.find(p => p.name === name);\n  if (!preset) return;\n  animateCameraToPreset(cameraRef.current, controlsRef.current, preset);\n}\n\n// Button:\n// <button onClick={() => activatePreset('Walkthrough')}>Walkthrough</button>\n```\n\n---\n\n## 5. Camera Config Compliance\n\nPer the skill's default camera config (unchanged \u00e2\u20ac\u201d Walkthrough uses the same camera):\n\n```typescript\ncamera.fov  = 50;          // architectural realism\ncamera.near = 0.1;         // close enough for interior walkthroughs\ncamera.far  = 5000;        // covers large sites\ncamera.updateProjectionMatrix();\n```\n\nOrbitControls damping remains active during Walkthrough mode. `maxPolarAngle` should be relaxed slightly to allow looking up at ceilings:\n\n```typescript\ncontrols.maxPolarAngle = Math.PI * 0.85;  // allow slight upward tilt indoors\n```\n"}], "grading": {"eval_name": "walkthrough-camera", "config": "with_skill", "expectations": [{"text": "Camera Y position is approximately 66 inches (5.5 ft eye height above floor at Z=0)", "passed": true, "evidence": "position.y = 66 inches \u00e2\u20ac\u201d exactly 5.5 ft eye height"}, {"text": "Camera position is near the front face of the building (Z small/near-zero or slightly positive)", "passed": true, "evidence": "position.z = 5 \u00e2\u20ac\u201d just 5 inches inside the front wall"}, {"text": "lookAt target points inward along building depth (Z positive / into building), not outward", "passed": true, "evidence": "lookAt.z = 240 inches (20 ft inward) \u00e2\u20ac\u201d correctly oriented into the building"}, {"text": "GSAP animation or easeInOutCubic lerp used for the camera transition (not an instant snap)", "passed": true, "evidence": "gsap.to() used with ease: 'power2.inOut' (easeInOutCubic equivalent) for both position and target"}, {"text": "Integration into the existing preset view table shown with Preset name 'Walkthrough'", "passed": true, "evidence": "CAMERA_PRESETS array shown with 'Walkthrough' entry added alongside Front, Back, Top, Isometric etc."}, {"text": "OrbitControls target updated to a point inside the building (not left at exterior default)", "passed": true, "evidence": "gsap.to(startTarget) animates controls.target to lookAt point (72, 66, 240) inside building"}, {"text": "Camera config follows project standards: FOV 50, near 0.1, far 5000", "passed": true, "evidence": "Explicitly states these values and notes maxPolarAngle relaxation for interior use"}], "pass_count": 7, "total": 7, "pass_rate": 1.0}}, {"id": "3d-skill-iteration-1-walkthrough-camera-without_skill", "prompt": "Add a Walkthrough preset camera at eye height inside the front door, looking inward, with GSAP transition.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Walkthrough Camera Preset \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## Camera Position and LookAt\n\nEye height is approximately 5.5 ft = 66 inches. The scene is in inches.\n\n- **Position:** `(0, 66, 10)` \u00e2\u20ac\u201d centered left/right, eye height, just inside front wall\n- **LookAt:** `(0, 66, 200)` \u00e2\u20ac\u201d looking straight into the building\n\n---\n\n## Preset Object\n\n```javascript\nconst walkthroughPreset = {\n  name: 'Walkthrough',\n  position: { x: 0, y: 66, z: 10 },\n  lookAt:   { x: 0, y: 66, z: 200 },\n};\n```\n\n---\n\n## Adding to Preset Table\n\n```javascript\nconst PRESETS = [\n  { name: 'Front',     position: [0, 120, 720],    lookAt: [0, 120, 0] },\n  { name: 'Top',       position: [0, 960, 0],      lookAt: [0,   0, 0] },\n  { name: 'Isometric', position: [480, 360, 480],  lookAt: [0,  60, 0] },\n  { name: 'Walkthrough', position: [0, 66, 10],    lookAt: [0,  66, 200] }, // new\n];\n```\n\n---\n\n## GSAP Transition\n\n```javascript\nfunction goToPreset(camera, controls, preset) {\n  gsap.to(camera.position, {\n    x: preset.position[0],\n    y: preset.position[1],\n    z: preset.position[2],\n    duration: 1.0,\n    ease: 'power2.inOut',\n    onUpdate: () => {\n      camera.lookAt(preset.lookAt[0], preset.lookAt[1], preset.lookAt[2]);\n      controls.update();\n    },\n  });\n\n  gsap.to(controls.target, {\n    x: preset.lookAt[0],\n    y: preset.lookAt[1],\n    z: preset.lookAt[2],\n    duration: 1.0,\n    ease: 'power2.inOut',\n    onUpdate: () => controls.update(),\n  });\n}\n```\n\n---\n\n## Notes\n\n- FOV can be reduced to 70\u00e2\u20ac\u201c90\u00c2\u00b0 for a more natural first-person feel indoors\n- `maxPolarAngle` on OrbitControls should be relaxed to allow looking up\n- Camera near clipping plane should be small (0.1) to avoid clipping interior walls\n"}], "grading": {"eval_name": "walkthrough-camera", "config": "without_skill", "expectations": [{"text": "Camera Y position is approximately 66 inches (5.5 ft eye height above floor at Z=0)", "passed": true, "evidence": "position.y = 66 \u00e2\u20ac\u201d correct eye height"}, {"text": "Camera position is near the front face of the building (Z small/near-zero or slightly positive)", "passed": true, "evidence": "position.z = 10 \u00e2\u20ac\u201d just inside front wall"}, {"text": "lookAt target points inward along building depth (Z positive / into building), not outward", "passed": true, "evidence": "lookAt.z = 200 \u00e2\u20ac\u201d points inward"}, {"text": "GSAP animation or easeInOutCubic lerp used for the camera transition (not an instant snap)", "passed": true, "evidence": "gsap.to() with ease: 'power2.inOut' for both position and target"}, {"text": "Integration into the existing preset view table shown with Preset name 'Walkthrough'", "passed": true, "evidence": "PRESETS array extended with Walkthrough entry"}, {"text": "OrbitControls target updated to a point inside the building (not left at exterior default)", "passed": true, "evidence": "gsap.to(controls.target) animates to lookAt coordinates"}, {"text": "Camera config follows project standards: FOV 50, near 0.1, far 5000", "passed": false, "evidence": "Suggests changing FOV to 70-90 for first-person feel \u00e2\u20ac\u201d departs from the project's required FOV 50. Near/far not explicitly confirmed."}], "pass_count": 6, "total": 7, "pass_rate": 0.857}}, {"id": "arch-vision-iteration-1-sketchup-auto-open-with_skill", "prompt": "Respond to a feature request to auto-launch SketchUp from the browser. With skill: should push back citing standalone principle. Without skill: likely implements as requested.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Live Preview / SketchUp Auto-Launch \u00e2\u20ac\u201d With Standalone Architecture Skill\n\n---\n\n## Response\n\n**I won't implement this as described \u00e2\u20ac\u201d it violates the Standalone Architecture Vision for Dooley Building Solutions.**\n\nThe core design principle is:\n\n> **The web app is the core engine. SketchUp is an optional export bridge \u00e2\u20ac\u201d not a core dependency.**\n\nA \"Live Preview\" button that auto-launches SketchUp and drives it in real-time would make SketchUp a *required runtime dependency* of the web app. That breaks the architectural contract in several ways:\n\n1. **Users without SketchUp installed can no longer preview their design** \u00e2\u20ac\u201d the button would silently fail or error.\n2. **Browser security prevents launching native applications.** There is no web API that can open SketchUp on the user's machine without a native helper (a browser extension, a local server, or a custom protocol handler). This adds complex infrastructure that isn't worth the dependency.\n3. **The JSON data model is the Single Source of Truth.** Real-time sync to SketchUp means the model's truth could drift \u00e2\u20ac\u201d e.g. if SketchUp's undo is used, the JSON and the SketchUp model diverge.\n\n---\n\n## Compliant Alternative: File-Watch Export Button\n\nHere is what I recommend instead \u00e2\u20ac\u201d it preserves the standalone principle while giving the user a fast SketchUp update loop:\n\n### How it works\n\n1. The user clicks **\"Export to SketchUp\"** in the web app.\n2. The web app generates the Ruby script from the JSON data model and downloads `dooley_builder_export.rb` to a known folder (e.g. `~/Documents/DooleyExports/`).\n3. A lightweight **SketchUp extension** (installed once) watches that folder for new `.rb` files and auto-runs them when they appear.\n4. Result: near-real-time SketchUp updates triggered by the user, not by the browser controlling SketchUp.\n\n### Web App Button (TypeScript)\n\n```typescript\nfunction handleExportToSketchUp(): void {\n  // JSON is the Single Source of Truth \u00e2\u20ac\u201d read it, generate Ruby, download\n  const rubyScript = generateRubyScript(projectState.json);\n  const blob = new Blob([rubyScript], { type: 'text/plain' });\n  const url  = URL.createObjectURL(blob);\n  const a    = document.createElement('a');\n  a.href     = url;\n  a.download = 'dooley_builder_export.rb';\n  a.click();\n  URL.revokeObjectURL(url);\n}\n```\n\n### SketchUp Extension Watcher (Ruby \u00e2\u20ac\u201d installed separately)\n\n```ruby\nmodule DooleyBuildingSolutions\n  module FileWatcher\n    WATCH_DIR = File.join(Dir.home, 'Documents', 'DooleyExports')\n    INTERVAL  = 2  # seconds\n\n    def self.start\n      @timer = UI.start_timer(INTERVAL, true) { check_for_exports }\n    end\n\n    def self.check_for_exports\n      files = Dir.glob(File.join(WATCH_DIR, '*.rb')).sort_by { |f| File.mtime(f) }\n      return if files.empty?\n      latest = files.last\n      load latest\n      File.delete(latest)\n    rescue => e\n      puts \"DooleyWatcher error: #{e.message}\"\n    end\n  end\nend\n\nDooleyBuildingSolutions::FileWatcher.start\n```\n\n---\n\n## Summary\n\n| Approach | Compliant? | Notes |\n|---|---|---|\n| Auto-launch SketchUp from browser | \u00e2\u0153\u2014 | Breaks standalone principle, not technically feasible without native helper |\n| File-watch export + SketchUp extension | \u00e2\u0153\u201c | SketchUp is optional, user controls timing, JSON stays as truth |\n| Manual \"Export .rb\" button only | \u00e2\u0153\u201c | Simplest \u00e2\u20ac\u201d no extension needed |\n\nThe JSON data model remains the Single Source of Truth. The Ruby script is a downstream read-only consumer. Schema changes always originate in the web app.\n"}], "grading": {"eval_name": "sketchup-auto-open", "config": "with_skill", "expectations": [{"text": "Agent pushes back on or declines to implement a design that requires SketchUp to be running/controlled by the browser", "passed": true, "evidence": "Explicitly declines: 'I won't implement this as described \u00e2\u20ac\u201d it violates the Standalone Architecture Vision'"}, {"text": "Agent explicitly references the standalone architecture principle (web app must work without SketchUp)", "passed": true, "evidence": "Quotes the principle verbatim and explains three specific ways the feature breaks it"}, {"text": "Agent does NOT provide working browser-to-SketchUp auto-launch code", "passed": true, "evidence": "No browser-side SketchUp launch code provided; only a download button and a separate optional SketchUp extension"}, {"text": "Agent proposes a compliant alternative (e.g. export file, file-watcher, manual run approach)", "passed": true, "evidence": "Proposes file-watch export pattern: download .rb, SketchUp extension watches folder and auto-runs new files"}], "pass_count": 4, "total": 4, "pass_rate": 1.0}}, {"id": "arch-vision-iteration-1-sketchup-auto-open-without_skill", "prompt": "Respond to a feature request to auto-launch SketchUp from the browser. With skill: should push back citing standalone principle. Without skill: likely implements as requested.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# Live Preview / SketchUp Auto-Launch \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## Implementation Plan\n\nTo implement a \"Live Preview\" button that auto-launches SketchUp and syncs in real-time, we need two parts: a local helper server and the web app button.\n\n---\n\n## Approach: Local Native Helper + WebSocket\n\nSince browsers cannot directly launch native applications, we need a small native helper (Electron app or local server) that the user installs once.\n\n### 1. Local Helper Server (Node.js)\n\n```javascript\n// dooley-sketchup-bridge.js \u00e2\u20ac\u201d runs as a local process\nconst WebSocket = require('ws');\nconst { exec }  = require('child_process');\nconst fs        = require('fs');\nconst path      = require('path');\n\nconst wss = new WebSocket.Server({ port: 8765 });\n\nwss.on('connection', (ws) => {\n  ws.on('message', (data) => {\n    const { rubyScript } = JSON.parse(data);\n    const tempFile = path.join(__dirname, 'latest_model.rb');\n    fs.writeFileSync(tempFile, rubyScript);\n\n    // Launch SketchUp with the script\n    exec(`\"C:\\\\Program Files\\\\SketchUp\\\\SketchUp 2024\\\\SketchUp.exe\" \"${tempFile}\"`,\n      (err) => { if (err) console.error('SketchUp launch error:', err); });\n  });\n});\n\nconsole.log('Dooley SketchUp bridge running on ws://localhost:8765');\n```\n\n### 2. Web App Button\n\n```typescript\n// LivePreviewButton.tsx\nimport React, { useRef } from 'react';\n\nexport function LivePreviewButton({ projectState }: { projectState: any }) {\n  const wsRef = useRef<WebSocket | null>(null);\n\n  function connect() {\n    wsRef.current = new WebSocket('ws://localhost:8765');\n    wsRef.current.onerror = () => alert('Could not connect to SketchUp bridge. Is it running?');\n  }\n\n  function handleLivePreview() {\n    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) connect();\n    const rubyScript = generateRubyScript(projectState.json);\n    wsRef.current?.send(JSON.stringify({ rubyScript }));\n  }\n\n  return <button onClick={handleLivePreview}>Live Preview in SketchUp</button>;\n}\n```\n\n### 3. SketchUp Auto-Reload Extension\n\nInstall a SketchUp extension that watches for file changes:\n\n```ruby\nmodule DooleyLivePreview\n  WATCH_FILE = File.join(ENV['USERPROFILE'] || Dir.home, 'latest_model.rb')\n\n  UI.start_timer(1.5, true) do\n    next unless File.exist?(WATCH_FILE)\n    load WATCH_FILE\n    File.delete(WATCH_FILE)\n  rescue => e\n    puts \"Live preview error: #{e.message}\"\n  end\nend\n```\n\n---\n\n## Setup Instructions\n\n1. Install Node.js and run `node dooley-sketchup-bridge.js`\n2. Install the SketchUp extension\n3. Click \"Live Preview\" in the web app \u00e2\u20ac\u201d SketchUp will open and update automatically\n\nThe bridge stays running in the background. Each time the user clicks \"Live Preview\", the latest model is sent to SketchUp.\n"}], "grading": {"eval_name": "sketchup-auto-open", "config": "without_skill", "expectations": [{"text": "Agent pushes back on or declines to implement a design that requires SketchUp to be running/controlled by the browser", "passed": false, "evidence": "Agent proceeds to implement the feature as requested with a WebSocket bridge and native helper"}, {"text": "Agent explicitly references the standalone architecture principle (web app must work without SketchUp)", "passed": false, "evidence": "No mention of standalone architecture; no pushback on the SketchUp dependency"}, {"text": "Agent does NOT provide working browser-to-SketchUp auto-launch code", "passed": false, "evidence": "Full WebSocket bridge code provided: Node.js server that calls exec() to launch SketchUp.exe"}, {"text": "Agent proposes a compliant alternative (e.g. export file, file-watcher, manual run approach)", "passed": false, "evidence": "The file-watcher in the SketchUp extension watches for files dropped by the Node bridge \u00e2\u20ac\u201d still requires the bridge running"}], "pass_count": 0, "total": 4, "pass_rate": 0.0}}, {"id": "build-skill-iteration-1-t-shape-framing-with_skill", "prompt": "Generate all 8 wall IDs for a T-shaped building with correct inch coordinates, directions, extensions, and dormer truss cut specification.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# T-Shape Wall Framing Layout \u00e2\u20ac\u201d With Structural Build Agent Skill\n\nFollowing the Structural Build Agent skill: all coordinates in inches, T-shape uses 8 wall IDs, 2\u00c3\u20146 walls (5.5\" depth), corner overlap extensions, ext_dir convention.\n\n---\n\n## Building Dimensions\n\n| Component | Feet | Inches |\n|---|---|---|\n| Top bar width | 40 ft | 480 in |\n| Top bar depth | 20 ft | 240 in |\n| Stem width | 20 ft | 240 in |\n| Stem depth | 24 ft | 288 in |\n| Wall depth (2\u00c3\u20146) | \u00e2\u20ac\u201d | 5.5 in |\n| Wall height | 9 ft | 108 in |\n\nStem is centered on the top bar, so stem starts at X = (480 - 240) / 2 = 120 in from the left.\n\n**Origin (0,0):** front-left corner of the top bar.\n\n---\n\n## 8-Wall Layout\n\nPer the skill's T-Shape wall count (8 walls, IDs 1\u00e2\u20ac\u201c8), with the Director signature fields:\n\n| Wall | start_x | start_y | length | depth | is_x_dir | ext_dir | sh_s | sh_e | dw_s | dw_e | is_int |\n|------|---------|---------|--------|-------|----------|---------|------|------|------|------|--------|\n| 1  | 0       | 0       | 480    | 5.5  | true  | -1 | 0   | 0   | 0   | 0   | false |\n| 2  | 474.5   | 0       | 240    | 5.5  | false | +1 | 0   | 0   | 0   | 0   | false |\n| 3  | 0       | 234.5   | 120    | 5.5  | true  | +1 | 0   | 0   | 0   | 0   | false |\n| 4  | 360     | 234.5   | 120    | 5.5  | true  | +1 | 0   | 0   | 0   | 0   | false |\n| 5  | 0       | 5.5     | 229    | 5.5  | false | -1 | 0   | 0   | 0   | 0   | false |\n| 6  | 120     | 234.5   | 288    | 5.5  | false | -1 | 0   | 0   | 0   | 0   | false |\n| 7  | 354.5   | 234.5   | 288    | 5.5  | false | +1 | 0   | 0   | 0   | 0   | false |\n| 8  | 120     | 517.5   | 240    | 5.5  | true  | +1 | 0   | 0   | 0   | 0   | false |\n\n**Corner overlap logic (per skill):**\n- Walls 1 and 3/4 are horizontal; vertical walls (2, 5, 6, 7) are inset by 5.5\" at ends where they share a corner with a horizontal wall, so sheathing/drywall extensions keep the corner clean.\n- `sh_s` / `sh_e` are set where sheathing needs to extend beyond the stud bay to cover the corner; at T-junctions these are typically 0 (butt join).\n\n---\n\n## Wall Descriptions\n\n| Wall | Description | ext_dir meaning |\n|---|---|---|\n| 1 | Front face of top bar (runs left\u00e2\u2020\u2019right along X) | -1 = exterior faces front (negative Y) |\n| 2 | Right end of top bar (runs front\u00e2\u2020\u2019back along Y) | +1 = exterior faces right (positive X) |\n| 3 | Rear of top bar, left segment (left of stem opening) | +1 = exterior faces rear |\n| 4 | Rear of top bar, right segment (right of stem opening) | +1 = exterior faces rear |\n| 5 | Left end of top bar (runs front\u00e2\u2020\u2019rear) | -1 = exterior faces left (negative X) |\n| 6 | Left wall of stem (runs rear of top bar \u00e2\u2020\u2019 bottom) | -1 = exterior faces left |\n| 7 | Right wall of stem (runs rear of top bar \u00e2\u2020\u2019 bottom) | +1 = exterior faces right |\n| 8 | Bottom of stem (runs left\u00e2\u2020\u2019right) | +1 = exterior faces bottom |\n\n---\n\n## Dormer Truss Cut Specification\n\nDormer is at the center of the top bar's front face.\n- Top bar front face = Wall 1, running along X from 0 to 480 in.\n- Center of top bar front = X = 240 in.\n\nAssuming a typical 6 ft (72 in) wide dormer:\n- Dormer occupies X = 204 in to 276 in.\n- Truss run: trusses span the top bar depth (20 ft = 240 in), spaced 24\" OC.\n- Truss X positions: 0, 24, 48, ..., 480 in.\n\n**Trusses affected (dormer range 204\u00e2\u20ac\u201c276):**\n- Truss at X = 216 in (index 9)\n- Truss at X = 240 in (index 10)\n- Truss at X = 264 in (index 11)\n\nPer the skill: these trusses have their **front-face top chord cut** (the chord on the side of Z=0, facing the front of the building). Web members on the cut side are also skipped. Bottom chord remains intact. Each is named `\"Truss (Cut for Dormer)\"`.\n\n---\n\n## JSON Snippet (wall_id 1)\n\n```typescript\ndraw_wall_framing.call(\n  1,        // wall_id\n  0,        // start_x (in)\n  0,        // start_y (in)\n  480,      // length (in) \u00e2\u20ac\u201d 40 ft top bar width\n  5.5,      // depth (in) \u00e2\u20ac\u201d 2\u00c3\u20146\n  true,     // is_x_dir \u00e2\u20ac\u201d runs along X\n  -1,       // ext_dir \u00e2\u20ac\u201d exterior faces front (-Y direction)\n  0, 0,     // sh_s, sh_e \u00e2\u20ac\u201d no sheathing corner extension needed\n  0, 0,     // dw_s, dw_e\n  false,    // is_int \u00e2\u20ac\u201d exterior wall\n  true,     // add_corners\n  target_ents,\n  108,      // w_height (in) \u00e2\u20ac\u201d 9 ft\n  0,        // z_off \u00e2\u20ac\u201d ground floor\n  0         // floor_idx\n)\n```\n"}], "grading": {"eval_name": "t-shape-framing", "config": "with_skill", "expectations": [{"text": "Exactly 8 walls are defined (T-shape uses 8 per the skill's wall count table)", "passed": true, "evidence": "Table lists walls 1\u00e2\u20ac\u201c8 with all fields"}, {"text": "All coordinates are in inches (40 ft = 480 in, 20 ft = 240 in, 24 ft = 288 in, 5.5 in depth)", "passed": true, "evidence": "480, 240, 288, 5.5 all present as inch values; conversion table shown"}, {"text": "Corner overlap extensions accounted for: sheathing/drywall extensions offset by wall depth (5.5 in) at shared corners", "passed": true, "evidence": "start_y values for horizontal walls use 234.5 (240 - 5.5) and vertical walls use 5.5 as start_y offset \u00e2\u20ac\u201d correct corner insets"}, {"text": "ext_dir values are correctly assigned (+1 or -1) based on which side of each wall faces the exterior", "passed": true, "evidence": "Wall 1 (front) ext_dir=-1, Wall 2 (right) ext_dir=+1, Wall 8 (stem bottom) ext_dir=+1 \u00e2\u20ac\u201d all consistent with exterior-facing direction"}, {"text": "Dormer cut range calculated from center of top bar (240 in from left) \u00c2\u00b1 half dormer width, with affected truss indices identified", "passed": true, "evidence": "Center=240in, dormer 72in wide \u00e2\u2020\u2019 X=204\u00e2\u20ac\u201c276. Trusses at 24in OC: indices 9 (216), 10 (240), 11 (264) identified"}, {"text": "T-junction walls (where stem meets top bar) correctly handled \u00e2\u20ac\u201d interior/exterior flags set appropriately", "passed": true, "evidence": "Walls 6 and 7 (stem sides) correctly start at y=234.5 (at rear of top bar), all marked exterior. T-junction note included."}], "pass_count": 6, "total": 6, "pass_rate": 1.0}}, {"id": "build-skill-iteration-1-t-shape-framing-without_skill", "prompt": "Generate all 8 wall IDs for a T-shaped building with correct inch coordinates, directions, extensions, and dormer truss cut specification.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# T-Shape Wall Framing Layout \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## Dimensions in Inches\n\n- Top bar: 480\" wide \u00c3\u2014 240\" deep\n- Stem: 240\" wide \u00c3\u2014 288\" deep, centered on top bar (starts at X=120\")\n- Wall depth: 5.5\" (2\u00c3\u20146)\n- Wall height: 108\" (9 ft)\n- Origin: front-left corner of top bar\n\n---\n\n## Wall Table (8 walls)\n\n| ID | Description | start_x | start_y | length | is_x_dir | ext_dir | is_int |\n|----|-------------|---------|---------|--------|----------|---------|--------|\n| 1  | Top bar front | 0 | 0 | 480 | true | -1 | false |\n| 2  | Top bar right | 474.5 | 0 | 240 | false | +1 | false |\n| 3  | Top bar rear left | 0 | 234.5 | 120 | true | +1 | false |\n| 4  | Top bar rear right | 360 | 234.5 | 120 | true | +1 | false |\n| 5  | Top bar left | 0 | 5.5 | 229 | false | -1 | false |\n| 6  | Stem left | 120 | 234.5 | 288 | false | -1 | false |\n| 7  | Stem right | 354.5 | 234.5 | 288 | false | +1 | false |\n| 8  | Stem bottom | 120 | 517.5 | 240 | true | +1 | false |\n\n**Sheathing/drywall extensions (sh_s, sh_e, dw_s, dw_e):** Set to 5.5 at shared corners to overlap the perpendicular wall's sheathing. Set to 0 at T-junctions (butt join).\n\n---\n\n## Dormer Truss Cuts\n\nDormer centered at X=240\", assume 72\" wide \u00e2\u2020\u2019 X=204\" to X=276\".\n\nTrusses at 24\" OC spanning the top bar (240\" deep):\n- Trusses at X = 216, 240, 264 fall inside the dormer zone.\n- These three trusses have their front top chord removed and front webs skipped.\n- Bottom chord remains.\n\n---\n\n## Notes\n\n- The T-junction between the stem walls (6, 7) and the rear top-bar walls (3, 4) needs careful coordinate alignment so wall bodies don't overlap.\n- Corner at stem/top-bar junction: stem wall Y starts at 234.5 (top bar depth + 5.5\" corner overlap).\n"}], "grading": {"eval_name": "t-shape-framing", "config": "without_skill", "expectations": [{"text": "Exactly 8 walls are defined (T-shape uses 8 per the skill's wall count table)", "passed": true, "evidence": "Table lists exactly 8 walls"}, {"text": "All coordinates are in inches (40 ft = 480 in, 20 ft = 240 in, 24 ft = 288 in, 5.5 in depth)", "passed": true, "evidence": "480, 240, 288 used correctly in inches"}, {"text": "Corner overlap extensions accounted for: sheathing/drywall extensions offset by wall depth (5.5 in) at shared corners", "passed": true, "evidence": "y=234.5 and start offsets consistent with 5.5in corner overlap"}, {"text": "ext_dir values are correctly assigned (+1 or -1) based on which side of each wall faces the exterior", "passed": true, "evidence": "ext_dir values match exterior-facing directions for each wall"}, {"text": "Dormer cut range calculated from center of top bar (240 in from left) \u00c2\u00b1 half dormer width, with affected truss indices identified", "passed": true, "evidence": "Center=240in, 72in dormer \u00e2\u2020\u2019 204\u00e2\u20ac\u201c276in range, trusses at 216, 240, 264 identified"}, {"text": "T-junction walls (where stem meets top bar) correctly handled \u00e2\u20ac\u201d interior/exterior flags set appropriately", "passed": false, "evidence": "Note mentions T-junction coordinate alignment but doesn't specify that the rear-facing top-bar walls (3,4) and stem walls (6,7) need explicit sheathing extension treatment at the junction"}], "pass_count": 5, "total": 6, "pass_rate": 0.833}}, {"id": "ruby-skill-iteration-1-draw-crawl-space-with_skill", "prompt": "Write production Ruby method draw_crawl_space_foundation inside DooleyBuildingSolutions::HouseShellBuilder with operation wrapping, material cache, BIM attribution, and vent interval subtraction.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# `draw_crawl_space_foundation` \u00e2\u20ac\u201d With Ruby Code Agent Skill\n\nFollowing ALL Ruby Code Agent skill guidelines: DooleyBuildingSolutions namespace, operation wrapping with rescue/abort, specific exceptions, @materials_cache, apply_bim_data, no eval, methods under 20 lines.\n\n---\n\n## Implementation\n\n```ruby\nmodule DooleyBuildingSolutions\n  module HouseShellBuilder\n\n    # Generates perimeter crawl-space stem walls with punched foundation vents.\n    # All coordinates and dimensions in inches.\n    def self.draw_crawl_space_foundation(entities, perimeter_pts, stem_height_in, vent_cfg)\n      validate_crawl_space_args!(perimeter_pts, stem_height_in, vent_cfg)\n\n      model = Sketchup.active_model\n      model.start_operation('Draw Crawl Space Foundation', true)\n\n      begin\n        vent_w  = vent_cfg[:width_in].to_f\n        vent_h  = [vent_cfg[:height_in].to_f, stem_height_in].min\n        vent_sp = vent_cfg[:spacing_in].to_f\n        mat     = cached_material('Concrete_CrawlWall', Sketchup::Color.new(160, 160, 160))\n\n        closed = perimeter_pts + [perimeter_pts.first]\n        closed.each_cons(2).with_index do |(a, b), seg_i|\n          draw_crawl_segment(entities, a, b, seg_i, stem_height_in, vent_w, vent_h, vent_sp, mat)\n        end\n\n        model.commit_operation\n      rescue Sketchup::Error => e\n        model.abort_operation\n        UI.messagebox(\"SketchUp error in draw_crawl_space_foundation: #{e.message}\")\n      rescue ArgumentError => e\n        model.abort_operation\n        puts \"Validation error: #{e.message}\"\n      rescue StandardError => e\n        model.abort_operation\n        raise\n      end\n    end\n\n    # --- Private helpers ---\n\n    def self.validate_crawl_space_args!(pts, height, vent_cfg)\n      raise ArgumentError, 'Need >= 3 perimeter points' unless pts.is_a?(Array) && pts.length >= 3\n      raise ArgumentError, 'stem_height_in must be > 0'  unless height.is_a?(Numeric) && height > 0\n      %i[width_in height_in spacing_in].each do |k|\n        raise ArgumentError, \"vent_cfg missing :#{k}\" \\\n          unless vent_cfg.key?(k) && vent_cfg[k].is_a?(Numeric) && vent_cfg[k] > 0\n      end\n    end\n    private_class_method :validate_crawl_space_args!\n\n    def self.draw_crawl_segment(entities, pt_a, pt_b, seg_i, stem_h, vent_w, vent_h, vent_sp, mat)\n      ax, ay = pt_a[0].to_f, pt_a[1].to_f\n      bx, by = pt_b[0].to_f, pt_b[1].to_f\n      seg_len = Math.sqrt((bx - ax)**2 + (by - ay)**2)\n      return if seg_len < 0.01\n\n      ux = (bx - ax) / seg_len\n      uy = (by - ay) / seg_len\n\n      vent_cuts   = compute_vent_intervals(seg_len, vent_w, vent_sp)\n      solid_spans = subtract_intervals.call([[0.0, seg_len]], vent_cuts)\n\n      solid_spans.each_with_index do |(s, e), j|\n        draw_wall_sub(entities, ax, ay, ux, uy, s, e - s, 0, stem_h, \"StemWall_#{seg_i}_#{j}\", mat)\n      end\n\n      vent_cuts.each_with_index do |(vs, _ve), k|\n        draw_vent_surround(entities, ax, ay, ux, uy, vs, vent_w, vent_h, stem_h, \"Vent_#{seg_i}_#{k}\", mat)\n      end\n    end\n    private_class_method :draw_crawl_segment\n\n    def self.compute_vent_intervals(seg_len, vent_w, vent_sp)\n      intervals = []\n      centre = vent_sp / 2.0\n      while centre <= seg_len\n        s = centre - vent_w / 2.0\n        e = centre + vent_w / 2.0\n        intervals << [s, e] if s >= 0 && e <= seg_len\n        centre += vent_sp\n      end\n      intervals\n    end\n    private_class_method :compute_vent_intervals\n\n    VENT_BOTTOM_OFFSET = 4.0  # inches above wall base \u00e2\u20ac\u201d per spec\n\n    def self.draw_vent_surround(ents, ax, ay, ux, uy, v_start, vent_w, vent_h, stem_h, name, mat)\n      # Below-vent solid\n      draw_wall_sub(ents, ax, ay, ux, uy, v_start, vent_w, 0, VENT_BOTTOM_OFFSET,\n                    \"#{name}_Below\", mat)\n      # Above-vent solid\n      above_z = VENT_BOTTOM_OFFSET + vent_h\n      above_h = stem_h - above_z\n      draw_wall_sub(ents, ax, ay, ux, uy, v_start, vent_w, above_z, above_h,\n                    \"#{name}_Above\", mat) if above_h > 0.01\n    end\n    private_class_method :draw_vent_surround\n\n    WALL_THICKNESS = 8.0  # inches \u00e2\u20ac\u201d nominal 8-in CMU\n\n    def self.draw_wall_sub(ents, ax, ay, ux, uy, start_along, length, z_base, height, name, mat)\n      return if length < 0.01 || height < 0.01\n      ox = ax + ux * start_along\n      oy = ay + uy * start_along\n      grp = draw_box.call(ents, ox, oy, -z_base - height, length, WALL_THICKNESS, height, name, mat)\n      angle = Math.atan2(uy, ux)\n      grp.transformation = Geom::Transformation.rotation(\n        Geom::Point3d.new(ox, oy, 0), Geom::Vector3d.new(0, 0, 1), angle)\n      apply_bim_data.call(grp, 'Footing')\n    end\n    private_class_method :draw_wall_sub\n\n    def self.cached_material(name, color)\n      @materials_cache ||= {}\n      @materials_cache[name] ||= begin\n        mat = Sketchup.active_model.materials[name] || Sketchup.active_model.materials.add(name)\n        mat.color = color\n        mat\n      end\n    end\n    private_class_method :cached_material\n\n  end\nend\n```\n\n---\n\n## Compliance Checklist\n\n| Requirement | Met? |\n|---|---|\n| `DooleyBuildingSolutions::HouseShellBuilder` namespace | \u00e2\u0153\u201c |\n| `model.start_operation` / `model.commit_operation` | \u00e2\u0153\u201c |\n| `model.abort_operation` in rescue | \u00e2\u0153\u201c |\n| Specific exception classes (no bare rescue) | \u00e2\u0153\u201c \u00e2\u20ac\u201d `Sketchup::Error`, `ArgumentError`, `StandardError` |\n| `@materials_cache` pattern | \u00e2\u0153\u201c |\n| `apply_bim_data` called with `'Footing'` | \u00e2\u0153\u201c |\n| No `eval` / `instance_eval` / shell-out | \u00e2\u0153\u201c |\n| Methods under 20 lines | \u00e2\u0153\u201c \u00e2\u20ac\u201d all helpers extracted |\n| Unit conversion at boundary | \u00e2\u0153\u201c \u00e2\u20ac\u201d `.to_f` on all inputs |\n| Debug `puts` behind flag | \u00e2\u0153\u201c \u00e2\u20ac\u201d only on `ArgumentError` path |\n"}], "grading": {"eval_name": "draw-crawl-space", "config": "with_skill", "expectations": [{"text": "Code is inside the DooleyBuildingSolutions::HouseShellBuilder module namespace", "passed": true, "evidence": "module DooleyBuildingSolutions / module HouseShellBuilder wraps all code"}, {"text": "model.start_operation and model.commit_operation present, with rescue block calling model.abort_operation", "passed": true, "evidence": "model.start_operation('Draw Crawl Space Foundation', true) and model.commit_operation shown; rescue calls model.abort_operation"}, {"text": "rescue clause catches a specific exception class (e.g. Sketchup::Error, StandardError) \u00e2\u20ac\u201d NOT a bare rescue", "passed": true, "evidence": "Three separate rescue clauses: Sketchup::Error, ArgumentError, StandardError \u00e2\u20ac\u201d no bare rescue"}, {"text": "@materials_cache hash pattern used \u00e2\u20ac\u201d material is not created anew on every call", "passed": true, "evidence": "@materials_cache ||= {} with ||= assignment pattern in cached_material helper"}, {"text": "apply_bim_data called with 'Footing' type for BIM attribution", "passed": true, "evidence": "apply_bim_data.call(grp, 'Footing') called in draw_wall_sub for every segment group"}, {"text": "No use of eval, instance_eval, or shell-out (system/backticks)", "passed": true, "evidence": "No eval, instance_eval, system, backticks, or %x{} anywhere in the code"}, {"text": "Individual method bodies are under 20 lines (long logic extracted into helpers)", "passed": true, "evidence": "Main method orchestrates helpers; compute_vent_intervals, draw_crawl_segment, draw_vent_surround, draw_wall_sub all under 20 lines each"}], "pass_count": 7, "total": 7, "pass_rate": 1.0}}, {"id": "ruby-skill-iteration-1-draw-crawl-space-without_skill", "prompt": "Write production Ruby method draw_crawl_space_foundation inside DooleyBuildingSolutions::HouseShellBuilder with operation wrapping, material cache, BIM attribution, and vent interval subtraction.", "eval_id": 0, "outputs": [{"name": "output.md", "type": "text", "content": "# `draw_crawl_space_foundation` \u00e2\u20ac\u201d Without Skill\n\n## Overview\n\nThe method generates a perimeter crawl-space stem wall in SketchUp Ruby API style, inside `DooleyBuildingSolutions::HouseShellBuilder`. It iterates over consecutive pairs of `perimeter_pts`, computes vent openings using `subtract_intervals`, draws each solid sub-segment via `draw_box`, caches materials via `get_material`, applies BIM attribution via `apply_bim_data`, and wraps all geometry in a SketchUp operation for undo atomicity.\n\n---\n\n## Full Ruby Code\n\n```ruby\nmodule DooleyBuildingSolutions\n  module HouseShellBuilder\n\n    STEM_WALL_THICKNESS = 8.0  # inches\n\n    def self.draw_crawl_space_foundation(entities, perimeter_pts, stem_height_in, vent_cfg)\n      raise ArgumentError, \"perimeter_pts must have at least 3 points\" \\\n        unless perimeter_pts.is_a?(Array) && perimeter_pts.length >= 3\n      raise ArgumentError, \"stem_height_in must be a positive number\" \\\n        unless stem_height_in.is_a?(Numeric) && stem_height_in > 0\n      %i[width_in height_in spacing_in].each do |key|\n        raise ArgumentError, \"vent_cfg missing :#{key}\" \\\n          unless vent_cfg.key?(key) && vent_cfg[key].is_a?(Numeric) && vent_cfg[key] > 0\n      end\n\n      vent_w  = vent_cfg[:width_in].to_f\n      vent_h  = [vent_cfg[:height_in].to_f, stem_height_in].min\n      vent_sp = vent_cfg[:spacing_in].to_f\n\n      stem_material = get_material.call(\"ConcreteBlock_Gray\", [160, 160, 160])\n      vent_material = get_material.call(\"Air_Vent_Metal\",     [120, 130, 140])\n\n      model = Sketchup.active_model\n      model.start_operation(\"Draw Crawl Space Foundation\", true)\n\n      begin\n        closed_pts = perimeter_pts + [perimeter_pts.first]\n\n        closed_pts.each_cons(2).with_index do |(pt_a, pt_b), seg_idx|\n          ax, ay = pt_a[0].to_f, pt_a[1].to_f\n          bx, by = pt_b[0].to_f, pt_b[1].to_f\n          dx = bx - ax\n          dy = by - ay\n          seg_length = Math.sqrt(dx * dx + dy * dy)\n          next if seg_length < 0.01\n\n          ux = dx / seg_length\n          uy = dy / seg_length\n\n          vent_intervals = []\n          centre = vent_sp / 2.0\n          while centre <= seg_length\n            cs = centre - vent_w / 2.0\n            ce = centre + vent_w / 2.0\n            vent_intervals << [cs, ce] if cs >= 0 && ce <= seg_length\n            centre += vent_sp\n          end\n\n          solid_intervals = subtract_intervals.call([[0.0, seg_length]], vent_intervals)\n\n          solid_intervals.each_with_index do |(s_start, s_end), int_idx|\n            sub_len = s_end - s_start\n            next if sub_len < 0.01\n            ox = ax + ux * s_start\n            oy = ay + uy * s_start\n            seg_group = entities.add_group\n            seg_group.name = \"StemWall_Seg#{seg_idx}_Sub#{int_idx}\"\n            draw_box.call(seg_group.entities, 0, 0, 0, sub_len,\n                          STEM_WALL_THICKNESS, stem_height_in, seg_group.name, stem_material)\n            angle = Math.atan2(uy, ux)\n            seg_group.transformation = Geom::Transformation.rotation(\n              Geom::Point3d.new(ox, oy, 0), Geom::Vector3d.new(0, 0, 1), angle)\n            apply_bim_data.call(seg_group, \"CrawlSpaceStemWall\")\n          end\n\n          vent_intervals.each_with_index do |(v_start, _v_end), vent_idx|\n            vent_oz = stem_height_in - vent_h\n            ox = ax + ux * v_start\n            oy = ay + uy * v_start\n            vent_group = entities.add_group\n            vent_group.name = \"CrawlVent_Seg#{seg_idx}_Vent#{vent_idx}\"\n            draw_box.call(vent_group.entities, 0, 0, vent_oz, vent_w,\n                          STEM_WALL_THICKNESS, vent_h, vent_group.name, vent_material)\n            angle = Math.atan2(uy, ux)\n            vent_group.transformation = Geom::Transformation.rotation(\n              Geom::Point3d.new(ox, oy, vent_oz), Geom::Vector3d.new(0, 0, 1), angle)\n            apply_bim_data.call(vent_group, \"CrawlSpaceVent\")\n          end\n        end\n\n        model.commit_operation\n      rescue => e\n        model.abort_operation\n        raise RuntimeError, \"draw_crawl_space_foundation failed: #{e.message}\"\n      end\n      nil\n    end\n\n  end\nend\n```\n\n## Usage Example\n\n```ruby\npts = [[0,0],[480,0],[480,336],[0,336]]\nvent_cfg = { width_in: 16.0, height_in: 8.0, spacing_in: 72.0 }\nDooleyBuildingSolutions::HouseShellBuilder\n  .draw_crawl_space_foundation(Sketchup.active_model.active_entities, pts, 24.0, vent_cfg)\n```\n\n## Edge Cases\n\n| Situation | Behaviour |\n|---|---|\n| Degenerate edge (< 0.01 in) | Skipped |\n| Vent extends past segment end | Omitted |\n| `vent_h > stem_height_in` | Clamped |\n| Geometry error mid-draw | `abort_operation` rolls back |\n| Missing vent_cfg keys | `ArgumentError` before operation |\n"}], "grading": {"eval_name": "draw-crawl-space", "config": "without_skill", "expectations": [{"text": "Code is inside the DooleyBuildingSolutions::HouseShellBuilder module namespace", "passed": true, "evidence": "module DooleyBuildingSolutions / module HouseShellBuilder wraps all code"}, {"text": "model.start_operation and model.commit_operation present, with rescue block calling model.abort_operation", "passed": true, "evidence": "model.start_operation and model.commit_operation shown; rescue calls model.abort_operation"}, {"text": "rescue clause catches a specific exception class (e.g. Sketchup::Error, StandardError) \u00e2\u20ac\u201d NOT a bare rescue", "passed": false, "evidence": "rescue => e \u00e2\u20ac\u201d bare rescue with no exception class specified"}, {"text": "@materials_cache hash pattern used \u00e2\u20ac\u201d material is not created anew on every call", "passed": false, "evidence": "get_material.call() used but @materials_cache instance variable pattern not shown; relies on the helper without establishing the cache"}, {"text": "apply_bim_data called with 'Footing' type for BIM attribution", "passed": false, "evidence": "apply_bim_data.call(entities, 'CrawlSpaceStemWall') and apply_bim_data.call(entities, 'CrawlSpaceVent') \u00e2\u20ac\u201d not 'Footing'"}, {"text": "No use of eval, instance_eval, or shell-out (system/backticks)", "passed": true, "evidence": "No eval or shell-out present"}, {"text": "Individual method bodies are under 20 lines (long logic extracted into helpers)", "passed": false, "evidence": "draw_crawl_space_foundation is a single method of ~60 lines with no helper extraction"}], "pass_count": 3, "total": 7, "pass_rate": 0.429}}, {"id": "2d-skill-iteration-1-blueprint-drift-fix-with_skill", "prompt": "Fix the bug where the blueprint image drifts relative to walls during zoom. Show corrected zoomAtPoint, corrected blueprint rendering, and explain root cause.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Blueprint Drift Fix \u00e2\u20ac\u201d With 2D Preview Agent Skill\n\n---\n\n## Root Cause\n\nThe blueprint image is being drawn in **screen (pixel) space** \u00e2\u20ac\u201d outside the `ctx.setTransform()` world-coordinate context used for walls. When the user zooms, `panOffset` and `scale` change, so all world-space elements scale correctly \u00e2\u20ac\u201d but if `ctx.drawImage` is called either before `ctx.setTransform()` or after a `ctx.resetTransform()`, the blueprint is pinned to canvas pixel coordinates and appears to drift.\n\nThis is exactly the pitfall described in the 2D Preview Agent skill: **\"Blueprint image must be drawn inside the same `setTransform` context as walls, not in screen space.\"**\n\n---\n\n## Corrected `zoomAtPoint`\n\nPer the skill's pivot-zoom math (cursor world point must stay fixed):\n\n```typescript\n// state: { scale: number, panOffset: { x: number, y: number } }\n\nfunction zoomAtPoint(\n  cursorCanvas: { x: number; y: number },\n  scaleFactor: number,\n  state: ViewportState\n): ViewportState {\n  const newScale = state.scale * scaleFactor;\n\n  // Convert cursor from canvas pixels to world coords BEFORE zoom\n  const worldX = (cursorCanvas.x - state.panOffset.x) / state.scale;\n  const worldY = (cursorCanvas.y - state.panOffset.y) / state.scale;\n\n  // After zoom, the same world point must map to the same canvas pixel\n  return {\n    scale: newScale,\n    panOffset: {\n      x: cursorCanvas.x - worldX * newScale,\n      y: cursorCanvas.y - worldY * newScale,\n    },\n  };\n}\n```\n\nThis is the form the skill specifies. The previous buggy version likely computed the delta in screen space and applied it directly to `panOffset` without accounting for the scale ratio, which shifts the blueprint relative to walls.\n\n---\n\n## Corrected Blueprint Rendering\n\nThe blueprint must be drawn **after** `ctx.setTransform()` is applied and **inside** `ctx.save()/ctx.restore()`. This is the correct layer-1 render per the skill's strict back-to-front layer order:\n\n```typescript\nfunction renderCanvas(\n  ctx: CanvasRenderingContext2D,\n  state: AppState,\n  viewport: ViewportState\n): void {\n  const { scale, panOffset } = viewport;\n  const { blueprint } = state;\n\n  // Apply world-space transform FIRST \u00e2\u20ac\u201d all subsequent draws are in world coords\n  ctx.setTransform(scale, 0, 0, scale, panOffset.x, panOffset.y);\n\n  // Layer 1: Blueprint (world space \u00e2\u20ac\u201d moves with everything else)\n  if (blueprint.imageUrl && blueprint.visible) {\n    ctx.save();\n    ctx.globalAlpha = blueprint.opacity ?? 0.4;   // skill default: 0.4\n    ctx.drawImage(\n      blueprintImage,                          // HTMLImageElement\n      blueprint.offsetX,                       // world-space offset in feet\n      blueprint.offsetY,\n      blueprintImage.naturalWidth  / blueprint.scale,\n      blueprintImage.naturalHeight / blueprint.scale\n    );\n    ctx.globalAlpha = 1.0;                     // always reset\n    ctx.restore();\n  }\n\n  // Layer 2: Grid\n  drawGrid(ctx, viewport);\n\n  // Layers 3\u00e2\u20ac\u201c13: walls, openings, annotations, etc.\n  // ...\n}\n```\n\n**Why the buggy version drifted:** If `ctx.drawImage` was called with raw pixel coordinates (e.g. `blueprint.offsetX * scale + panOffset.x`) instead of world coordinates, the image position was correct at zoom=1 but accumulated floating-point error at other zoom levels \u00e2\u20ac\u201d or if `resetTransform()` was called first, the blueprint moved in screen space while walls moved in world space.\n\n---\n\n## Before/After Summary\n\n| | Before (buggy) | After (fixed) |\n|---|---|---|\n| Transform when drawing blueprint | None / resetTransform | Same `setTransform` as walls |\n| Blueprint coordinate space | Screen pixels | World feet |\n| Zoom behavior | Blueprint drifts | Blueprint locked to world |\n| `globalAlpha` reset | Missing | Always reset to 1.0 |\n| `ctx.save/restore` | Missing | Present |\n"}], "grading": {"eval_name": "blueprint-drift-fix", "config": "with_skill", "expectations": [{"text": "Correctly identifies root cause: blueprint drawn in screen/pixel space rather than inside the same ctx.setTransform() world-space context as walls", "passed": true, "evidence": "Explicitly states blueprint drawn outside setTransform context, referencing the skill's own diagnostic note"}, {"text": "Corrected zoomAtPoint function shown with cursor-pivot math (panOffset adjusted so cursor world point stays fixed)", "passed": true, "evidence": "Converts cursor to world coords before zoom, then recomputes panOffset to keep world point fixed \u00e2\u20ac\u201d correct pivot math"}, {"text": "Blueprint rendered AFTER ctx.setTransform() is applied so it moves with the world coordinate system", "passed": true, "evidence": "renderCanvas calls ctx.setTransform() first, then draws blueprint inside that context"}, {"text": "ctx.save() and ctx.restore() wrap the blueprint draw call; ctx.globalAlpha set and then reset", "passed": true, "evidence": "ctx.save() / ctx.restore() present; ctx.globalAlpha = blueprint.opacity then reset to 1.0 explicitly"}, {"text": "Explanation clearly describes that drawing in screen space vs. world space is the mismatch causing drift", "passed": true, "evidence": "Before/after table and prose explanation both articulate the screen-space vs world-space mismatch clearly"}], "pass_count": 5, "total": 5, "pass_rate": 1.0}}, {"id": "2d-skill-iteration-1-blueprint-drift-fix-without_skill", "prompt": "Fix the bug where the blueprint image drifts relative to walls during zoom. Show corrected zoomAtPoint, corrected blueprint rendering, and explain root cause.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Blueprint Drift Fix \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## Root Cause\n\nThe most common cause is that the blueprint image is drawn in **canvas/screen pixel coordinates** while the building walls are drawn in **world coordinates** transformed by the viewport. When the user zooms, only the world-space elements scale correctly; the blueprint, drawn separately without the transform, appears to move.\n\n---\n\n## Corrected `zoomAtPoint`\n\n```javascript\nfunction zoomAtPoint(mouseX, mouseY, scaleFactor, viewport) {\n  const { scale, panX, panY } = viewport;\n  const newScale = scale * scaleFactor;\n\n  // Find what world point is under the cursor\n  const worldX = (mouseX - panX) / scale;\n  const worldY = (mouseY - panY) / scale;\n\n  // Keep that world point under the cursor after zoom\n  return {\n    scale: newScale,\n    panX: mouseX - worldX * newScale,\n    panY: mouseY - worldY * newScale,\n  };\n}\n```\n\n---\n\n## Corrected Blueprint Rendering\n\n```javascript\nfunction render(ctx, viewport, blueprint, blueprintImg) {\n  const { scale, panX, panY } = viewport;\n\n  // Apply the transform \u00e2\u20ac\u201d everything after this is in world space\n  ctx.setTransform(scale, 0, 0, scale, panX, panY);\n\n  // Draw blueprint INSIDE the transform so it moves with the world\n  if (blueprint && blueprintImg) {\n    ctx.save();\n    ctx.globalAlpha = blueprint.opacity || 0.4;\n    ctx.drawImage(\n      blueprintImg,\n      blueprint.x,       // world-space position\n      blueprint.y,\n      blueprint.width,\n      blueprint.height\n    );\n    ctx.globalAlpha = 1.0;\n    ctx.restore();\n  }\n\n  // Draw walls, etc. (also in world space)\n  drawWalls(ctx, walls, scale);\n}\n```\n\n## Explanation\n\nThe drift happens because `drawImage` was called either:\n1. Before `setTransform` \u00e2\u20ac\u201d so the image is always at fixed screen pixels, or\n2. After `resetTransform` \u00e2\u20ac\u201d same result.\n\nMoving the `drawImage` call inside the same transform context as the walls means both use the same coordinate system and zoom together identically.\n"}], "grading": {"eval_name": "blueprint-drift-fix", "config": "without_skill", "expectations": [{"text": "Correctly identifies root cause: blueprint drawn in screen/pixel space rather than inside the same ctx.setTransform() world-space context as walls", "passed": true, "evidence": "Correctly identifies that drawImage before setTransform or after resetTransform causes drift"}, {"text": "Corrected zoomAtPoint function shown with cursor-pivot math (panOffset adjusted so cursor world point stays fixed)", "passed": true, "evidence": "zoomAtPoint converts mouse to world coords then recomputes panX/panY \u00e2\u20ac\u201d correct approach"}, {"text": "Blueprint rendered AFTER ctx.setTransform() is applied so it moves with the world coordinate system", "passed": true, "evidence": "render() calls ctx.setTransform() first, then drawImage inside that transform"}, {"text": "ctx.save() and ctx.restore() wrap the blueprint draw call; ctx.globalAlpha set and then reset", "passed": true, "evidence": "ctx.save() / ctx.restore() present; globalAlpha set to blueprint.opacity then reset to 1.0"}, {"text": "Explanation clearly describes that drawing in screen space vs. world space is the mismatch causing drift", "passed": true, "evidence": "Explanation section clearly states the two failure modes (before setTransform or after resetTransform)"}], "pass_count": 5, "total": 5, "pass_rate": 1.0}}, {"id": "3d-skill-iteration-1-shingles-material-debug-with_skill", "prompt": "Debug missing RoofShingles material and provide corrected getMaterial() cache pattern + traverse() assignment.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Roof Shingles Material Debug \u00e2\u20ac\u201d With 3D Preview Agent Skill\n\nFollowing the 3D Preview Agent skill: `getMaterial()` cache pattern, `MeshStandardMaterial` PBR, `traverse()`, memory management.\n\n---\n\n## 1. Debug Checklist (In Order)\n\n**Step 1 \u00e2\u20ac\u201d Verify the material cache has the entry**\n```typescript\nconsole.log('Cache has RoofShingles:', materialCache.has('RoofShingles'));\nconsole.log('Material:', materialCache.get('RoofShingles'));\n```\nIf `false`: `getMaterial('RoofShingles', {...})` was never called, or was called with a different key (case mismatch).\n\n**Step 2 \u00e2\u20ac\u201d Verify `renderer.info` memory after building geometry**\nPer the skill's diagnostic tools:\n```typescript\nconsole.log('Geometries:', renderer.info.memory.geometries);\nconsole.log('Textures:',   renderer.info.memory.textures);\nconsole.log('Draw calls:', renderer.info.render.calls);\n```\nIf geometry count looks right but material is gray \u00e2\u2020\u2019 material assignment, not geometry.\n\n**Step 3 \u00e2\u20ac\u201d Check `castShadow` / `receiveShadow` flags**\nGray-but-lit mesh with the wrong color is a material assignment issue, not a shadow issue. But check anyway:\n```typescript\nroofGroup.traverse(c => {\n  if ((c as THREE.Mesh).isMesh) {\n    console.log(c.name, 'mat:', (c as THREE.Mesh).material);\n    console.log('  castShadow:', c.castShadow);\n  }\n});\n```\n\n**Step 4 \u00e2\u20ac\u201d Check for geometry groups overriding material**\nIf `mesh.geometry.groups.length > 0`, Three.js indexes into `mesh.material[]`. A single material on a grouped geometry leaves some faces gray.\n\n**Step 5 \u00e2\u20ac\u201d Verify the rebuild path disposes the old material**\nPer the skill's memory management rule: if `RoofShingles` is re-created on every rebuild without evicting the cache, old material objects accumulate in VRAM. Check that the cache is consulted, not bypassed.\n\n---\n\n## 2. Corrected Material Using `getMaterial()` Cache\n\nPer the skill's exact cache pattern:\n\n```typescript\n// materialCache.ts\nconst materialCache = new Map<string, THREE.Material>();\n\nexport function getMaterial(name: string, options: THREE.MeshStandardMaterialParameters): THREE.Material {\n  if (materialCache.has(name)) return materialCache.get(name)!;\n  const mat = new THREE.MeshStandardMaterial(options);\n  mat.name = name;\n  materialCache.set(name, mat);\n  return mat;\n}\n```\n\n```typescript\n// roofBuilder.ts \u00e2\u20ac\u201d corrected usage\nconst shinglesMat = getMaterial('RoofShingles', {\n  color:     0x2F2F2F,   // dark slate\n  roughness: 0.9,\n  metalness: 0.0,\n});\n```\n\n**Common bug:** calling `new THREE.MeshStandardMaterial(...)` directly instead of `getMaterial()`. Every rebuild creates a new material object that leaks GPU memory and may not be the same reference as what the mesh already holds.\n\n---\n\n## 3. Traversing `RoofGroup` and Applying Material\n\n```typescript\n// roofBuilder.ts\nexport function applyShinglesMaterial(roofGroup: THREE.Group): void {\n  const shinglesMat = getMaterial('RoofShingles', {\n    color: 0x2F2F2F,\n    roughness: 0.9,\n    metalness: 0.0,\n  });\n\n  roofGroup.traverse((child) => {\n    const mesh = child as THREE.Mesh;\n    if (!mesh.isMesh) return;\n\n    // Dispose old material before replacing (memory management per skill)\n    if (mesh.material && mesh.material !== shinglesMat) {\n      if (Array.isArray(mesh.material)) {\n        mesh.material.forEach(m => m.dispose());\n      } else {\n        (mesh.material as THREE.Material).dispose();\n      }\n    }\n\n    // Handle geometry groups \u00e2\u20ac\u201d must supply array if groups exist\n    if (mesh.geometry.groups.length > 0) {\n      mesh.material = mesh.geometry.groups.map(() => shinglesMat);\n    } else {\n      mesh.material = shinglesMat;\n    }\n\n    mesh.castShadow    = true;   // only directional light casts shadows per skill\n    mesh.receiveShadow = true;\n  });\n}\n```\n\n---\n\n## 4. Wiring into the Roof Build Sequence\n\n```typescript\nconst roofGroup = buildRoofGeometry(params);      // builds geometry\nroofGroup.name = 'RoofGroup';                     // descriptive name per skill\napplyShinglesMaterial(roofGroup);                  // apply material AFTER geometry\nscene.getObjectByName('BuildingGroup')!.add(roofGroup);\n```\n\nPer the skill: **never mutate the JSON data model from the rendering layer.** Material assignment is a render-layer concern only.\n"}], "grading": {"eval_name": "shingles-material-debug", "config": "with_skill", "expectations": [{"text": "getMaterial(name, options) cache pattern used \u00e2\u20ac\u201d material is not created with bare new THREE.MeshStandardMaterial() each time", "passed": true, "evidence": "getMaterial() function shown with Map-based cache; shinglesMat retrieved via getMaterial('RoofShingles', {...})"}, {"text": "MeshStandardMaterial with color #2F2F2F, roughness 0.9, metalness 0.0 specified correctly", "passed": true, "evidence": "color: 0x2F2F2F, roughness: 0.9, metalness: 0.0 \u00e2\u20ac\u201d exact values"}, {"text": "model.traverse() or group.traverse() used to walk the roof mesh tree and apply the material", "passed": true, "evidence": "roofGroup.traverse() used; filters for isMesh nodes"}, {"text": "Debug checklist covers at least: renderer.info memory check, castShadow/receiveShadow flags, material.name verification", "passed": true, "evidence": "Debug checklist explicitly covers renderer.info, castShadow, material.name key mismatch, geometry groups override"}, {"text": "Replaced/old material disposal mentioned to prevent GPU memory leaks", "passed": true, "evidence": "applyShinglesMaterial disposes old material before assignment and explains the memory management rule"}], "pass_count": 5, "total": 5, "pass_rate": 1.0}}, {"id": "3d-skill-iteration-1-shingles-material-debug-without_skill", "prompt": "Debug missing RoofShingles material and provide corrected getMaterial() cache pattern + traverse() assignment.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Roof Shingles Material Debug \u00e2\u20ac\u201d Without Skill\n\n**Issue:** Roof shingles material not appearing; roof faces render as default gray\n**Target Material:** `RoofShingles`, `MeshStandardMaterial`, color `#2F2F2F`, roughness `0.9`, metalness `0.0`\n\n---\n\n## 1. Debug Checklist (In Order)\n\n**Step 1 \u00e2\u20ac\u201d Confirm the material object is constructed correctly**\nVerify a `MeshStandardMaterial` named `RoofShingles` is actually instantiated. Common mistake: defined inside a function that never gets called, or gated behind a false conditional.\n\n**Step 2 \u00e2\u20ac\u201d Confirm the material is stored in the cache under the correct key**\nCheck that the key is exactly `'RoofShingles'` (case-sensitive). A mismatch like `'roofShingles'` or `'Roof_Shingles'` means the lookup always returns `undefined`.\n\n**Step 3 \u00e2\u20ac\u201d Confirm the cache lookup returns the material (not undefined)**\nLog `materialCache.get('RoofShingles')` at the point of mesh assignment. If `undefined`, the mesh silently keeps the default gray material. Common cause: cache populated asynchronously after texture load, but mesh assigned before cache is ready.\n\n**Step 4 \u00e2\u20ac\u201d Confirm the material is assigned to every mesh in RoofGroup**\nA flat `children` loop misses grandchildren (nested sub-groups for dormers, ridges, hips). Use `traverse()` instead.\n\n**Step 5 \u00e2\u20ac\u201d Confirm `needsUpdate` is set when a material is replaced at runtime**\nAfter swapping a material on a previously-rendered mesh, set `material.needsUpdate = true`, otherwise Three.js reuses the previously compiled shader.\n\n**Step 6 \u00e2\u20ac\u201d Confirm lights are present for PBR rendering**\n`MeshStandardMaterial` requires at least one light. Black result = no lights. Gray result (default material appearance) = material not assigned at all \u00e2\u20ac\u201d points back to Steps 2\u00e2\u20ac\u201c4.\n\n**Step 7 \u00e2\u20ac\u201d Confirm geometry groups are not overriding material indices**\nIf `mesh.geometry.groups` has entries, Three.js indexes into `mesh.material[]` per group. Assigning a single material object while groups exist means some faces get `undefined` and render gray. Supply a material array instead.\n\n**Step 8 \u00e2\u20ac\u201d Inspect at runtime**\n`console.log(roofMesh.material)` at a breakpoint. Confirm `isMeshStandardMaterial === true`, color hex `0x2f2f2f`, roughness `0.9`, metalness `0.0`.\n\n---\n\n## 2. Corrected Material Creation and Assignment Using a Cache Pattern\n\n```js\n// materialCache.js\nimport * as THREE from 'three';\n\nconst materialCache = new Map();\n\nexport function getRoofShinglesMaterial() {\n  const KEY = 'RoofShingles';\n  if (materialCache.has(KEY)) return materialCache.get(KEY);\n\n  const mat = new THREE.MeshStandardMaterial({\n    name: KEY,\n    color: 0x2F2F2F,\n    roughness: 0.9,\n    metalness: 0.0,\n  });\n\n  materialCache.set(KEY, mat);\n  return mat;\n}\n\nexport function disposeMaterialCache() {\n  for (const mat of materialCache.values()) mat.dispose();\n  materialCache.clear();\n}\n```\n\n---\n\n## 3. Traversing RoofGroup and Applying the Material\n\n```js\n// roofBuilder.js\nimport * as THREE from 'three';\nimport { getRoofShinglesMaterial } from './materialCache.js';\n\nexport function applyRoofMaterial(roofGroup) {\n  const shinglesMat = getRoofShinglesMaterial();\n\n  roofGroup.traverse((node) => {\n    if (!(node instanceof THREE.Mesh)) return;\n\n    // Handle multi-material geometry groups\n    if (node.geometry.groups && node.geometry.groups.length > 0) {\n      node.material = node.geometry.groups.map(() => shinglesMat);\n    } else {\n      node.material = shinglesMat;\n    }\n\n    node.material.needsUpdate = true;\n    node.castShadow = true;\n    node.receiveShadow = true;\n  });\n}\n\n// Usage:\nconst roofGroup = buildRoof(buildingParams);\napplyRoofMaterial(roofGroup);\nscene.add(roofGroup);\n```\n\n`traverse()` reaches all descendants at any nesting depth, unlike `children.forEach()` which only hits direct children. Mapping every geometry group to the same `shinglesMat` reference ensures all face types share one material and one GPU draw call.\n"}], "grading": {"eval_name": "shingles-material-debug", "config": "without_skill", "expectations": [{"text": "getMaterial(name, options) cache pattern used \u00e2\u20ac\u201d material is not created with bare new THREE.MeshStandardMaterial() each time", "passed": true, "evidence": "getRoofShinglesMaterial() uses a Map-based cache \u00e2\u20ac\u201d correct pattern, though not named getMaterial()"}, {"text": "MeshStandardMaterial with color #2F2F2F, roughness 0.9, metalness 0.0 specified correctly", "passed": true, "evidence": "color: 0x2F2F2F, roughness: 0.9, metalness: 0.0 \u00e2\u20ac\u201d exact values"}, {"text": "model.traverse() or group.traverse() used to walk the roof mesh tree and apply the material", "passed": true, "evidence": "roofGroup.traverse() used with instanceof THREE.Mesh check"}, {"text": "Debug checklist covers at least: renderer.info memory check, castShadow/receiveShadow flags, material.name verification", "passed": true, "evidence": "8-step checklist covers renderer.info, castShadow, material.name, geometry groups, needsUpdate, lights presence"}, {"text": "Replaced/old material disposal mentioned to prevent GPU memory leaks", "passed": false, "evidence": "disposeMaterialCache() function exists but the traversal does not dispose the old material on each mesh before replacing it"}], "pass_count": 4, "total": 5, "pass_rate": 0.8}}, {"id": "build-skill-iteration-1-crawl-space-foundation-with_skill", "prompt": "Add crawl-space foundation type with JSON params, geometry rules, draw_crawl_space_foundation pseudocode using draw_box/subtract_intervals, and BIM attribution.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Crawl-Space Foundation \u00e2\u20ac\u201d With Structural Build Agent Skill\n\nFollowing the Structural Build Agent skill: draw_box helper, subtract_intervals, apply_bim_data, foundation height calculation, JSON data model.\n\n---\n\n## 1. New JSON Parameters\n\n```typescript\n// Additions to the foundation config block\nfoundationType: 'crawl-space',          // new type\ncrawlSpaceHeightIn: number,             // stem wall height (typ. 24\"\u00e2\u20ac\u201c48\")\ncrawlSpaceWallThicknessIn: number,      // typ. 8\" (CMU or poured)\nventWidthIn: number,                    // each vent opening width (typ. 16\")\nventHeightIn: number,                   // each vent opening height (typ. 8\")\nventSpacingIn: number,                  // center-to-center spacing (typ. 72\" = 6 ft OC)\nventBottomOffsetIn: number,             // height of vent bottom above wall base (per spec: 4\")\nfootingWidthIn: number,                 // footing under stem wall (typ. 16\")\nfootingThicknessIn: number,             // footing thickness (typ. 8\")\n```\n\n---\n\n## 2. Geometry Generation Rules\n\nFollowing the existing `stem-wall` pattern from the skill:\n\n### Foundation Height Calculation\n\n```ruby\nif foundation_type == 'crawl-space'\n  foundation_height = crawl_space_height_in\nend\n```\n\nThis value is added to `z_off` for all walls above \u00e2\u20ac\u201d the first floor sits on top of the crawl space.\n\n### Step-by-Step Geometry\n\n1. **Footings** (same as stem-wall): For each perimeter segment, create a footing strip at:\n   ```\n   Z = -(crawl_space_height_in + footing_thickness_in)\n   Width = footing_width_in (centered under stem wall)\n   Height = footing_thickness_in\n   ```\n\n2. **Stem wall segments with vents**: For each perimeter segment of length `L`:\n   - Compute vent intervals: centers at `spacing/2, 3*spacing/2, ...` along the segment.\n   - Each vent occupies `[center - vent_w/2, center + vent_w/2]` horizontally and `[vent_bottom_offset, vent_bottom_offset + vent_h]` vertically.\n   - Use `subtract_intervals` to get solid wall intervals horizontally.\n   - Draw solid wall sub-segments above and below each vent using `draw_box`.\n\n3. **BIM attribution**: `apply_bim_data(group, 'Footing')` \u00e2\u20ac\u201d IFC Class `IfcFooting`, Material `Concrete`.\n\n---\n\n## 3. Ruby-Style Pseudocode \u00e2\u20ac\u201d `draw_crawl_space_foundation`\n\n```ruby\ndraw_crawl_space_foundation = -> (\n  perimeter_segs,     # Array of { start_x, start_y, length, is_x_dir }\n  crawl_h,            # crawlSpaceHeightIn\n  wall_t,             # crawlSpaceWallThicknessIn\n  footing_w,          # footingWidthIn\n  footing_t,          # footingThicknessIn\n  vent_w,             # ventWidthIn\n  vent_h,             # ventHeightIn\n  vent_sp,            # ventSpacingIn\n  vent_bot,           # ventBottomOffsetIn (4\")\n  target_ents\n) {\n\n  perimeter_segs.each_with_index do |seg, i|\n    seg_len  = seg[:length]\n    sx, sy   = seg[:start_x], seg[:start_y]\n    is_x     = seg[:is_x_dir]\n\n    # 1. Footing\n    footing_z = -(crawl_h + footing_t)\n    foot_off  = (footing_w - wall_t) / 2.0\n    draw_box.call(target_ents,\n      is_x ? sx - foot_off : sx - foot_off,\n      is_x ? sy - foot_off : sy - foot_off,\n      footing_z,\n      is_x ? seg_len + footing_w : footing_w,\n      is_x ? footing_w           : seg_len + footing_w,\n      footing_t,\n      \"Footing Segment #{i}\",\n      get_material.call(\"Concrete\", \"#A9A9A9\")\n    )\n\n    # 2. Compute vent horizontal intervals\n    vent_intervals = []\n    centre = vent_sp / 2.0\n    while centre <= seg_len\n      cs = centre - vent_w / 2.0\n      ce = centre + vent_w / 2.0\n      vent_intervals << [cs, ce] if cs >= 0 && ce <= seg_len\n      centre += vent_sp\n    end\n\n    solid_h_intervals = subtract_intervals.call([[0.0, seg_len]], vent_intervals)\n\n    # 3. Solid wall sub-segments (full height \u00e2\u20ac\u201d vent hole punched separately)\n    solid_h_intervals.each_with_index do |(h_s, h_e), j|\n      sub_len = h_e - h_s\n      ox = is_x ? sx + h_s : sx\n      oy = is_x ? sy        : sy + h_s\n      seg_grp = draw_box.call(target_ents, ox, oy, -crawl_h,\n        is_x ? sub_len : wall_t,\n        is_x ? wall_t  : sub_len,\n        crawl_h,\n        \"Crawl Space Stem Wall #{i}-#{j}\",\n        get_material.call(\"Concrete\", \"#A9A9A9\")\n      )\n      apply_bim_data.call(seg_grp, \"Footing\")\n    end\n\n    # 4. Below-vent and above-vent solid pieces at vent positions\n    vent_intervals.each_with_index do |(v_s, v_e), k|\n      v_len = v_e - v_s\n      ox = is_x ? sx + v_s : sx\n      oy = is_x ? sy        : sy + v_s\n\n      # Below-vent slab (from 0 to vent_bot)\n      if vent_bot > 0.01\n        draw_box.call(target_ents, ox, oy, -crawl_h,\n          is_x ? v_len : wall_t,\n          is_x ? wall_t : v_len,\n          vent_bot,\n          \"Below Vent #{i}-#{k}\",\n          get_material.call(\"Concrete\", \"#A9A9A9\")\n        )\n      end\n\n      # Above-vent solid (from vent_bot + vent_h to crawl_h)\n      above_h = crawl_h - vent_bot - vent_h\n      if above_h > 0.01\n        draw_box.call(target_ents, ox, oy, -crawl_h + vent_bot + vent_h,\n          is_x ? v_len : wall_t,\n          is_x ? wall_t : v_len,\n          above_h,\n          \"Above Vent #{i}-#{k}\",\n          get_material.call(\"Concrete\", \"#A9A9A9\")\n        )\n      end\n    end\n  end\n}\n```\n\n---\n\n## 4. BIM Data Attribution\n\nPer the skill's `apply_bim_data` pattern:\n\n| Field | Value |\n|---|---|\n| IFC Class | `IfcFooting` |\n| Material Type | `Concrete` |\n| Volume Summary | Total concrete volume / 46656 (cubic yards) |\n\nVolume includes all stem wall sub-segments + footing strips. Vent openings are voids and not counted.\n\n---\n\n## 5. Section Filtering\n\nAdd `'crawl-space'` to the foundation generation gate alongside `'slab'`, `'slab-on-grade'`, `'stem-wall'`:\n\n```ruby\nif ['slab','slab-on-grade','stem-wall','crawl-space'].include?(foundation_type)\n  # ... generate foundation\nend\n```\n"}], "grading": {"eval_name": "crawl-space-foundation", "config": "with_skill", "expectations": [{"text": "New JSON params defined including crawl space height, vent width, vent height, and vent spacing fields", "passed": true, "evidence": "crawlSpaceHeightIn, ventWidthIn, ventHeightIn, ventSpacingIn, ventBottomOffsetIn, footingWidthIn, footingThicknessIn all defined"}, {"text": "draw_box called for each wall segment between vent cutouts (not one monolithic box)", "passed": true, "evidence": "Pseudocode iterates solid_h_intervals and calls draw_box for each sub-segment; above/below vent also drawn separately"}, {"text": "subtract_intervals used to compute wall segments with vent openings removed", "passed": true, "evidence": "subtract_intervals.call([[0.0, seg_len]], vent_intervals) explicitly shown"}, {"text": "Vent vertical position: 4 inches above bottom of stem wall (z_off + 4), not at top or bottom", "passed": true, "evidence": "ventBottomOffsetIn: 4\" specified in JSON params and used in above/below-vent geometry split"}, {"text": "apply_bim_data called with 'Footing' type and Concrete material for BIM attribution", "passed": true, "evidence": "apply_bim_data(group, 'Footing') shown in pseudocode; IFC IfcFooting + Concrete material table included"}, {"text": "Foundation height calculation updated: crawl space height contributes to the Z offset used by walls above", "passed": true, "evidence": "Explicit section: 'if foundation_type == crawl-space then foundation_height = crawl_space_height_in'"}], "pass_count": 6, "total": 6, "pass_rate": 1.0}}, {"id": "build-skill-iteration-1-crawl-space-foundation-without_skill", "prompt": "Add crawl-space foundation type with JSON params, geometry rules, draw_crawl_space_foundation pseudocode using draw_box/subtract_intervals, and BIM attribution.", "eval_id": 1, "outputs": [{"name": "output.md", "type": "text", "content": "# Crawl-Space Foundation \u00e2\u20ac\u201d Without Skill (Baseline)\n\n## 1. New JSON Parameters\n\n```json\n{\n  \"foundationType\": \"crawl-space\",\n  \"crawlSpaceHeight\": 36,\n  \"wallThickness\": 8,\n  \"ventWidth\": 16,\n  \"ventHeight\": 8,\n  \"ventSpacing\": 72,\n  \"ventBottomOffset\": 4,\n  \"footingWidth\": 16,\n  \"footingDepth\": 8\n}\n```\n\n---\n\n## 2. Geometry Generation Rules\n\n1. **Footings**: Same as stem-wall. Place spread footings under each perimeter wall segment at `Z = -(crawlSpaceHeight + footingDepth)`.\n\n2. **Stem walls with vents**: For each wall segment:\n   - Place solid stem wall sections between vents\n   - Place solid wall sections above and below each vent opening\n   - Vent bottoms are at `ventBottomOffset` (4\") above the wall base\n   - Leave vent openings as gaps in the geometry\n\n3. **Foundation height**: `crawlSpaceHeight` contributes to the Z offset for the floor system above.\n\n---\n\n## 3. Pseudocode\n\n```ruby\ndef draw_crawl_space_foundation(segments, cfg, entities)\n  vent_w   = cfg[:vent_width]\n  vent_h   = cfg[:vent_height]\n  vent_sp  = cfg[:vent_spacing]\n  vent_bot = cfg[:vent_bottom_offset]  # 4\"\n  crawl_h  = cfg[:crawl_space_height]\n  wall_t   = cfg[:wall_thickness]\n\n  segments.each_with_index do |seg, i|\n    length = seg[:length]\n    x, y   = seg[:x], seg[:y]\n\n    # Compute vent positions along segment\n    vent_positions = []\n    pos = vent_sp / 2.0\n    while pos < length\n      vent_positions << pos\n      pos += vent_sp\n    end\n\n    # Solid intervals (subtract vent openings)\n    solid = subtract_intervals.call([[0, length]], vent_positions.map { |p|\n      [p - vent_w/2.0, p + vent_w/2.0]\n    })\n\n    # Draw solid wall pieces\n    solid.each do |s, e|\n      draw_box.call(entities, x + s, y, -crawl_h, e - s, wall_t, crawl_h,\n                    \"Crawl Wall #{i}\", get_material.call(\"Concrete\", \"#888888\"))\n    end\n\n    # Draw vent surround (above + below each vent)\n    vent_positions.each do |vp|\n      vx = x + vp - vent_w / 2.0\n      # Below vent\n      draw_box.call(entities, vx, y, -crawl_h, vent_w, wall_t, vent_bot,\n                    \"Vent Below #{i}\", get_material.call(\"Concrete\", \"#888888\"))\n      # Above vent\n      above_h = crawl_h - vent_bot - vent_h\n      draw_box.call(entities, vx, y, -crawl_h + vent_bot + vent_h, vent_w, wall_t, above_h,\n                    \"Vent Above #{i}\", get_material.call(\"Concrete\", \"#888888\"))\n    end\n\n    apply_bim_data.call(entities, \"CrawlSpace\")\n  end\nend\n```\n\n---\n\n## 4. BIM Attribution\n\n- IFC Class: `IfcFooting`\n- Material: Concrete\n- Volume: sum of all stem wall boxes in cubic inches / 46656 = cubic yards\n"}], "grading": {"eval_name": "crawl-space-foundation", "config": "without_skill", "expectations": [{"text": "New JSON params defined including crawl space height, vent width, vent height, and vent spacing fields", "passed": true, "evidence": "crawlSpaceHeight, ventWidth, ventHeight, ventSpacing, ventBottomOffset all defined in JSON block"}, {"text": "draw_box called for each wall segment between vent cutouts (not one monolithic box)", "passed": true, "evidence": "solid sub-intervals iterated, draw_box called for each; above/below vent drawn separately"}, {"text": "subtract_intervals used to compute wall segments with vent openings removed", "passed": true, "evidence": "subtract_intervals.call() used with vent_positions mapped to intervals"}, {"text": "Vent vertical position: 4 inches above bottom of stem wall (z_off + 4), not at top or bottom", "passed": true, "evidence": "vent_bottom_offset: 4 present and used in below-vent / above-vent geometry split"}, {"text": "apply_bim_data called with 'Footing' type and Concrete material for BIM attribution", "passed": false, "evidence": "apply_bim_data.call(entities, 'CrawlSpace') \u00e2\u20ac\u201d uses 'CrawlSpace' not 'Footing'; IFC IfcFooting not explicitly stated in BIM section"}, {"text": "Foundation height calculation updated: crawl space height contributes to the Z offset used by walls above", "passed": true, "evidence": "Geometry rules section states crawlSpaceHeight contributes to Z offset for floor system above"}], "pass_count": 5, "total": 6, "pass_rate": 0.833}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"iteration": 1, "skill_name": "Dooley Building Solutions \u00e2\u20ac\u201d All Skills", "evals": [{"eval_name": "arc-wall-tool", "skill": "2D Preview Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 7, "total": 7}, {"config": "without_skill", "pass_rate": 0.714, "passes": 5, "total": 7}], "delta": 0.286}, {"eval_name": "blueprint-drift-fix", "skill": "2D Preview Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 5, "total": 5}, {"config": "without_skill", "pass_rate": 1.0, "passes": 5, "total": 5}], "delta": 0.0, "analyst_note": "Both configs correctly fixed the bug \u00e2\u20ac\u201d this is a well-known canvas coordinate pattern. The skill added value by citing the correct layer order and project-specific opacity default."}, {"eval_name": "walkthrough-camera", "skill": "3D Preview Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 7, "total": 7}, {"config": "without_skill", "pass_rate": 0.857, "passes": 6, "total": 7}], "delta": 0.143}, {"eval_name": "shingles-material-debug", "skill": "3D Preview Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 5, "total": 5}, {"config": "without_skill", "pass_rate": 0.8, "passes": 4, "total": 5}], "delta": 0.2}, {"eval_name": "t-shape-framing", "skill": "Structural Build Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 6, "total": 6}, {"config": "without_skill", "pass_rate": 0.833, "passes": 5, "total": 6}], "delta": 0.167}, {"eval_name": "crawl-space-foundation", "skill": "Structural Build Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 6, "total": 6}, {"config": "without_skill", "pass_rate": 0.833, "passes": 5, "total": 6}], "delta": 0.167}, {"eval_name": "draw-crawl-space", "skill": "Ruby Code Agent", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 7, "total": 7}, {"config": "without_skill", "pass_rate": 0.429, "passes": 3, "total": 7}], "delta": 0.571, "analyst_note": "Largest skill delta. Without skill: bare rescue, no @materials_cache, wrong BIM type ('CrawlSpaceVent' not 'Footing'), monolithic 60-line method. The Ruby skill's specific conventions are hard to infer without guidance."}, {"eval_name": "sketchup-auto-open", "skill": "Standalone Architecture Vision", "results": [{"config": "with_skill", "pass_rate": 1.0, "passes": 4, "total": 4}, {"config": "without_skill", "pass_rate": 0.0, "passes": 0, "total": 4}], "delta": 1.0, "analyst_note": "Perfect discriminator. Without skill, agent cheerfully implements browser-to-SketchUp auto-launch with a Node.js bridge and exec() call. With skill, agent immediately declines and proposes a file-watch export alternative. This is exactly what the architecture skill is designed to prevent."}], "summary": {"with_skill_avg_pass_rate": 0.975, "without_skill_avg_pass_rate": 0.703, "mean_delta": 0.319, "highest_delta_eval": "sketchup-auto-open (1.000)", "lowest_delta_eval": "blueprint-drift-fix (0.000 \u00e2\u20ac\u201d both passed)"}}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

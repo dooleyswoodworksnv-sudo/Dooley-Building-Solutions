@@ -1,0 +1,34 @@
+{
+  "eval_name": "shingles-material-debug",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "getMaterial(name, options) cache pattern used — material is not created with bare new THREE.MeshStandardMaterial() each time",
+      "passed": true,
+      "evidence": "getMaterial() function shown with Map-based cache; shinglesMat retrieved via getMaterial('RoofShingles', {...})"
+    },
+    {
+      "text": "MeshStandardMaterial with color #2F2F2F, roughness 0.9, metalness 0.0 specified correctly",
+      "passed": true,
+      "evidence": "color: 0x2F2F2F, roughness: 0.9, metalness: 0.0 — exact values"
+    },
+    {
+      "text": "model.traverse() or group.traverse() used to walk the roof mesh tree and apply the material",
+      "passed": true,
+      "evidence": "roofGroup.traverse() used; filters for isMesh nodes"
+    },
+    {
+      "text": "Debug checklist covers at least: renderer.info memory check, castShadow/receiveShadow flags, material.name verification",
+      "passed": true,
+      "evidence": "Debug checklist explicitly covers renderer.info, castShadow, material.name key mismatch, geometry groups override"
+    },
+    {
+      "text": "Replaced/old material disposal mentioned to prevent GPU memory leaks",
+      "passed": true,
+      "evidence": "applyShinglesMaterial disposes old material before assignment and explains the memory management rule"
+    }
+  ],
+  "pass_count": 5,
+  "total": 5,
+  "pass_rate": 1.0
+}

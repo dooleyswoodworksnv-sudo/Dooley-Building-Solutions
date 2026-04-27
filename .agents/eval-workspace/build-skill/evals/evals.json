@@ -1,0 +1,18 @@
+{
+  "skill_name": "Structural Build Agent",
+  "skill_path": ".agents/build/skill/SKILL.md",
+  "evals": [
+    {
+      "id": 0,
+      "name": "t-shape-framing",
+      "prompt": "Generate the complete wall framing layout for a T-shaped building. The top bar is 40 ft wide × 20 ft deep. The stem is 20 ft wide × 24 ft deep and extends from the center of the top bar downward. All walls are 2×6 exterior (5.5\" depth), 9 ft tall. Provide: all 8 wall IDs with start coordinates (in inches), is_x_dir, ext_dir, sheathing/drywall extension values (sh_s, sh_e, dw_s, dw_e), and which walls are interior vs exterior. Also specify which truss run is affected by a dormer placed at the center of the top bar's front face, and which truss positions should be cut.",
+      "expected_output": "8 walls with correct inch coordinates. Walls that run along X axis vs Y axis correctly identified. Corner overlap extensions correctly computed (5.5\" for 2x6). Exterior direction (+1/-1) correct per wall position. T-junction walls properly flagged. Dormer cut range calculated from center of top bar minus half dormer width."
+    },
+    {
+      "id": 1,
+      "name": "crawl-space-foundation",
+      "prompt": "Add a new foundation type 'crawl-space' to the Structural Build Agent. A crawl-space foundation consists of: perimeter stem walls (like stem-wall type) plus vent openings cut into each wall segment — each vent is 8\" tall × 16\" wide, spaced 6 ft on center along each wall, positioned 4\" above the bottom of the stem wall. Define: (1) the new JSON parameters needed, (2) the geometry generation rules following the existing stem-wall pattern, (3) the Ruby-style pseudocode for `draw_crawl_space_foundation` using draw_box and subtract_intervals for the vent cutouts, (4) the BIM data attribution.",
+      "expected_output": "New JSON params: crawlSpaceHeightIn, ventWidthIn, ventHeightIn, ventSpacingIn. Geometry: stem walls per perimeter segment, vent intervals subtracted. draw_box calls for wall segments between vents. BIM: IfcFooting, Concrete material. Foundation height calculation updated to include crawl space height."
+    }
+  ]
+}

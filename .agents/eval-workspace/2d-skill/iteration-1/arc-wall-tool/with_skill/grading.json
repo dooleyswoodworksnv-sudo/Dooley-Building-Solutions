@@ -1,0 +1,44 @@
+{
+  "eval_name": "arc-wall-tool",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "Output contains a BaseTool subclass with onPointerDown, onPointerMove, onPointerUp, and drawOverlay methods",
+      "passed": true,
+      "evidence": "ArcWallTool class extends BaseTool and implements all four methods explicitly"
+    },
+    {
+      "text": "drawArcWall rendering function uses ctx.arc(), ctx.arcTo(), or bezierCurveTo() — not a straight lineTo()",
+      "passed": true,
+      "evidence": "drawArcWall calls ctx.arc() twice (outer and inner arc radii) to form the filled wall band"
+    },
+    {
+      "text": "JSON wall schema includes start, end, midpoint (or controlPoint), thickness, and type fields",
+      "passed": true,
+      "evidence": "Schema includes start, end, mid, thickness, type:'arc', wallType, and computed center/radius/angles"
+    },
+    {
+      "text": "Exterior wall color #2C2C2C and interior #555555 (or equivalent project palette) used in drawArcWall",
+      "passed": true,
+      "evidence": "fillStyle: wallType === 'exterior' ? '#2C2C2C' : '#555555' — exact project palette"
+    },
+    {
+      "text": "Math.round() or integer pixel coords used for canvas drawing (Hi-DPI / sub-pixel awareness)",
+      "passed": true,
+      "evidence": "Math.round() applied to cx, cy, rOuter, rInner and all canvas coordinates throughout"
+    },
+    {
+      "text": "ctx.save() and ctx.restore() bracket the drawing operations",
+      "passed": true,
+      "evidence": "ctx.save() at top and ctx.restore() at bottom of drawArcWall and drawOverlay"
+    },
+    {
+      "text": "Three-click workflow correctly staged: start, end, arc midpoint (or equivalent two-phase approach)",
+      "passed": true,
+      "evidence": "Phase state machine: idle → hasStart (click 1) → hasEnd (click 2) → commit on click 3 (midpoint)"
+    }
+  ],
+  "pass_count": 7,
+  "total": 7,
+  "pass_rate": 1.0
+}

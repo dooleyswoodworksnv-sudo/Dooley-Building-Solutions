@@ -1,0 +1,32 @@
+{
+  "eval_id": 1,
+  "eval_name": "blueprint-drift-fix",
+  "prompt": "Fix the bug where the blueprint image drifts relative to walls during zoom. Show corrected zoomAtPoint, corrected blueprint rendering, and explain root cause.",
+  "assertions": [
+    {
+      "text": "Correctly identifies root cause: blueprint drawn in screen/pixel space rather than inside the same ctx.setTransform() world-space context as walls",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Corrected zoomAtPoint function shown with cursor-pivot math (panOffset adjusted so cursor world point stays fixed)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Blueprint rendered AFTER ctx.setTransform() is applied so it moves with the world coordinate system",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "ctx.save() and ctx.restore() wrap the blueprint draw call; ctx.globalAlpha set and then reset",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Explanation clearly describes that drawing in screen space vs. world space is the mismatch causing drift",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

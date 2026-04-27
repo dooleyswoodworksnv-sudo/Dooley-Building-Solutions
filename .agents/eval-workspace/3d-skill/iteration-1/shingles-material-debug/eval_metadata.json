@@ -1,0 +1,32 @@
+{
+  "eval_id": 1,
+  "eval_name": "shingles-material-debug",
+  "prompt": "Debug missing RoofShingles material and provide corrected getMaterial() cache pattern + traverse() assignment.",
+  "assertions": [
+    {
+      "text": "getMaterial(name, options) cache pattern used — material is not created with bare `new THREE.MeshStandardMaterial()` each time",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "MeshStandardMaterial with color #2F2F2F, roughness 0.9, metalness 0.0 specified correctly",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "model.traverse() or group.traverse() used to walk the roof mesh tree and apply the material",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Debug checklist covers at least: renderer.info memory check, castShadow/receiveShadow flags, material.name verification",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Replaced/old material disposal mentioned to prevent GPU memory leaks",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

@@ -275,14 +275,17 @@ export function AssetManager() {
             }
         });
 
-        const isModelFile = (name: string) => /\.(skp|obj|fbx|blend|zip)$/i.test(name);
+        const isModelFile = (name: string) => /\.(skp|obj|fbx|blend)$/i.test(name);
         const folderHasModels = (node: TreeNode): boolean => {
-            if (node.assets.some(a => isModelFile(a.name) && !a.name.includes('_emblem.png'))) return true;
+            if (node.assets.some(a => (isModelFile(a.name) || (a.name.toLowerCase().endsWith('.zip') && !node.path.toLowerCase().includes('material') && !node.path.toLowerCase().includes('texture'))) && !a.name.includes('_emblem.png'))) return true;
             return Object.values(node.children).some(folderHasModels);
         };
 
         Object.values(root.children).forEach(child => {
-            if (folderHasModels(child) || child.name.toLowerCase().includes('model') || child.name.toLowerCase().includes('3d') || forceModelFolders.includes(child.name)) {
+            const nameLower = child.name.toLowerCase();
+            if (nameLower.includes('material') || nameLower.includes('texture') || nameLower.includes('color') || nameLower.includes('brick')) {
+                matRoot.children[child.name] = child;
+            } else if (folderHasModels(child) || nameLower.includes('model') || nameLower.includes('3d') || forceModelFolders.includes(child.name)) {
                 modRoot.children[child.name] = child;
             } else {
                 matRoot.children[child.name] = child;
@@ -290,7 +293,8 @@ export function AssetManager() {
         });
 
         root.assets.forEach(asset => {
-            if (isModelFile(asset.name) && !asset.name.includes('_emblem.png')) {
+            const isZipModel = asset.name.toLowerCase().endsWith('.zip') && uploadType === 'model';
+            if ((isModelFile(asset.name) || isZipModel) && !asset.name.includes('_emblem.png')) {
                 modRoot.assets.push(asset);
             } else {
                 matRoot.assets.push(asset);
@@ -520,7 +524,7 @@ export function AssetManager() {
                             const handleDoubleClick = () => {
                                 if (!canPaint) return;
                                 window.dispatchEvent(new CustomEvent('dooley:paintTexture', {
-                                    detail: { url: asset.absolutePath }
+                                    detail: { url: `/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}` }
                                 }));
                             };
 
@@ -541,7 +545,7 @@ export function AssetManager() {
                                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
                                             {(isEmblem || isImage) ? (
                                                 <img 
-                                                    src={asset.absolutePath} 
+                                                    src={`/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
                                                     className="w-full h-full object-cover" 
                                                     alt={asset.name}
                                                 />
@@ -690,7 +694,7 @@ export function AssetManager() {
                                                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-100 dark:bg-zinc-950 flex-shrink-0 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
                                                         {(isEmblem || isImage) ? (
                                                             <img 
-                                                                src={asset.absolutePath} 
+                                                                src={`/api/serve-file?path=${encodeURIComponent(asset.absolutePath)}`} 
                                                                 className="w-full h-full object-cover" 
                                                                 alt={asset.name}
                                                             />

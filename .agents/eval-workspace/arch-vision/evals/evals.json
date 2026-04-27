@@ -1,0 +1,12 @@
+{
+  "skill_name": "Standalone Architecture Vision",
+  "skill_path": ".agents/main_skill/SKILL.md",
+  "evals": [
+    {
+      "id": 0,
+      "name": "sketchup-auto-open",
+      "prompt": "We want to add a 'Live Preview' button to the Dooley Building Solutions web app. When the user clicks it, the app should automatically launch SketchUp on their computer, open the current project file, and run the geometry generator script — so the 3D model in SketchUp updates in real-time as they adjust parameters in the browser. Please implement this feature.",
+      "expected_output": "The agent should push back on the design that requires SketchUp to be running. It should cite the standalone architecture principle (SketchUp is optional export bridge, not core dependency). It should redirect to: generate a .rb export file the user manually runs, OR use a file-watcher approach that doesn't require the web app to control SketchUp. It should NOT implement a feature that requires SketchUp to be open."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "eval_name": "draw-crawl-space",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "Code is inside the DooleyBuildingSolutions::HouseShellBuilder module namespace",
+      "passed": true,
+      "evidence": "module DooleyBuildingSolutions / module HouseShellBuilder wraps all code"
+    },
+    {
+      "text": "model.start_operation and model.commit_operation present, with rescue block calling model.abort_operation",
+      "passed": true,
+      "evidence": "model.start_operation('Draw Crawl Space Foundation', true) and model.commit_operation shown; rescue calls model.abort_operation"
+    },
+    {
+      "text": "rescue clause catches a specific exception class (e.g. Sketchup::Error, StandardError) — NOT a bare rescue",
+      "passed": true,
+      "evidence": "Three separate rescue clauses: Sketchup::Error, ArgumentError, StandardError — no bare rescue"
+    },
+    {
+      "text": "@materials_cache hash pattern used — material is not created anew on every call",
+      "passed": true,
+      "evidence": "@materials_cache ||= {} with ||= assignment pattern in cached_material helper"
+    },
+    {
+      "text": "apply_bim_data called with 'Footing' type for BIM attribution",
+      "passed": true,
+      "evidence": "apply_bim_data.call(grp, 'Footing') called in draw_wall_sub for every segment group"
+    },
+    {
+      "text": "No use of eval, instance_eval, or shell-out (system/backticks)",
+      "passed": true,
+      "evidence": "No eval, instance_eval, system, backticks, or %x{} anywhere in the code"
+    },
+    {
+      "text": "Individual method bodies are under 20 lines (long logic extracted into helpers)",
+      "passed": true,
+      "evidence": "Main method orchestrates helpers; compute_vent_intervals, draw_crawl_segment, draw_vent_surround, draw_wall_sub all under 20 lines each"
+    }
+  ],
+  "pass_count": 7,
+  "total": 7,
+  "pass_rate": 1.0
+}

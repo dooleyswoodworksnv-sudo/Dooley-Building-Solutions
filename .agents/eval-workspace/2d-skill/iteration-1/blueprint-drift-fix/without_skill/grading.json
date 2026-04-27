@@ -1,0 +1,34 @@
+{
+  "eval_name": "blueprint-drift-fix",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Correctly identifies root cause: blueprint drawn in screen/pixel space rather than inside the same ctx.setTransform() world-space context as walls",
+      "passed": true,
+      "evidence": "Correctly identifies that drawImage before setTransform or after resetTransform causes drift"
+    },
+    {
+      "text": "Corrected zoomAtPoint function shown with cursor-pivot math (panOffset adjusted so cursor world point stays fixed)",
+      "passed": true,
+      "evidence": "zoomAtPoint converts mouse to world coords then recomputes panX/panY — correct approach"
+    },
+    {
+      "text": "Blueprint rendered AFTER ctx.setTransform() is applied so it moves with the world coordinate system",
+      "passed": true,
+      "evidence": "render() calls ctx.setTransform() first, then drawImage inside that transform"
+    },
+    {
+      "text": "ctx.save() and ctx.restore() wrap the blueprint draw call; ctx.globalAlpha set and then reset",
+      "passed": true,
+      "evidence": "ctx.save() / ctx.restore() present; globalAlpha set to blueprint.opacity then reset to 1.0"
+    },
+    {
+      "text": "Explanation clearly describes that drawing in screen space vs. world space is the mismatch causing drift",
+      "passed": true,
+      "evidence": "Explanation section clearly states the two failure modes (before setTransform or after resetTransform)"
+    }
+  ],
+  "pass_count": 5,
+  "total": 5,
+  "pass_rate": 1.0
+}

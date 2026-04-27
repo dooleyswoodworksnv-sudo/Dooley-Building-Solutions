@@ -146,6 +146,18 @@ app.get('/api/serve-file', (req, res) => {
         return res.status(404).send('File not found');
     }
 
+    // Set correct MIME type for HDRI and other uncommon formats
+    const ext = path.extname(requestedPath).toLowerCase();
+    const mimeOverrides: Record<string, string> = {
+        '.hdr': 'application/octet-stream',
+        '.exr': 'application/octet-stream',
+        '.glb': 'model/gltf-binary',
+        '.gltf': 'model/gltf+json',
+    };
+    if (mimeOverrides[ext]) {
+        res.setHeader('Content-Type', mimeOverrides[ext]);
+    }
+
     res.sendFile(requestedPath);
 });
 
@@ -353,6 +365,63 @@ app.post('/api/save-material-config', (req, res) => {
         res.json({ success: true });
     } catch (e: any) {
         console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ─── HDRI Environment files ───────────────────────────────────────────────
+const HDRI_DIR = path.join(process.cwd(), 'assets', 'hdri');
+
+app.get('/api/hdri', (req, res) => {
+    if (!fs.existsSync(HDRI_DIR)) {
+        fs.mkdirSync(HDRI_DIR, { recursive: true });
+    }
+    const files = fs.readdirSync(HDRI_DIR)
+        .filter(f => /\.(hdr|exr|hdri)$/i.test(f))
+        .map(f => ({
+            name: f,
+            url: `/assets/hdri/${encodeURIComponent(f)}`,
+            size: fs.statSync(path.join(HDRI_DIR, f)).size,
+        }));
+    res.json({ hdriFiles: files });
+});
+
+// Allow large HDRI files (up to 500 MB)
+const hdriUpload = multer({
+    dest: path.join(process.cwd(), 'downloads', 'hdri_tmp'),
+    limits: { fileSize: 500 * 1024 * 1024 },
+});
+
+app.post('/api/hdri/upload', hdriUpload.single('hdriFile'), (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: 'No file provided' });
+
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (!['.hdr', '.exr', '.hdri'].includes(ext)) {
+            fs.unlinkSync(file.path);
+            return res.status(400).json({ error: 'Only .hdr and .exr files are supported' });
+        }
+
+        // Ensure target directory exists
+        if (!fs.existsSync(HDRI_DIR)) {
+            fs.mkdirSync(HDRI_DIR, { recursive: true });
+        }
+
+        const finalName = file.originalname.replace(/\s+/g, '_');
+        const finalPath = path.join(HDRI_DIR, finalName);
+
+        // If a file with the same name exists, overwrite it
+        if (fs.existsSync(finalPath)) {
+            fs.unlinkSync(finalPath);
+        }
+        fs.renameSync(file.path, finalPath);
+
+        const webUrl = `/assets/hdri/${encodeURIComponent(finalName)}`;
+        console.log(`HDRI uploaded: ${finalName} → ${webUrl}`);
+        res.json({ success: true, name: finalName, url: webUrl });
+    } catch (e: any) {
+        console.error('HDRI upload error:', e);
         res.status(500).json({ error: e.message });
     }
 });

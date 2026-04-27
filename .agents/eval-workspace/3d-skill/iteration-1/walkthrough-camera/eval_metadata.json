@@ -1,0 +1,42 @@
+{
+  "eval_id": 0,
+  "eval_name": "walkthrough-camera",
+  "prompt": "Add a Walkthrough preset camera at eye height inside the front door, looking inward, with GSAP transition.",
+  "assertions": [
+    {
+      "text": "Camera Y position is approximately 66 inches (5.5 ft eye height above floor at Z=0)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Camera position is near the front face of the building (Z small/near-zero or slightly positive for just inside the door)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "lookAt target points inward along building depth (Z positive / into building), not outward",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "GSAP animation or easeInOutCubic lerp used for the camera transition (not an instant snap)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Integration into the existing preset view table shown with Preset name 'Walkthrough'",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "OrbitControls target updated to a point inside the building (not left at exterior default)",
+      "passed": null,
+      "evidence": ""
+    },
+    {
+      "text": "Camera config follows project standards: FOV 50, near 0.1, far 5000",
+      "passed": null,
+      "evidence": ""
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "iteration": 1,
+  "skill_name": "Dooley Building Solutions — All Skills",
+  "evals": [
+    {
+      "eval_name": "arc-wall-tool",
+      "skill": "2D Preview Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 7, "total": 7 },
+        { "config": "without_skill", "pass_rate": 0.714, "passes": 5, "total": 7 }
+      ],
+      "delta": 0.286
+    },
+    {
+      "eval_name": "blueprint-drift-fix",
+      "skill": "2D Preview Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 5, "total": 5 },
+        { "config": "without_skill", "pass_rate": 1.000, "passes": 5, "total": 5 }
+      ],
+      "delta": 0.000,
+      "analyst_note": "Both configs correctly fixed the bug — this is a well-known canvas coordinate pattern. The skill added value by citing the correct layer order and project-specific opacity default."
+    },
+    {
+      "eval_name": "walkthrough-camera",
+      "skill": "3D Preview Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 7, "total": 7 },
+        { "config": "without_skill", "pass_rate": 0.857, "passes": 6, "total": 7 }
+      ],
+      "delta": 0.143
+    },
+    {
+      "eval_name": "shingles-material-debug",
+      "skill": "3D Preview Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 5, "total": 5 },
+        { "config": "without_skill", "pass_rate": 0.800, "passes": 4, "total": 5 }
+      ],
+      "delta": 0.200
+    },
+    {
+      "eval_name": "t-shape-framing",
+      "skill": "Structural Build Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 6, "total": 6 },
+        { "config": "without_skill", "pass_rate": 0.833, "passes": 5, "total": 6 }
+      ],
+      "delta": 0.167
+    },
+    {
+      "eval_name": "crawl-space-foundation",
+      "skill": "Structural Build Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 6, "total": 6 },
+        { "config": "without_skill", "pass_rate": 0.833, "passes": 5, "total": 6 }
+      ],
+      "delta": 0.167
+    },
+    {
+      "eval_name": "draw-crawl-space",
+      "skill": "Ruby Code Agent",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 7, "total": 7 },
+        { "config": "without_skill", "pass_rate": 0.429, "passes": 3, "total": 7 }
+      ],
+      "delta": 0.571,
+      "analyst_note": "Largest skill delta. Without skill: bare rescue, no @materials_cache, wrong BIM type ('CrawlSpaceVent' not 'Footing'), monolithic 60-line method. The Ruby skill's specific conventions are hard to infer without guidance."
+    },
+    {
+      "eval_name": "sketchup-auto-open",
+      "skill": "Standalone Architecture Vision",
+      "results": [
+        { "config": "with_skill",    "pass_rate": 1.000, "passes": 4, "total": 4 },
+        { "config": "without_skill", "pass_rate": 0.000, "passes": 0, "total": 4 }
+      ],
+      "delta": 1.000,
+      "analyst_note": "Perfect discriminator. Without skill, agent cheerfully implements browser-to-SketchUp auto-launch with a Node.js bridge and exec() call. With skill, agent immediately declines and proposes a file-watch export alternative. This is exactly what the architecture skill is designed to prevent."
+    }
+  ],
+  "summary": {
+    "with_skill_avg_pass_rate":    0.975,
+    "without_skill_avg_pass_rate": 0.703,
+    "mean_delta": 0.319,
+    "highest_delta_eval": "sketchup-auto-open (1.000)",
+    "lowest_delta_eval":  "blueprint-drift-fix (0.000 — both passed)"
+  }
+}

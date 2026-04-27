@@ -1,0 +1,39 @@
+{
+  "eval_name": "crawl-space-foundation",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "New JSON params defined including crawl space height, vent width, vent height, and vent spacing fields",
+      "passed": true,
+      "evidence": "crawlSpaceHeight, ventWidth, ventHeight, ventSpacing, ventBottomOffset all defined in JSON block"
+    },
+    {
+      "text": "draw_box called for each wall segment between vent cutouts (not one monolithic box)",
+      "passed": true,
+      "evidence": "solid sub-intervals iterated, draw_box called for each; above/below vent drawn separately"
+    },
+    {
+      "text": "subtract_intervals used to compute wall segments with vent openings removed",
+      "passed": true,
+      "evidence": "subtract_intervals.call() used with vent_positions mapped to intervals"
+    },
+    {
+      "text": "Vent vertical position: 4 inches above bottom of stem wall (z_off + 4), not at top or bottom",
+      "passed": true,
+      "evidence": "vent_bottom_offset: 4 present and used in below-vent / above-vent geometry split"
+    },
+    {
+      "text": "apply_bim_data called with 'Footing' type and Concrete material for BIM attribution",
+      "passed": false,
+      "evidence": "apply_bim_data.call(entities, 'CrawlSpace') — uses 'CrawlSpace' not 'Footing'; IFC IfcFooting not explicitly stated in BIM section"
+    },
+    {
+      "text": "Foundation height calculation updated: crawl space height contributes to the Z offset used by walls above",
+      "passed": true,
+      "evidence": "Geometry rules section states crawlSpaceHeight contributes to Z offset for floor system above"
+    }
+  ],
+  "pass_count": 5,
+  "total": 6,
+  "pass_rate": 0.833
+}

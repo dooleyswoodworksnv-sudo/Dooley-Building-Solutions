@@ -2,14 +2,14 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Copy, Check, Settings, Code, Home, DoorOpen, AppWindow, Plus, Trash2, Hammer, LayoutGrid, Magnet, Eye, Camera, Undo2, Redo2, ChevronDown, ChevronRight, ChevronLeft, Construction, Triangle, FileText, Upload, Move, RotateCw, Layers, Ruler, Lock, Unlock, Save, FolderOpen, Calculator, Globe, Cloud, Sun, Moon } from 'lucide-react';
 import Preview2D from './components/Preview2D';
 import Preview3D from './components/Preview3D';
-import { SYMBOL_CATALOG, SYMBOL_CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS } from './components/SymbolCatalog';
+import { SYMBOL_CATALOG, SYMBOL_CATEGORIES, CATEGORY_LABELS, CATEGORY_COLORS, getSymbolById } from './components/SymbolCatalog';
 import MaterialsEstimate from './components/MaterialsEstimate';
 import AssetLibrary from './components/assets/AssetLibrary';
 import { Box } from 'lucide-react';
 import { convertPDFToImages } from './services/pdfService';
 import { generateSketchUpCode, GenerationSection } from './utils/sketchupGenerator';
 import { analyzeBlueprint } from './services/aiService';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Link2, Unlink } from 'lucide-react';
 import { sanitize } from './utils/math';
 import { AssetManager } from './components/AssetManager';
 
@@ -115,6 +115,12 @@ export interface MaterialCosts {
   adhesive: number;
   roofUnderlayment: number;
   houseWrap: number;
+  header: number;
+  woodSiding: number;
+  vinylSiding: number;
+  hardieBoard: number;
+  brick: number;
+  stucco: number;
 }
 
 export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
@@ -138,7 +144,13 @@ export const DEFAULT_MATERIAL_COSTS: MaterialCosts = {
   joistHangers: 2.00,
   adhesive: 6.00,
   roofUnderlayment: 45.00,
-  houseWrap: 150.00
+  houseWrap: 150.00,
+  header: 15.00,
+  woodSiding: 3.50, // per sq ft
+  vinylSiding: 2.00,
+  hardieBoard: 4.50,
+  brick: 8.00,
+  stucco: 6.00
 };
 
 export interface InteriorAsset {
@@ -153,6 +165,9 @@ export interface InteriorAsset {
   floorIndex: number;
   widthIn?: number;
   depthIn?: number;
+  heightIn?: number;
+  modelUrl?: string;
+  modelFileName?: string;
 }
 
 export interface RoofPart {
@@ -177,6 +192,11 @@ export interface DormerConfig {
   overhangIn: number;
   fasciaIn: number;
   wallHeightIn: number;
+  // Legacy single-window properties
+  hasWindow?: boolean;
+  windowWidthIn?: number;
+  windowHeightIn?: number;
+  windowSillHeightIn?: number;
 }
 
 export interface CustomCamera {
@@ -265,6 +285,7 @@ export interface AppState {
   insulationThickness: number;
   addDrywall: boolean;
   drywallThickness: number;
+  wallFinishes: Record<number, 'none' | 'wood-siding' | 'vinyl-siding' | 'hardie-board' | 'brick' | 'stucco'>;
   generationSection: GenerationSection;
   // PDF Reference
   pdfImages: string[];
@@ -301,6 +322,11 @@ export interface AppState {
   showGround: boolean;
   showSky: boolean;
   showSun: boolean;
+  sunHour: number;
+  sunMonth: number;
+  siteLatitude: number;
+  hdriPreset: string;
+  customHdriUrl: string;
   // Roof Framing
   roofType: 'gable' | 'hip' | 'shed' | 'flat';
   roofPitch: number;
@@ -380,6 +406,7 @@ const DEFAULT_APP_STATE: AppState = {
   insulationThickness: 3.5,
   addDrywall: true,
   drywallThickness: 0.5,
+  wallFinishes: {},
   generationSection: 'all',
   pdfImages: [],
   selectedPdfIndex: 0,
@@ -411,6 +438,11 @@ const DEFAULT_APP_STATE: AppState = {
   showGround: true,
   showSky: true,
   showSun: true,
+  sunHour: 14,
+  sunMonth: 6,
+  siteLatitude: 39.5,
+  hdriPreset: 'city',
+  customHdriUrl: '',
   additionalStories: 0,
   currentFloorIndex: 0,
   upperFloorWallHeightFt: 8,
@@ -439,7 +471,13 @@ const DEFAULT_APP_STATE: AppState = {
     joistHangers: 2.00,
     adhesive: 6.00,
     roofUnderlayment: 45.00,
-    houseWrap: 150.00
+    houseWrap: 150.00,
+    header: 15.00,
+    woodSiding: 3.50,
+    vinylSiding: 2.00,
+    hardieBoard: 4.50,
+    brick: 8.00,
+    stucco: 6.00
   },
   roofType: 'gable',
   roofPitch: 4,
@@ -489,6 +527,7 @@ export default function App() {
   });
   const [activeWallSection, setActiveWallSection] = useState<string | null>(null);
   const [assets, setAssets] = useState<InteriorAsset[]>([]);
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => {
@@ -619,6 +658,7 @@ export default function App() {
   const [insulationThickness, setInsulationThickness] = useState<number>(3.5);
   const [addDrywall, setAddDrywall] = useState<boolean>(true);
   const [drywallThickness, setDrywallThickness] = useState<number>(0.5);
+  const [wallFinishes, setWallFinishes] = useState<Record<number, 'none' | 'wood-siding' | 'vinyl-siding' | 'hardie-board' | 'brick' | 'stucco'>>({});
 
   // PDF Reference State
   const [pdfImages, setPdfImages] = useState<string[]>([]);
@@ -647,6 +687,13 @@ export default function App() {
   const [showAxes, setShowAxes] = useState<boolean>(true);
   const [showSky, setShowSky] = useState<boolean>(true);
   const [showSun, setShowSun] = useState<boolean>(true);
+  const [sunHour, setSunHour] = useState<number>(14);
+  const [sunMonth, setSunMonth] = useState<number>(6);
+  const [siteLatitude, setSiteLatitude] = useState<number>(39.5);
+  const [hdriPreset, setHdriPreset] = useState<string>('city');
+  const [customHdriUrl, setCustomHdriUrl] = useState<string>('');
+  const [hdriFiles, setHdriFiles] = useState<{name: string; url: string; size: number}[]>([]);
+  const [hdriUploading, setHdriUploading] = useState(false);
   const [showRoof, setShowRoof] = useState<boolean>(true);
 
   // Roof Framing
@@ -748,6 +795,14 @@ export default function App() {
     }
   }, [foundationType]);
 
+  // Auto-fetch available custom HDRI files
+  useEffect(() => {
+    fetch('/api/hdri')
+      .then(r => r.json())
+      .then(d => setHdriFiles(d.hdriFiles || []))
+      .catch(() => {}); // Server may not be running
+  }, []);
+
   const handleApplyCalibration = () => {
     if (!pdfCalibration.p1 || !pdfCalibration.p2 || !calibrationLength) return;
 
@@ -810,7 +865,7 @@ export default function App() {
         additionalStories, upperFloorWallHeightFt, upperFloorWallHeightIn, upperFloorJoistSize,
         foundationType, stemWallHeightIn, stemWallThicknessIn, slabThicknessIn, thickenedEdgeDepthIn, footingWidthIn, footingThicknessIn, foundationShape,
         bumpouts, doors, windows, interiorWalls, exteriorWalls, assets,
-        showGround, showSky, showSun,
+        showGround, showSky, showSun, sunHour, sunMonth, siteLatitude, hdriPreset, customHdriUrl,
         studSpacing, studThickness, headerType, headerHeight, bottomPlates, topPlates,
         doorRoAllowance, windowRoAllowance, openingHeaderHeightIn,
         addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness,
@@ -1309,8 +1364,8 @@ export default function App() {
     bumpouts, doors, windows, interiorWalls, exteriorWalls, assets,
     studSpacing, studThickness, headerType, headerHeight,
     bottomPlates, topPlates, doorRoAllowance, windowRoAllowance,
-    openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, generationSection,
-    showGround, showSky, showSun,
+    openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, wallFinishes, generationSection,
+    showGround, showSky, showSun, sunHour, sunMonth, siteLatitude, hdriPreset, customHdriUrl,
     pdfImages, selectedPdfIndex, pdfScale, pdfOffset, pdfRotation, pdfOpacity, isBlueprintLocked, pdfCalibration,
     foundationType, slabThicknessIn, thickenedEdgeDepthIn, stemWallHeightIn, stemWallThicknessIn, footingWidthIn, footingThicknessIn, foundationShape,
     addFloorFraming, joistSpacing, joistSize, joistDirection, addSubfloor, subfloorThickness, subfloorMaterial, rimJoistThickness, generateDimensions, solidWallsOnly, noFramingFloorOnly,
@@ -1331,8 +1386,8 @@ export default function App() {
     bumpouts, doors, windows, interiorWalls, exteriorWalls, assets,
     studSpacing, studThickness, headerType, headerHeight,
     bottomPlates, topPlates, doorRoAllowance, windowRoAllowance,
-    openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, generationSection,
-    showGround, showSky, showSun,
+    openingHeaderHeightIn, addSheathing, sheathingThickness, addInsulation, insulationThickness, addDrywall, drywallThickness, wallFinishes, generationSection,
+    showGround, showSky, showSun, sunHour, sunMonth, siteLatitude, hdriPreset, customHdriUrl,
     pdfImages, selectedPdfIndex, pdfScale, pdfOffset, pdfRotation, pdfOpacity, isBlueprintLocked, pdfCalibration,
     foundationType, slabThicknessIn, thickenedEdgeDepthIn, stemWallHeightIn, stemWallThicknessIn, footingWidthIn, footingThicknessIn, foundationShape,
     addFloorFraming, joistSpacing, joistSize, joistDirection, addSubfloor, subfloorThickness, subfloorMaterial, rimJoistThickness, generateDimensions, solidWallsOnly, noFramingFloorOnly,
@@ -1385,6 +1440,7 @@ export default function App() {
     setInsulationThickness(state.insulationThickness ?? 3.5);
     setAddDrywall(state.addDrywall ?? true);
     setDrywallThickness(state.drywallThickness ?? 0.5);
+    setWallFinishes(state.wallFinishes || {});
     setGenerationSection(state.generationSection || 'all');
     setPdfImages(state.pdfImages || []);
     setSelectedPdfIndex(state.selectedPdfIndex || 0);
@@ -1398,6 +1454,11 @@ export default function App() {
     setShowGround(state.showGround !== undefined ? state.showGround : true);
     setShowSky(state.showSky !== undefined ? state.showSky : true);
     setShowSun(state.showSun !== undefined ? state.showSun : true);
+    setSunHour(state.sunHour !== undefined ? state.sunHour : 14);
+    setSunMonth(state.sunMonth !== undefined ? state.sunMonth : 6);
+    setSiteLatitude(state.siteLatitude !== undefined ? state.siteLatitude : 39.5);
+    setHdriPreset(state.hdriPreset || 'city');
+    setCustomHdriUrl(state.customHdriUrl || '');
     setSlabThicknessIn(state.slabThicknessIn || 4);
     setThickenedEdgeDepthIn(state.thickenedEdgeDepthIn || 12);
     setStemWallHeightIn(state.stemWallHeightIn || 24);
@@ -5183,6 +5244,74 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
 )}
 </div>
                   </div>
+                  
+                  <div className="grid grid-cols-1 gap-4 mt-4 mb-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Per-Wall Exterior Finish</label>
+                        <select
+                          onChange={(e) => {
+                            const val = e.target.value as any;
+                            if (!val) return;
+                            const newFinishes = { ...wallFinishes };
+                            getAvailableWallOptions.filter(o => !o.label.startsWith('Int')).forEach(o => {
+                              if (val === 'none') {
+                                delete newFinishes[o.id];
+                              } else {
+                                newFinishes[o.id] = val;
+                              }
+                            });
+                            setWallFinishes(newFinishes);
+                            e.target.value = ''; // reset after apply
+                          }}
+                          className="px-2 py-1 text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-zinc-600 dark:text-zinc-300"
+                        >
+                          <option value="">Bulk Apply To All...</option>
+                          <option value="none">None</option>
+                          <option value="wood-siding">Wood Siding</option>
+                          <option value="vinyl-siding">Vinyl Siding</option>
+                          <option value="hardie-board">Hardie Board</option>
+                          <option value="brick">Brick</option>
+                          <option value="stucco">Stucco</option>
+                        </select>
+                      </div>
+                      
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-2 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2 bg-zinc-50/50 dark:bg-[#1E1E1E] custom-scrollbar">
+                        {getAvailableWallOptions.filter(o => !o.label.startsWith('Int')).map(opt => (
+                          <div key={opt.id} className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{opt.label}</span>
+                            <select
+                              value={wallFinishes[opt.id] || 'none'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setWallFinishes(prev => {
+                                  const next = { ...prev };
+                                  if (val === 'none') {
+                                    delete next[opt.id];
+                                  } else {
+                                    next[opt.id] = val as any;
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="w-[120px] px-2 py-1 text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+                            >
+                              <option value="none">None</option>
+                              <option value="wood-siding">Wood Siding</option>
+                              <option value="vinyl-siding">Vinyl Siding</option>
+                              <option value="hardie-board">Hardie Board</option>
+                              <option value="brick">Brick</option>
+                              <option value="stucco">Stucco</option>
+                            </select>
+                          </div>
+                        ))}
+                        {getAvailableWallOptions.filter(o => !o.label.startsWith('Int')).length === 0 && (
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 text-center py-2">No exterior walls available</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Door RO Add</label>
@@ -6784,8 +6913,8 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                                     const newWin: WindowConfig = {
                                       id: `win-dormer-${Date.now()}`,
                                       wall: 9000 + dormerIndex,
-                                      xFt: Math.floor(((depthIn - winWidth) / 2) / 12),
-                                      xInches: ((depthIn - winWidth) / 2) % 12,
+                                      xFt: 0,
+                                      xInches: 0,
                                       yFt: 0,
                                       yInches: 0,
                                       widthIn: winWidth,
@@ -6801,66 +6930,104 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                                 </button>
                               </div>
                               {dormerWindows.map((win, winIdx) => (
-                                <div key={win.id} className="grid grid-cols-4 gap-2 items-end bg-white dark:bg-zinc-900 rounded p-2 border border-zinc-100 dark:border-zinc-800">
-                                  <div className="space-y-0.5">
-                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">Offset</label>
-                                    <div className="flex gap-1">
-                                      <input
-                                        type="number"
-                                        step="any"
-                                        value={win.xFt}
-                                        onChange={(e) => updateWindow(win.id, 'xFt', Number(e.target.value))}
-                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
-                                        placeholder="ft"
-                                      />
-                                      <input
-                                        type="number"
-                                        step="any"
-                                        value={win.xInches}
-                                        onChange={(e) => updateWindow(win.id, 'xInches', Number(e.target.value))}
-                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
-                                        placeholder="in"
-                                      />
+                                <div key={win.id} className="flex flex-col gap-2 bg-white dark:bg-zinc-900 rounded p-2 border border-zinc-100 dark:border-zinc-800">
+                                  <div className="grid grid-cols-4 gap-2 items-end">
+                                    <div className="space-y-0.5">
+                                      <label className="text-[9px] font-semibold text-zinc-400 uppercase" title="0 means perfectly centered on the dormer face.">Center Offset</label>
+                                      <div className="flex gap-1">
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={win.xFt}
+                                          onChange={(e) => updateWindow(win.id, 'xFt', Number(e.target.value))}
+                                          className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                          placeholder="ft"
+                                        />
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={win.xInches}
+                                          onChange={(e) => updateWindow(win.id, 'xInches', Number(e.target.value))}
+                                          className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                          placeholder="in"
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">W (in)</label>
-                                    <input
-                                      type="number"
-                                      step="any"
-                                      value={win.widthIn}
-                                      onChange={(e) => updateWindow(win.id, 'widthIn', Number(e.target.value))}
-                                      className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
-                                    />
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <label className="text-[9px] font-semibold text-zinc-400 uppercase">H (in)</label>
-                                    <input
-                                      type="number"
-                                      step="any"
-                                      value={win.heightIn}
-                                      onChange={(e) => updateWindow(win.id, 'heightIn', Number(e.target.value))}
-                                      className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
-                                    />
-                                  </div>
-                                  <div className="flex items-end gap-1">
-                                    <div className="flex-1 space-y-0.5">
-                                      <label className="text-[9px] font-semibold text-zinc-400 uppercase">Sill</label>
+                                    <div className="space-y-0.5">
+                                      <label className="text-[9px] font-semibold text-zinc-400 uppercase">W (in)</label>
                                       <input
                                         type="number"
                                         step="any"
-                                        value={win.sillHeightIn}
-                                        onChange={(e) => updateWindow(win.id, 'sillHeightIn', Number(e.target.value))}
+                                        value={win.widthIn}
+                                        onChange={(e) => updateWindow(win.id, 'widthIn', Number(e.target.value))}
                                         className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
                                       />
                                     </div>
-                                    <button
-                                      onClick={() => removeWindow(win.id)}
-                                      className="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors mb-0.5"
-                                      title="Remove window"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
+                                    <div className="space-y-0.5">
+                                      <label className="text-[9px] font-semibold text-zinc-400 uppercase">H (in)</label>
+                                      <input
+                                        type="number"
+                                        step="any"
+                                        value={win.heightIn}
+                                        onChange={(e) => updateWindow(win.id, 'heightIn', Number(e.target.value))}
+                                        className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                      />
+                                    </div>
+                                    <div className="flex items-end gap-1">
+                                      <div className="flex-1 space-y-0.5">
+                                        <label className="text-[9px] font-semibold text-zinc-400 uppercase">Sill</label>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={win.sillHeightIn}
+                                          onChange={(e) => updateWindow(win.id, 'sillHeightIn', Number(e.target.value))}
+                                          className="w-full px-1.5 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono"
+                                        />
+                                      </div>
+                                      <button
+                                        onClick={() => removeWindow(win.id)}
+                                        className="text-zinc-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors mb-0.5"
+                                        title="Remove window"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Link 3D Model (.glb) */}
+                                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center gap-2">
+                                      <label className="flex-1">
+                                        <input
+                                          type="file"
+                                          accept=".glb,.gltf"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              const url = URL.createObjectURL(file);
+                                              setWindows(prev => prev.map(w => w.id === win.id ? { ...w, modelUrl: url, modelFileName: file.name } : w));
+                                            }
+                                          }}
+                                        />
+                                        <div className="flex items-center gap-2 px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:border-emerald-400 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer transition-all">
+                                          <Link2 size={12} />
+                                          {win.modelUrl ? `Change: ${win.modelFileName || '3D Model'}` : 'Link .glb Model'}
+                                        </div>
+                                      </label>
+                                      {win.modelUrl && (
+                                        <button
+                                          onClick={() => {
+                                            if (win.modelUrl && win.modelUrl.startsWith('blob:')) URL.revokeObjectURL(win.modelUrl);
+                                            setWindows(prev => prev.map(w => w.id === win.id ? { ...w, modelUrl: undefined, modelFileName: undefined } : w));
+                                          }}
+                                          className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors"
+                                          title="Remove linked model"
+                                        >
+                                          <Unlink size={13} />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
@@ -7243,6 +7410,8 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
           {openSections.materials && (
             <MaterialsEstimate 
               state={currentState} 
+              getWallLength={getWallLength}
+              getAvailableWallOptions={getAvailableWallOptions}
               onUpdateCosts={(costs) => setMaterialCosts(costs)} 
             />
           )}
@@ -7348,15 +7517,282 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
               </div>
 
               <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                <div className="flex flex-col items-center justify-center py-4 text-center space-y-2">
-                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-500 dark:text-blue-400">
-                    <Sparkles size={18} />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400 rounded-md">
+                      <Sun size={14} />
+                    </div>
+                    <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px] uppercase tracking-wider">Sun Position &amp; Shadows</h3>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px] uppercase tracking-wider">Advanced Rendering</h3>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 max-w-[180px]">
-                      More textures and realistic lighting options coming soon.
+
+                  {/* Time of Day */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Time of Day</label>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+                        {(() => {
+                          const h = Math.floor(sunHour);
+                          const m = Math.round((sunHour - h) * 60);
+                          const period = h >= 12 ? 'PM' : 'AM';
+                          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                          return `${h12}:${m.toString().padStart(2, '0')} ${period}`;
+                        })()}
+                      </span>
+                    </div>
+                    <input
+                      type="range" min={5} max={21} step={0.25} value={sunHour}
+                      onChange={(e) => setSunHour(Number(e.target.value))}
+                      disabled={!showSun}
+                      className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-amber-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                      style={{
+                        background: showSun
+                          ? `linear-gradient(to right, #1e1b4b 0%, #f59e0b 20%, #f59e0b 60%, #f97316 80%, #1e1b4b 100%)`
+                          : undefined
+                      }}
+                    />
+                    <div className="flex justify-between text-[9px] text-zinc-400 dark:text-zinc-500 px-0.5">
+                      <span>5 AM</span>
+                      <span>Noon</span>
+                      <span>9 PM</span>
+                    </div>
+                  </div>
+
+                  {/* Month */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Month</label>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {['January','February','March','April','May','June','July','August','September','October','November','December'][sunMonth - 1]}
+                      </span>
+                    </div>
+                    <input
+                      type="range" min={1} max={12} step={1} value={sunMonth}
+                      onChange={(e) => setSunMonth(Number(e.target.value))}
+                      disabled={!showSun}
+                      className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                      style={{
+                        background: showSun
+                          ? `linear-gradient(to right, #60a5fa 0%, #4ade80 25%, #facc15 50%, #f97316 75%, #60a5fa 100%)`
+                          : undefined
+                      }}
+                    />
+                    <div className="flex justify-between text-[9px] text-zinc-400 dark:text-zinc-500 px-0.5">
+                      <span>Jan</span>
+                      <span>Apr</span>
+                      <span>Jul</span>
+                      <span>Oct</span>
+                      <span>Dec</span>
+                    </div>
+                  </div>
+
+                  {/* Site Latitude */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Site Latitude</label>
+                      <span className="text-xs font-bold text-sky-600 dark:text-sky-400 tabular-nums">
+                        {siteLatitude.toFixed(1)}°{siteLatitude >= 0 ? 'N' : 'S'}
+                      </span>
+                    </div>
+                    <input
+                      type="range" min={-60} max={70} step={0.5} value={siteLatitude}
+                      onChange={(e) => setSiteLatitude(Number(e.target.value))}
+                      disabled={!showSun}
+                      className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-sky-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                    />
+                    <div className="flex justify-between text-[9px] text-zinc-400 dark:text-zinc-500 px-0.5">
+                      <span>60°S</span>
+                      <span>Equator</span>
+                      <span>70°N</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {[
+                        { label: 'Miami', lat: 25.8 },
+                        { label: 'LA', lat: 34.1 },
+                        { label: 'Reno', lat: 39.5 },
+                        { label: 'NYC', lat: 40.7 },
+                        { label: 'Chicago', lat: 41.9 },
+                        { label: 'Seattle', lat: 47.6 },
+                        { label: 'London', lat: 51.5 },
+                        { label: 'Anchorage', lat: 61.2 },
+                      ].map(p => (
+                        <button
+                          key={p.label}
+                          onClick={() => setSiteLatitude(p.lat)}
+                          disabled={!showSun}
+                          className={`px-2 py-0.5 text-[9px] font-bold rounded-full border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                            Math.abs(siteLatitude - p.lat) < 0.5
+                              ? 'bg-sky-500/20 border-sky-500/50 text-sky-400'
+                              : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-sky-400 hover:text-sky-400'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {!showSun && (
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 text-center italic mt-1">
+                      Enable "Show Sun &amp; Shadows" above to adjust sun position.
                     </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="p-1.5 bg-violet-50 dark:bg-violet-900/20 text-violet-500 dark:text-violet-400 rounded-md">
+                      <Sparkles size={14} />
+                    </div>
+                    <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px] uppercase tracking-wider">HDRI Environment</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Controls ambient lighting and reflections. Different environments create different moods.
+                  </p>
+
+                  {/* Built-in presets */}
+                  <div>
+                    <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">Built-in Presets</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'city', label: 'City', emoji: '🏙️', desc: 'Urban skyline' },
+                        { id: 'sunset', label: 'Sunset', emoji: '🌅', desc: 'Golden hour' },
+                        { id: 'dawn', label: 'Dawn', emoji: '🌄', desc: 'Early morning' },
+                        { id: 'night', label: 'Night', emoji: '🌙', desc: 'Moonlit' },
+                        { id: 'warehouse', label: 'Warehouse', emoji: '🏭', desc: 'Industrial' },
+                        { id: 'forest', label: 'Forest', emoji: '🌲', desc: 'Natural green' },
+                        { id: 'apartment', label: 'Interior', emoji: '🏠', desc: 'Indoor light' },
+                        { id: 'studio', label: 'Studio', emoji: '📸', desc: 'Clean white' },
+                        { id: 'park', label: 'Park', emoji: '🌳', desc: 'Open sky' },
+                        { id: 'lobby', label: 'Lobby', emoji: '🏛️', desc: 'Soft ambient' },
+                      ].map(env => (
+                        <button
+                          key={env.id}
+                          onClick={() => { setHdriPreset(env.id); setCustomHdriUrl(''); }}
+                          className={`flex flex-col items-center p-2 rounded-lg border transition-all text-center ${
+                            hdriPreset === env.id && !customHdriUrl
+                              ? 'bg-violet-500/15 border-violet-500/50 ring-1 ring-violet-500/30 shadow-sm'
+                              : 'border-zinc-200 dark:border-zinc-700 hover:border-violet-400/50 hover:bg-violet-50/30 dark:hover:bg-violet-900/10'
+                          }`}
+                        >
+                          <span className="text-lg leading-none">{env.emoji}</span>
+                          <span className={`text-[9px] font-bold mt-1 uppercase tracking-wider ${
+                            hdriPreset === env.id && !customHdriUrl ? 'text-violet-400' : 'text-zinc-600 dark:text-zinc-400'
+                          }`}>{env.label}</span>
+                          <span className="text-[8px] text-zinc-400 dark:text-zinc-500 mt-0.5">{env.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom HDRI section */}
+                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">Custom HDR Skydomes</p>
+                      <button
+                        onClick={() => {
+                          fetch('/api/hdri')
+                            .then(r => r.json())
+                            .then(d => setHdriFiles(d.hdriFiles || []))
+                            .catch(() => {});
+                        }}
+                        className="text-[9px] text-zinc-400 hover:text-violet-400 transition-colors"
+                        title="Refresh HDRI list"
+                      >
+                        ↻ Refresh
+                      </button>
+                    </div>
+
+                    {/* Upload button */}
+                    <label className="block mb-2">
+                      <input
+                        type="file"
+                        accept=".hdr,.exr,.hdri"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setHdriUploading(true);
+                          try {
+                            const formData = new FormData();
+                            formData.append('hdriFile', file);
+                            const res = await fetch('/api/hdri/upload', { method: 'POST', body: formData });
+                            const data = await res.json();
+                            if (data.success) {
+                              // Refresh the list
+                              const listRes = await fetch('/api/hdri');
+                              const listData = await listRes.json();
+                              setHdriFiles(listData.hdriFiles || []);
+                              // Auto-select the newly uploaded file
+                              setCustomHdriUrl(data.url);
+                            }
+                          } catch (err) {
+                            console.error('HDRI upload failed:', err);
+                          } finally {
+                            setHdriUploading(false);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      <div className={`flex items-center justify-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg border-2 border-dashed transition-all cursor-pointer ${
+                        hdriUploading
+                          ? 'border-violet-400 bg-violet-500/10 text-violet-400 cursor-wait'
+                          : 'border-zinc-300 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:border-violet-400 hover:bg-violet-50/30 dark:hover:bg-violet-900/10 hover:text-violet-500'
+                      }`}>
+                        {hdriUploading ? (
+                          <>⏳ Uploading...</>
+                        ) : (
+                          <>
+                            <Upload size={14} />
+                            Upload .HDR / .EXR File
+                          </>
+                        )}
+                      </div>
+                    </label>
+
+                    {/* List of uploaded HDRI files */}
+                    {hdriFiles.length > 0 ? (
+                      <div className="space-y-1">
+                        {hdriFiles.map(f => {
+                          const isActive = customHdriUrl === f.url;
+                          const sizeMB = (f.size / (1024 * 1024)).toFixed(1);
+                          return (
+                            <button
+                              key={f.name}
+                              onClick={() => setCustomHdriUrl(f.url)}
+                              className={`w-full flex items-center gap-2 p-2 rounded-lg border transition-all text-left ${
+                                isActive
+                                  ? 'bg-violet-500/15 border-violet-500/50 ring-1 ring-violet-500/30'
+                                  : 'border-zinc-200 dark:border-zinc-700 hover:border-violet-400/50 hover:bg-violet-50/20 dark:hover:bg-violet-900/10'
+                              }`}
+                            >
+                              <span className="text-lg">🌐</span>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-[10px] font-bold truncate ${isActive ? 'text-violet-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                  {f.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ')}
+                                </p>
+                                <p className="text-[8px] text-zinc-400 dark:text-zinc-500">{sizeMB} MB • {f.name.split('.').pop()?.toUpperCase()}</p>
+                              </div>
+                              {isActive && <span className="text-[9px] text-violet-400 font-bold flex-shrink-0">✓ Active</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-3">
+                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 italic">
+                          No custom HDRIs uploaded yet.
+                        </p>
+                        <p className="text-[9px] text-zinc-400 dark:text-zinc-500 mt-1">
+                          Download .hdr files from{' '}
+                          <a href="https://polyhaven.com/hdris" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 underline">
+                            Poly Haven
+                          </a>
+                          {' '}and upload them here.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -7427,6 +7863,9 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                                   name: sym.name,
                                   widthIn: sym.widthIn,
                                   depthIn: sym.depthIn,
+                                  heightIn: sym.heightIn,
+                                  modelUrl: sym.glbPath,
+                                  modelFileName: sym.glbPath ? sym.id + '.glb' : undefined,
                                   x: 120,
                                   y: 120,
                                   rotation: 0,
@@ -7462,6 +7901,206 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                     );
                   })}
                 </div>
+
+                {/* ── Placed Assets Management ── */}
+                {assets.filter(a => a.floorIndex === currentFloorIndex).length > 0 && (
+                  <>
+                    <div className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-4" />
+                    <h3 className="font-bold text-zinc-800 dark:text-zinc-200 text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Link2 size={14} className="text-indigo-500" />
+                      Placed Assets — 3D Model Links
+                    </h3>
+                    <div className="space-y-2">
+                      {assets.filter(a => a.floorIndex === currentFloorIndex).map(asset => {
+                        const sym = getSymbolById(asset.type);
+                        const catColor = CATEGORY_COLORS[asset.category] || CATEGORY_COLORS['custom'] || '#6366f1';
+                        const isExpanded = expandedAssetId === asset.id;
+                        return (
+                          <div key={asset.id} className="rounded-lg border transition-all overflow-hidden"
+                            style={{ borderColor: isExpanded ? `${catColor}66` : `${catColor}33`, backgroundColor: `${catColor}06` }}
+                          >
+                            {/* Header row — click to expand */}
+                            <div
+                              className="flex items-center gap-2 p-2.5 cursor-pointer hover:bg-white/5 transition-colors"
+                              onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
+                            >
+                              {/* Symbol icon */}
+                              {sym && (
+                                <svg width="20" height="20" viewBox={`0 0 ${sym.widthIn} ${sym.depthIn}`} className="flex-shrink-0">
+                                  {sym.svgPaths.map((p, i) => (
+                                    <path key={i} d={p.d} fill={p.fill || 'none'} stroke={p.stroke || sym.color} strokeWidth={p.strokeWidth || 0.5} />
+                                  ))}
+                                </svg>
+                              )}
+                              {/* Name + model status */}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[11px] font-bold truncate" style={{ color: catColor }}>{asset.name}</div>
+                                <div className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate">
+                                  {asset.modelUrl
+                                    ? <span className="text-emerald-500">🧊 {asset.modelFileName || '3D Linked'}</span>
+                                    : <span className="text-zinc-400">No 3D model</span>
+                                  }
+                                </div>
+                              </div>
+                              {/* Expand chevron */}
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500">
+                                  {Math.round(asset.widthIn || 0)}×{Math.round(asset.depthIn || 0)}×{Math.round(asset.heightIn || 0)}"
+                                </span>
+                                {isExpanded
+                                  ? <ChevronDown size={14} className="text-zinc-400" />
+                                  : <ChevronRight size={14} className="text-zinc-400" />
+                                }
+                              </div>
+                            </div>
+
+                            {/* Expanded detail panel */}
+                            {isExpanded && (
+                              <div className="px-2.5 pb-3 pt-1 space-y-3 border-t" style={{ borderColor: `${catColor}22` }}>
+
+                                {/* Dimensions: W × D × H */}
+                                <div>
+                                  <label className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 block">
+                                    Dimensions (inches)
+                                  </label>
+                                  <div className="grid grid-cols-3 gap-1.5">
+                                    <div className="relative">
+                                      <input
+                                        type="number" min={1} step={1}
+                                        value={Math.round(asset.widthIn || 24)}
+                                        onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, widthIn: Math.max(1, Number(e.target.value)) } : a))}
+                                        onFocus={(e) => e.target.select()}
+                                        className="w-full pl-5 pr-1 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[11px] font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500"
+                                      />
+                                      <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">W</span>
+                                    </div>
+                                    <div className="relative">
+                                      <input
+                                        type="number" min={1} step={1}
+                                        value={Math.round(asset.depthIn || 24)}
+                                        onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, depthIn: Math.max(1, Number(e.target.value)) } : a))}
+                                        onFocus={(e) => e.target.select()}
+                                        className="w-full pl-5 pr-1 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[11px] font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500"
+                                      />
+                                      <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">D</span>
+                                    </div>
+                                    <div className="relative">
+                                      <input
+                                        type="number" min={1} step={1}
+                                        value={Math.round(asset.heightIn || 36)}
+                                        onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, heightIn: Math.max(1, Number(e.target.value)) } : a))}
+                                        onFocus={(e) => e.target.select()}
+                                        className="w-full pl-5 pr-1 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded text-[11px] font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500"
+                                      />
+                                      <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">H</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Scale slider */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Scale</label>
+                                    <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">{(asset.scale || 1).toFixed(2)}×</span>
+                                  </div>
+                                  <input
+                                    type="range" min={0.1} max={3} step={0.05}
+                                    value={asset.scale || 1}
+                                    onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, scale: Number(e.target.value) } : a))}
+                                    className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                  />
+                                  <div className="flex justify-between text-[8px] text-zinc-400 mt-0.5">
+                                    <span>0.1×</span>
+                                    <span>1×</span>
+                                    <span>3×</span>
+                                  </div>
+                                </div>
+
+                                {/* Rotation */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Rotation</label>
+                                    <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300">{Math.round(asset.rotation || 0)}°</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="range" min={0} max={360} step={15}
+                                      value={asset.rotation || 0}
+                                      onChange={(e) => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, rotation: Number(e.target.value) } : a))}
+                                      className="flex-1 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                    <button
+                                      onClick={() => setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, rotation: (a.rotation + 90) % 360 } : a))}
+                                      className="p-1 text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded transition-colors"
+                                      title="Rotate 90°"
+                                    >
+                                      <RotateCw size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* 3D Model Link */}
+                                <div className="flex items-center gap-1.5 pt-1 border-t" style={{ borderColor: `${catColor}15` }}>
+                                  <label className="cursor-pointer flex-1">
+                                    <input
+                                      type="file"
+                                      accept=".glb,.gltf"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const url = URL.createObjectURL(file);
+                                        setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, modelUrl: url, modelFileName: file.name } : a));
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                    <span
+                                      className="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-md border transition-colors cursor-pointer"
+                                      style={{
+                                        borderColor: asset.modelUrl ? `${catColor}44` : `${catColor}33`,
+                                        color: catColor,
+                                        backgroundColor: asset.modelUrl ? `${catColor}10` : `${catColor}08`,
+                                      }}
+                                      title={asset.modelUrl ? 'Change linked .glb model' : 'Link a .glb 3D model'}
+                                    >
+                                      <Link2 size={11} />
+                                      {asset.modelUrl ? `Change Model (${asset.modelFileName || '.glb'})` : 'Link .glb 3D Model'}
+                                    </span>
+                                  </label>
+                                  {asset.modelUrl && (
+                                    <button
+                                      onClick={() => {
+                                        if (asset.modelUrl && asset.modelUrl.startsWith('blob:')) URL.revokeObjectURL(asset.modelUrl);
+                                        setAssets(prev => prev.map(a => a.id === asset.id ? { ...a, modelUrl: undefined, modelFileName: undefined } : a));
+                                      }}
+                                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      title="Remove linked 3D model"
+                                    >
+                                      <Unlink size={13} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      if (confirm(`Remove "${asset.name}" from floor plan?`)) {
+                                        if (asset.modelUrl && asset.modelUrl.startsWith('blob:')) URL.revokeObjectURL(asset.modelUrl);
+                                        setAssets(prev => prev.filter(a => a.id !== asset.id));
+                                        setExpandedAssetId(null);
+                                      }
+                                    }}
+                                    className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                    title="Delete this asset"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -7762,6 +8401,11 @@ className="w-20 px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:
                 showGround={showGround}
                 showSky={showSky}
                 showSun={showSun}
+                sunHour={sunHour}
+                sunMonth={sunMonth}
+                siteLatitude={siteLatitude}
+                hdriPreset={hdriPreset}
+                customHdriUrl={customHdriUrl}
                 showRoof={showRoof}
                 showAxes={showAxes}
                 additionalStories={additionalStories}

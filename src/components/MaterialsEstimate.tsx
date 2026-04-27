@@ -1,16 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import { AppState, MaterialCosts, DEFAULT_MATERIAL_COSTS } from '../App';
 import { sanitize } from '../utils/math';
-import { Calculator, DollarSign, Package, Edit2, Save, X } from 'lucide-react';
+import { Calculator, DollarSign, Package, Edit2, Save, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Props {
   state: AppState;
+  getWallLength: (wallId: number) => number;
+  getAvailableWallOptions: { id: number, label: string }[];
   onUpdateCosts: (costs: MaterialCosts) => void;
 }
 
-export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
+export default function MaterialsEstimate({ state, getWallLength, getAvailableWallOptions, onUpdateCosts }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editCosts, setEditCosts] = useState<MaterialCosts>(state.materialCosts || DEFAULT_MATERIAL_COSTS);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    'Foundation': true,
+    'Floor System': true,
+    'Walls': true,
+    'Exterior Finish': true,
+    'Roof': true,
+    'Windows & Doors': true
+  });
+
+  const toggleGroup = (title: string) => {
+    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
+  };
 
   React.useEffect(() => {
     if (!isEditing) {
@@ -128,6 +142,36 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
     const adhesiveTubes = subfloorSheets > 0 ? Math.ceil(subfloorSheets / 4) : 0; // 1 tube per 4 sheets
     const hurricaneTiesQty = roofTrusses > 0 ? roofTrusses * 2 : 0; // 2 per truss
     const roofUnderlaymentRolls = roofSheathingSheets > 0 ? Math.ceil((roofSheathingSheets * 32) / 400) : 0; // 400 sq ft roll
+    const headersLengthIn = state.doors.reduce((sum, d) => sum + d.widthIn, 0) + state.windows.reduce((sum, w) => sum + w.widthIn, 0);
+    const headersLF = Math.ceil(headersLengthIn / 12);
+    
+    // Exterior Finishes
+    let woodSidingQty = 0;
+    let vinylSidingQty = 0;
+    let hardieBoardQty = 0;
+    let brickQty = 0;
+    let stuccoQty = 0;
+
+    const extWalls = getAvailableWallOptions.filter(o => !o.label.startsWith('Int'));
+    extWalls.forEach(wall => {
+      const finish = state.wallFinishes?.[wall.id];
+      if (finish && finish !== 'none') {
+        const lengthIn = getWallLength(wall.id);
+        const areaSqFt = (lengthIn / 12) * wallHeightFt;
+        
+        if (finish === 'wood-siding') woodSidingQty += areaSqFt;
+        else if (finish === 'vinyl-siding') vinylSidingQty += areaSqFt;
+        else if (finish === 'hardie-board') hardieBoardQty += areaSqFt;
+        else if (finish === 'brick') brickQty += areaSqFt;
+        else if (finish === 'stucco') stuccoQty += areaSqFt;
+      }
+    });
+
+    woodSidingQty = Math.ceil(woodSidingQty);
+    vinylSidingQty = Math.ceil(vinylSidingQty);
+    hardieBoardQty = Math.ceil(hardieBoardQty);
+    brickQty = Math.ceil(brickQty);
+    stuccoQty = Math.ceil(stuccoQty);
 
     // Basic Cost Assumptions (National Averages)
     const prices = state.materialCosts || DEFAULT_MATERIAL_COSTS;
@@ -152,7 +196,13 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
       joistHangers: joistHangersQty * prices.joistHangers,
       adhesive: adhesiveTubes * prices.adhesive,
       roofUnderlayment: roofUnderlaymentRolls * prices.roofUnderlayment,
-      houseWrap: houseWrapRolls * prices.houseWrap
+      houseWrap: houseWrapRolls * prices.houseWrap,
+      headers: headersLF * prices.header,
+      woodSiding: woodSidingQty * prices.woodSiding,
+      vinylSiding: vinylSidingQty * prices.vinylSiding,
+      hardieBoard: hardieBoardQty * prices.hardieBoard,
+      brick: brickQty * prices.brick,
+      stucco: stuccoQty * prices.stucco
     };
 
     const totalCost = Object.values(costs).reduce((a, b) => a + b, 0);
@@ -178,12 +228,18 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
         joistHangers: joistHangersQty,
         adhesive: adhesiveTubes,
         roofUnderlayment: roofUnderlaymentRolls,
-        houseWrap: houseWrapRolls
+        houseWrap: houseWrapRolls,
+        headers: headersLF,
+        woodSiding: woodSidingQty,
+        vinylSiding: vinylSidingQty,
+        hardieBoard: hardieBoardQty,
+        brick: brickQty,
+        stucco: stuccoQty
       },
       costs,
       totalCost
     };
-  }, [state]);
+  }, [state, getWallLength, getAvailableWallOptions]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -203,7 +259,8 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
                        key === 'plate' ? 'plates' : 
                        key === 'joist' ? 'joists' : 
                        key === 'door' ? 'doors' : 
-                       key === 'window' ? 'windows' : key;
+                       key === 'window' ? 'windows' : 
+                       key === 'header' ? 'headers' : key;
         return total + Number(estimate.quantities[qtyKey as keyof typeof estimate.quantities]) * editCosts[key as keyof MaterialCosts];
       }, 0)
     : estimate.totalCost;
@@ -266,54 +323,106 @@ export default function MaterialsEstimate({ state, onUpdateCosts }: Props) {
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
               {[
-                { id: 'stud', name: "Wall Studs (8')", qty: estimate.quantities.studs, active: true },
-                { id: 'plate', name: "Plates (8')", qty: estimate.quantities.plates, active: true },
-                { id: 'sheathing', name: "Sheathing (4x8)", qty: estimate.quantities.sheathing, active: state.addSheathing || state.solidWallsOnly },
-                { id: 'drywall', name: "Drywall (4x8)", qty: estimate.quantities.drywall, active: state.addDrywall || state.solidWallsOnly },
-                { id: 'insulation', name: "Insulation (Rolls)", qty: estimate.quantities.insulation, active: state.addInsulation || state.solidWallsOnly },
-                { id: 'concrete', name: "Concrete (CY)", qty: estimate.quantities.concrete, active: state.foundationType !== 'none' },
-                { id: 'rebar', name: "Rebar 20' Sticks", qty: estimate.quantities.rebar, active: state.foundationType !== 'none' },
-                { id: 'anchorBolts', name: "Anchor Bolts", qty: estimate.quantities.anchorBolts, active: state.foundationType !== 'none' },
-                { id: 'nails', name: "Framing Nails (Boxes)", qty: estimate.quantities.nails, active: true },
-                { id: 'houseWrap', name: "House Wrap (Rolls)", qty: estimate.quantities.houseWrap, active: state.addSheathing || state.solidWallsOnly },
-                { id: 'joist', name: "Floor Joists", qty: estimate.quantities.joists, active: state.addFloorFraming },
-                { id: 'joistHangers', name: "Joist Hangers", qty: estimate.quantities.joistHangers, active: state.addFloorFraming },
-                { id: 'subfloor', name: "Subfloor (4x8)", qty: estimate.quantities.subfloor, active: state.addFloorFraming && state.addSubfloor },
-                { id: 'adhesive', name: "Subfloor Adhesive", qty: estimate.quantities.adhesive, active: state.addFloorFraming && state.addSubfloor },
-                { id: 'door', name: "Doors", qty: estimate.quantities.doors, active: state.doors.length > 0 },
-                { id: 'window', name: "Windows", qty: estimate.quantities.windows, active: state.windows.length > 0 },
-                { id: 'truss', name: "Roof Trusses", qty: estimate.quantities.trusses, active: state.trussRuns.length > 0 },
-                { id: 'hurricaneTies', name: "Hurricane Ties", qty: estimate.quantities.hurricaneTies, active: state.trussRuns.length > 0 },
-                { id: 'roofSheathing', name: "Roof Sheathing", qty: estimate.quantities.roofSheathing, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
-                { id: 'roofUnderlayment', name: "Roof Underlayment (Rolls)", qty: estimate.quantities.roofUnderlayment, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
-              ].map((item) => {
-                const currentCost = isEditing ? editCosts[item.id as keyof MaterialCosts] : (state.materialCosts || DEFAULT_MATERIAL_COSTS)[item.id as keyof MaterialCosts];
-                const totalCost = Number(item.qty) * currentCost;
-                
-                return (
-                <tr key={item.id} className={`${item.active ? 'bg-white dark:bg-[#1E1E1E]' : 'bg-zinc-50/50 dark:bg-zinc-800/30 opacity-60'}`}>
-                  <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200">{item.name}</td>
-                  <td className="px-3 py-2 text-right text-zinc-600 dark:text-zinc-400">{item.qty}</td>
-                  <td className="px-3 py-2 text-right">
-                    {isEditing ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-zinc-400 dark:text-zinc-500">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={sanitize(editCosts[item.id as keyof MaterialCosts])}
-                          onChange={(e) => handleCostChange(item.id as keyof MaterialCosts, e.target.value)}
-                          className="w-16 px-1 py-0.5 text-right bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:text-zinc-200"
-                        />
+                {
+                  title: 'Foundation',
+                  items: [
+                    { id: 'concrete', name: "Concrete (CY)", qty: estimate.quantities.concrete, active: state.foundationType !== 'none' },
+                    { id: 'rebar', name: "Rebar 20' Sticks", qty: estimate.quantities.rebar, active: state.foundationType !== 'none' },
+                    { id: 'anchorBolts', name: "Anchor Bolts", qty: estimate.quantities.anchorBolts, active: state.foundationType !== 'none' },
+                  ]
+                },
+                {
+                  title: 'Floor System',
+                  items: [
+                    { id: 'joist', name: "Floor Joists", qty: estimate.quantities.joists, active: state.addFloorFraming },
+                    { id: 'joistHangers', name: "Joist Hangers", qty: estimate.quantities.joistHangers, active: state.addFloorFraming },
+                    { id: 'subfloor', name: "Subfloor (4x8)", qty: estimate.quantities.subfloor, active: state.addFloorFraming && state.addSubfloor },
+                    { id: 'adhesive', name: "Subfloor Adhesive", qty: estimate.quantities.adhesive, active: state.addFloorFraming && state.addSubfloor },
+                  ]
+                },
+                {
+                  title: 'Walls',
+                  items: [
+                    { id: 'stud', name: "Wall Studs (8')", qty: estimate.quantities.studs, active: true },
+                    { id: 'plate', name: "Plates (8')", qty: estimate.quantities.plates, active: true },
+                    { id: 'sheathing', name: "Sheathing (4x8)", qty: estimate.quantities.sheathing, active: state.addSheathing || state.solidWallsOnly },
+                    { id: 'houseWrap', name: "House Wrap (Rolls)", qty: estimate.quantities.houseWrap, active: state.addSheathing || state.solidWallsOnly },
+                    { id: 'drywall', name: "Drywall (4x8)", qty: estimate.quantities.drywall, active: state.addDrywall || state.solidWallsOnly },
+                    { id: 'insulation', name: "Insulation (Rolls)", qty: estimate.quantities.insulation, active: state.addInsulation || state.solidWallsOnly },
+                    { id: 'nails', name: "Framing Nails (Boxes)", qty: estimate.quantities.nails, active: true },
+                    { id: 'header', name: "Headers (LF)", qty: estimate.quantities.headers, active: state.doors.length > 0 || state.windows.length > 0 },
+                  ]
+                },
+                {
+                  title: 'Exterior Finish',
+                  items: [
+                    { id: 'woodSiding', name: "Wood Siding (SqFt)", qty: estimate.quantities.woodSiding, active: estimate.quantities.woodSiding > 0 },
+                    { id: 'vinylSiding', name: "Vinyl Siding (SqFt)", qty: estimate.quantities.vinylSiding, active: estimate.quantities.vinylSiding > 0 },
+                    { id: 'hardieBoard', name: "Hardie Board (SqFt)", qty: estimate.quantities.hardieBoard, active: estimate.quantities.hardieBoard > 0 },
+                    { id: 'brick', name: "Brick (SqFt)", qty: estimate.quantities.brick, active: estimate.quantities.brick > 0 },
+                    { id: 'stucco', name: "Stucco (SqFt)", qty: estimate.quantities.stucco, active: estimate.quantities.stucco > 0 },
+                  ]
+                },
+                {
+                  title: 'Roof',
+                  items: [
+                    { id: 'truss', name: "Roof Trusses", qty: estimate.quantities.trusses, active: state.trussRuns.length > 0 },
+                    { id: 'hurricaneTies', name: "Hurricane Ties", qty: estimate.quantities.hurricaneTies, active: state.trussRuns.length > 0 },
+                    { id: 'roofSheathing', name: "Roof Sheathing", qty: estimate.quantities.roofSheathing, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
+                    { id: 'roofUnderlayment', name: "Roof Underlayment (Rolls)", qty: estimate.quantities.roofUnderlayment, active: state.roofParts.length > 0 || state.trussRuns.length > 0 },
+                  ]
+                },
+                {
+                  title: 'Windows & Doors',
+                  items: [
+                    { id: 'door', name: "Doors", qty: estimate.quantities.doors, active: state.doors.length > 0 },
+                    { id: 'window', name: "Windows", qty: estimate.quantities.windows, active: state.windows.length > 0 },
+                  ]
+                }
+              ].map((group) => (
+                <React.Fragment key={group.title}>
+                  <tr 
+                    className="bg-zinc-50 dark:bg-zinc-800/80 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+                    onClick={() => toggleGroup(group.title)}
+                  >
+                    <td colSpan={4} className="px-3 py-2 font-bold text-zinc-700 dark:text-zinc-300 border-t border-b border-zinc-200 dark:border-zinc-700">
+                      <div className="flex items-center gap-2">
+                        {openGroups[group.title] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {group.title}
                       </div>
-                    ) : (
-                      <span className="text-zinc-600 dark:text-zinc-400">{formatCurrency(currentCost)}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right font-medium text-zinc-800 dark:text-zinc-200">{formatCurrency(totalCost)}</td>
-                </tr>
-              )})}
+                    </td>
+                  </tr>
+                  {openGroups[group.title] && group.items.map((item) => {
+                    const currentCost = isEditing ? editCosts[item.id as keyof MaterialCosts] : (state.materialCosts || DEFAULT_MATERIAL_COSTS)[item.id as keyof MaterialCosts];
+                    const totalCost = Number(item.qty) * currentCost;
+                    
+                    return (
+                      <tr key={item.id} className={`${item.active ? 'bg-white dark:bg-[#1E1E1E]' : 'bg-zinc-50/50 dark:bg-zinc-800/30 opacity-60'}`}>
+                        <td className="px-3 py-2 font-medium text-zinc-800 dark:text-zinc-200 pl-8">{item.name}</td>
+                        <td className="px-3 py-2 text-right text-zinc-600 dark:text-zinc-400">{item.qty}</td>
+                        <td className="px-3 py-2 text-right">
+                          {isEditing ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-zinc-400 dark:text-zinc-500">$</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={sanitize(editCosts[item.id as keyof MaterialCosts])}
+                                onChange={(e) => handleCostChange(item.id as keyof MaterialCosts, e.target.value)}
+                                className="w-16 px-1 py-0.5 text-right bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:text-zinc-200"
+                              />
+                            </div>
+                          ) : (
+                            <span className="text-zinc-600 dark:text-zinc-400">{formatCurrency(currentCost)}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-zinc-800 dark:text-zinc-200">{formatCurrency(totalCost)}</td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>

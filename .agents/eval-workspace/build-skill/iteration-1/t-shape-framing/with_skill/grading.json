@@ -1,0 +1,39 @@
+{
+  "eval_name": "t-shape-framing",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "Exactly 8 walls are defined (T-shape uses 8 per the skill's wall count table)",
+      "passed": true,
+      "evidence": "Table lists walls 1–8 with all fields"
+    },
+    {
+      "text": "All coordinates are in inches (40 ft = 480 in, 20 ft = 240 in, 24 ft = 288 in, 5.5 in depth)",
+      "passed": true,
+      "evidence": "480, 240, 288, 5.5 all present as inch values; conversion table shown"
+    },
+    {
+      "text": "Corner overlap extensions accounted for: sheathing/drywall extensions offset by wall depth (5.5 in) at shared corners",
+      "passed": true,
+      "evidence": "start_y values for horizontal walls use 234.5 (240 - 5.5) and vertical walls use 5.5 as start_y offset — correct corner insets"
+    },
+    {
+      "text": "ext_dir values are correctly assigned (+1 or -1) based on which side of each wall faces the exterior",
+      "passed": true,
+      "evidence": "Wall 1 (front) ext_dir=-1, Wall 2 (right) ext_dir=+1, Wall 8 (stem bottom) ext_dir=+1 — all consistent with exterior-facing direction"
+    },
+    {
+      "text": "Dormer cut range calculated from center of top bar (240 in from left) ± half dormer width, with affected truss indices identified",
+      "passed": true,
+      "evidence": "Center=240in, dormer 72in wide → X=204–276. Trusses at 24in OC: indices 9 (216), 10 (240), 11 (264) identified"
+    },
+    {
+      "text": "T-junction walls (where stem meets top bar) correctly handled — interior/exterior flags set appropriately",
+      "passed": true,
+      "evidence": "Walls 6 and 7 (stem sides) correctly start at y=234.5 (at rear of top bar), all marked exterior. T-junction note included."
+    }
+  ],
+  "pass_count": 6,
+  "total": 6,
+  "pass_rate": 1.0
+}

@@ -1,0 +1,18 @@
+{
+  "skill_name": "2D Preview Agent",
+  "skill_path": ".agents/.2D/skill/SKILL.md",
+  "evals": [
+    {
+      "id": 0,
+      "name": "arc-wall-tool",
+      "prompt": "Add a new drawing tool called `tool-arc-wall` to the 2D floor plan canvas. It should let the user draw curved walls using three click points: a start point, an end point, and a midpoint on the arc. The tool must follow the project's BaseTool architecture (onPointerDown, onPointerMove, onPointerUp, drawOverlay). The wall should be rendered using canvas bezier or arc paths. Include the JSON data model entry for a curved wall segment and the wall rendering function `drawArcWall(ctx, wall, pxPerFt)`. Follow all canvas drawing standards for this project.",
+      "expected_output": "A BaseTool subclass for arc wall drawing, a drawArcWall rendering function using ctx.arc or bezierCurveTo, correct JSON schema for curved wall (start, end, midpoint, thickness, type), proper snap integration, layer order compliance, and Hi-DPI awareness."
+    },
+    {
+      "id": 1,
+      "name": "blueprint-drift-fix",
+      "prompt": "In our 2D floor plan preview, the blueprint background image visually drifts (shifts position) relative to the drawn walls whenever the user zooms using the scroll wheel. The walls stay in place but the blueprint moves. Identify the likely root cause and write a corrected implementation. Specifically: show the corrected `zoomAtPoint` function, the corrected blueprint rendering call (using ctx.save/restore and ctx.drawImage with the viewport transform applied), and explain why the bug occurs.",
+      "expected_output": "Correct identification that blueprint must be drawn inside the same setTransform context as walls (not in screen space). Corrected zoomAtPoint implementation. Blueprint rendered with ctx.setTransform applied before drawImage, globalAlpha reset, ctx.save/restore wrapping. Clear explanation of the coordinate system mismatch."
+    }
+  ]
+}

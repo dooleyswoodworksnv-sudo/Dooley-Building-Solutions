@@ -1,0 +1,12 @@
+{
+  "skill_name": "Ruby Code Agent",
+  "skill_path": ".agents/ruby/skill/ruby-code/.main _agent/standalone-architecture/ruby,agent/SKILL.md",
+  "evals": [
+    {
+      "id": 0,
+      "name": "draw-crawl-space",
+      "prompt": "Write a complete, production-quality Ruby method `draw_crawl_space_foundation` inside the `DooleyBuildingSolutions::HouseShellBuilder` module for SketchUp. The method should accept: `entities` (SketchUp Entities), `perimeter_pts` (array of [x,y] pairs in inches defining the building footprint), `stem_height_in` (Float, height of the crawl space stem wall in inches), `vent_cfg` (Hash with keys :width_in, :height_in, :spacing_in). It should generate: (1) perimeter stem wall segments using draw_box, with vent openings cut using interval subtraction, (2) correct material using the material cache pattern, (3) BIM data attribution with IfcFooting and Concrete. Follow all coding standards: operation wrapping, namespacing, no eval, specific exception handling, method under 20 lines where possible.",
+      "expected_output": "Proper DooleyBuildingSolutions::HouseShellBuilder module namespace. model.start_operation / model.commit_operation with rescue/abort. draw_box calls for wall segments. subtract_intervals for vent positions. @materials_cache pattern. apply_bim_data call with 'Footing'. No bare rescue. ft_to_in conversion at boundary. Methods under 20 lines."
+    }
+  ]
+}

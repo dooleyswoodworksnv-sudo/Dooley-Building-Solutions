@@ -1,0 +1,39 @@
+{
+  "eval_name": "crawl-space-foundation",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "New JSON params defined including crawl space height, vent width, vent height, and vent spacing fields",
+      "passed": true,
+      "evidence": "crawlSpaceHeightIn, ventWidthIn, ventHeightIn, ventSpacingIn, ventBottomOffsetIn, footingWidthIn, footingThicknessIn all defined"
+    },
+    {
+      "text": "draw_box called for each wall segment between vent cutouts (not one monolithic box)",
+      "passed": true,
+      "evidence": "Pseudocode iterates solid_h_intervals and calls draw_box for each sub-segment; above/below vent also drawn separately"
+    },
+    {
+      "text": "subtract_intervals used to compute wall segments with vent openings removed",
+      "passed": true,
+      "evidence": "subtract_intervals.call([[0.0, seg_len]], vent_intervals) explicitly shown"
+    },
+    {
+      "text": "Vent vertical position: 4 inches above bottom of stem wall (z_off + 4), not at top or bottom",
+      "passed": true,
+      "evidence": "ventBottomOffsetIn: 4\" specified in JSON params and used in above/below-vent geometry split"
+    },
+    {
+      "text": "apply_bim_data called with 'Footing' type and Concrete material for BIM attribution",
+      "passed": true,
+      "evidence": "apply_bim_data(group, 'Footing') shown in pseudocode; IFC IfcFooting + Concrete material table included"
+    },
+    {
+      "text": "Foundation height calculation updated: crawl space height contributes to the Z offset used by walls above",
+      "passed": true,
+      "evidence": "Explicit section: 'if foundation_type == crawl-space then foundation_height = crawl_space_height_in'"
+    }
+  ],
+  "pass_count": 6,
+  "total": 6,
+  "pass_rate": 1.0
+}

@@ -1,0 +1,29 @@
+{
+  "eval_name": "sketchup-auto-open",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Agent pushes back on or declines to implement a design that requires SketchUp to be running/controlled by the browser",
+      "passed": false,
+      "evidence": "Agent proceeds to implement the feature as requested with a WebSocket bridge and native helper"
+    },
+    {
+      "text": "Agent explicitly references the standalone architecture principle (web app must work without SketchUp)",
+      "passed": false,
+      "evidence": "No mention of standalone architecture; no pushback on the SketchUp dependency"
+    },
+    {
+      "text": "Agent does NOT provide working browser-to-SketchUp auto-launch code",
+      "passed": false,
+      "evidence": "Full WebSocket bridge code provided: Node.js server that calls exec() to launch SketchUp.exe"
+    },
+    {
+      "text": "Agent proposes a compliant alternative (e.g. export file, file-watcher, manual run approach)",
+      "passed": false,
+      "evidence": "The file-watcher in the SketchUp extension watches for files dropped by the Node bridge — still requires the bridge running"
+    }
+  ],
+  "pass_count": 0,
+  "total": 4,
+  "pass_rate": 0.0
+}

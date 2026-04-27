@@ -1,0 +1,39 @@
+{
+  "eval_name": "t-shape-framing",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Exactly 8 walls are defined (T-shape uses 8 per the skill's wall count table)",
+      "passed": true,
+      "evidence": "Table lists exactly 8 walls"
+    },
+    {
+      "text": "All coordinates are in inches (40 ft = 480 in, 20 ft = 240 in, 24 ft = 288 in, 5.5 in depth)",
+      "passed": true,
+      "evidence": "480, 240, 288 used correctly in inches"
+    },
+    {
+      "text": "Corner overlap extensions accounted for: sheathing/drywall extensions offset by wall depth (5.5 in) at shared corners",
+      "passed": true,
+      "evidence": "y=234.5 and start offsets consistent with 5.5in corner overlap"
+    },
+    {
+      "text": "ext_dir values are correctly assigned (+1 or -1) based on which side of each wall faces the exterior",
+      "passed": true,
+      "evidence": "ext_dir values match exterior-facing directions for each wall"
+    },
+    {
+      "text": "Dormer cut range calculated from center of top bar (240 in from left) ± half dormer width, with affected truss indices identified",
+      "passed": true,
+      "evidence": "Center=240in, 72in dormer → 204–276in range, trusses at 216, 240, 264 identified"
+    },
+    {
+      "text": "T-junction walls (where stem meets top bar) correctly handled — interior/exterior flags set appropriately",
+      "passed": false,
+      "evidence": "Note mentions T-junction coordinate alignment but doesn't specify that the rear-facing top-bar walls (3,4) and stem walls (6,7) need explicit sheathing extension treatment at the junction"
+    }
+  ],
+  "pass_count": 5,
+  "total": 6,
+  "pass_rate": 0.833
+}
